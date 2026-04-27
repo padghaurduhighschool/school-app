@@ -2,7 +2,7 @@ const CACHE_NAME = 'school-app-v1';
 const ASSETS = [
   'index.html',
   'app.js',
-  'Padgha Urdu High School Logo.jpg',
+  'Padgha Urdu High School Logo.png',
   'https://cdn.tailwindcss.com'
 ];
 
