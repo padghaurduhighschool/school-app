@@ -142,10 +142,29 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 }
 
-function saveToDatabase(type, dist) {
-    // Firebase implementation will go here
-    alert(`Success: ${type} logged!`);
-}
+window.saveToDatabase = (type, dist) => {
+    const name = localStorage.getItem('userName');
+    const role = localStorage.getItem('userRole');
+    const dateKey = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+
+    // Create a path: attendance/2024-05-20
+    const attendanceRef = firebase.database().ref('attendance/' + dateKey);
+
+    attendanceRef.push({
+        name: name,
+        role: role,
+        type: type,
+        distance: Math.round(dist) + "m",
+        time: new Date().toLocaleTimeString(),
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    })
+    .then(() => {
+        alert("Success: " + type + " logged in database!");
+    })
+    .catch((error) => {
+        alert("Database Error: " + error.message);
+    });
+};
 
 window.triggerInstall = async () => {
     if (!deferredPrompt) return;
