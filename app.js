@@ -1,3 +1,8 @@
+{
+
+// Configuration
+const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
+    
 window.onload = () => {
     const savedRole = localStorage.getItem('userRole');
     if (savedRole) {
@@ -8,8 +13,7 @@ window.onload = () => {
     }
 };
 
-// Configuration
-const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
+
 
 // 1. SPLASH SCREEN TO LOGIN [cite: 168-172]
 setTimeout(() => {
@@ -169,4 +173,10 @@ function handleLogout() {
         
         alert("Logged out successfully.");
     }
+}
+
+
+
+
+
 }
