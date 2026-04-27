@@ -28,7 +28,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 // 4. LOGIN LOGIC
-async function handleLogin() {
+window.handleLogin = async function() {
     const phone = document.getElementById('phone').value;
     const code = document.getElementById('code').value;
 
@@ -50,12 +50,12 @@ async function handleLogin() {
             alert("Credentials not found. Please contact the school office.");
         }
     } catch (error) {
-        alert("Network error. Please check your internet connection.");
+        alert("Login failed. Check your internet.");
     }
-}
+};
 
 // 5. DASHBOARD NAVIGATION
-function loadSection(section) {
+window.loadSection = (section) {
     const content = document.getElementById('content');
     const role = localStorage.getItem('userRole');
     const name = localStorage.getItem('userName');
@@ -111,7 +111,7 @@ function loadSection(section) {
 }
 
 // 6. ATTENDANCE & GEOLOCATION
-function markAttendance(type) {
+window.markAttendance = (type) {
     const statusDiv = document.getElementById('location-status');
     statusDiv.innerText = "📍 Locating your position...";
 
@@ -145,7 +145,7 @@ function saveToDatabase(type, dist) {
     alert(`Success: ${type} logged!`);
 }
 
-async function triggerInstall() {
+window.triggerInstall = () {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
@@ -155,7 +155,7 @@ async function triggerInstall() {
     }
 }
 
-function handleLogout() {
+window.handleLogout = () {
     if (confirm("Sign out of the system?")) {
         localStorage.clear();
         location.reload();
