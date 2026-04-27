@@ -1,3 +1,13 @@
+window.onload = () => {
+    const savedRole = localStorage.getItem('userRole');
+    if (savedRole) {
+        // If session exists, skip login and go straight to dashboard 
+        document.getElementById('splash-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        loadSection('home');
+    }
+};
+
 // Configuration
 const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
 
@@ -82,6 +92,24 @@ function loadSection(section) {
             `;
         }
     }
+    if (section === 'more') {
+        content.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-6 border-b">
+                    <p class="text-gray-500 text-sm">Logged in as</p>
+                    <p class="font-bold text-lg">${name} (${role})</p>
+                </div>
+                <div class="p-4 space-y-2">
+                    <button class="w-full text-left p-4 hover:bg-gray-50 rounded-xl flex items-center">
+                        <span class="mr-3">👤</span> Profile Settings
+                    </button>
+                    <button onclick="handleLogout()" class="w-full text-left p-4 text-red-600 hover:bg-red-50 rounded-xl font-bold flex items-center">
+                        <span class="mr-3">🚪</span> Logout
+                    </button>
+                </div>
+            </div>
+        `;
+    }
 }
 
 // 4. GEOFENCING LOGIC (Placeholder for now) [cite: 99-100, 103]
@@ -125,4 +153,20 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
               Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
+}
+function handleLogout() {
+    if (confirm("Are you sure you want to logout?")) {
+        // Clear all stored user data 
+        localStorage.clear();
+        
+        // Hide the main app and show the login screen
+        document.getElementById('main-app').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+        
+        // Optional: Reset input fields
+        document.getElementById('phone').value = '';
+        document.getElementById('code').value = '';
+        
+        alert("Logged out successfully.");
+    }
 }
