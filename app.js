@@ -65,18 +65,31 @@ window.loadSection = (section) => {
 
     if (section === 'home') {
         if (role === "Teacher") {
-            content.innerHTML = `
-                <div class="space-y-4">
-                    <h2 class="text-xl font-bold">Welcome, ${name}</h2>
-                    <div class="grid grid-cols-2 gap-4">
-                        <button onclick="markAttendance('IN')" class="bg-green-500 text-white p-6 rounded-2xl font-bold shadow-lg active:scale-95">Check IN</button>
-                        <button onclick="markAttendance('OUT')" class="bg-red-500 text-white p-6 rounded-2xl font-bold shadow-lg active:scale-95">Check OUT</button>
-                        <button onclick="markAttendance('Break OUT')" class="bg-yellow-500 text-white p-6 rounded-2xl font-bold shadow-lg active:scale-95">Break OUT</button>
-                        <button onclick="markAttendance('Break IN')" class="bg-blue-500 text-white p-6 rounded-2xl font-bold shadow-lg active:scale-95">Break IN</button>
-                    </div>
-                    <div id="location-status" class="text-sm text-gray-600 mt-4 text-center italic">Ready to mark attendance.</div>
-                </div>
-            `;
+            const hasCheckedIn = localStorage.getItem('hasCheckedInToday') === 'true';
+
+    content.innerHTML = `
+        <div class="space-y-4">
+            <h2 class="text-xl font-bold">Welcome, ${name}</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <button id="btn-in" onclick="markAttendance('IN')" 
+                    ${hasCheckedIn ? 'disabled' : ''} 
+                    class="w-full p-6 rounded-2xl font-bold shadow-lg transition-all
+                    ${hasCheckedIn ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-500 text-white active:scale-95'}">
+                    ${hasCheckedIn ? '✅ Already Checked IN' : 'Check IN'}
+                </button>
+
+                <button id="btn-out" onclick="markAttendance('OUT')" 
+                    ${!hasCheckedIn ? 'disabled' : ''} 
+                    class="w-full p-6 rounded-2xl font-bold shadow-lg transition-all
+                    ${!hasCheckedIn ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-500 text-white active:scale-95'}">
+                    Check OUT
+                </button>
+            </div>
+            <div id="location-status" class="text-sm text-gray-600 mt-4 text-center italic">
+                ${hasCheckedIn ? 'You are currently on duty.' : 'Ready to mark attendance.'}
+            </div>
+        </div>
+    `;
         } else {
                 content.innerHTML = `
                 <div class="space-y-4">
