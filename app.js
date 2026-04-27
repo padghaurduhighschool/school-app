@@ -55,7 +55,7 @@ window.handleLogin = async function() {
 };
 
 // 5. DASHBOARD NAVIGATION
-window.loadSection = (section) {
+window.loadSection = (section) => {
     const content = document.getElementById('content');
     const role = localStorage.getItem('userRole');
     const name = localStorage.getItem('userName');
@@ -111,7 +111,7 @@ window.loadSection = (section) {
 }
 
 // 6. ATTENDANCE & GEOLOCATION
-window.markAttendance = (type) {
+window.markAttendance = (type) => {
     const statusDiv = document.getElementById('location-status');
     statusDiv.innerText = "📍 Locating your position...";
 
@@ -145,7 +145,7 @@ function saveToDatabase(type, dist) {
     alert(`Success: ${type} logged!`);
 }
 
-window.triggerInstall = () {
+window.triggerInstall = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
@@ -155,7 +155,7 @@ window.triggerInstall = () {
     }
 }
 
-window.handleLogout = () {
+window.handleLogout = () => {
     if (confirm("Sign out of the system?")) {
         localStorage.clear();
         location.reload();
