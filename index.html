@@ -71,6 +71,28 @@
         });
       }
 </script>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+
+<script>
+  // Use the config you just generated
+  const firebaseConfig = {
+    apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
+    authDomain: "padgha-school-erp.firebaseapp.com",
+    databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "padgha-school-erp",
+    storageBucket: "padgha-school-erp.firebasestorage.app",
+    messagingSenderId: "481255456109",
+    appId: "1:481255456109:web:077e656f3dd03aee43ae64",
+    measurementId: "G-RXBBRWG5SE"
+  };
+
+  // Initialize Firebase for the browser
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+</script>
+
     
   <script src="app.js"></script>  
 </body>
