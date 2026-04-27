@@ -78,18 +78,30 @@ window.loadSection = (section) => {
                 </div>
             `;
         } else {
-            content.innerHTML = `
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-white p-4 rounded-xl shadow border-l-4 border-blue-600">
-                        <p class="text-gray-500 text-sm">Today's Attendance</p>
-                        <p class="text-2xl font-bold">95%</p>
+                content.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-600">
+                            <p class="text-gray-500 text-xs uppercase font-bold">Today's Logs</p>
+                            <p id="total-logs" class="text-2xl font-bold">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500">
+                            <p class="text-gray-500 text-xs uppercase font-bold">Outside 10m</p>
+                            <p id="outside-logs" class="text-2xl font-bold">0</p>
+                        </div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl shadow border-l-4 border-green-600">
-                        <p class="text-gray-500 text-sm">Teachers Present</p>
-                        <p class="text-2xl font-bold">12/15</p>
+
+                    <h3 class="font-bold text-gray-700 flex items-center">
+                        <span class="mr-2">📋</span> Live Attendance Feed
+                    </h3>
+                    
+                    <div id="attendance-list" class="space-y-3">
+                        <div class="text-center py-10 text-gray-400 italic">Loading logs...</div>
                     </div>
                 </div>
             `;
+            // Trigger the data fetch
+            fetchAttendanceLogs();
         }
     } else if (section === 'more') {
         content.innerHTML = `
@@ -176,6 +188,53 @@ window.triggerInstall = async () => {
     }
 }
 
+window.fetchAttendanceLogs = () => {
+    const dateKey = new Date().toISOString().split('T')[0];
+    const listDiv = document.getElementById('attendance-list');
+    const totalCount = document.getElementById('total-logs');
+    const outsideCount = document.getElementById('outside-logs');
+
+    // Listen to today's attendance folder
+    firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+            listDiv.innerHTML = `<div class="bg-white p-6 rounded-xl text-center text-gray-500">No attendance marked yet today.</div>`;
+            return;
+        }
+
+        let html = '';
+        let total = 0;
+        let outside = 0;
+
+        // Convert object to array and reverse to see newest first
+        const logs = Object.values(data).reverse();
+
+        logs.forEach(log => {
+            total++;
+            const isOutside = parseInt(log.distance) > 10;
+            if (isOutside) outside++;
+
+            html += `
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-gray-800">${log.name}</p>
+                            <p class="text-xs text-gray-500">${log.time} • ${log.type}</p>
+                        </div>
+                        <span class="px-2 py-1 rounded text-[10px] font-bold ${isOutside ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}">
+                            ${log.distance}
+                        </span>
+                    </div>
+                </div>
+            `;
+        });
+
+        listDiv.innerHTML = html;
+        totalCount.innerText = total;
+        outsideCount.innerText = outside;
+    });
+};
+    
 window.handleLogout = () => {
     if (confirm("Sign out of the system?")) {
         localStorage.clear();
