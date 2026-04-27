@@ -59,33 +59,6 @@
         </nav>
     </div>
 
-    <script>
-        // Simulate Splash Screen timing [cite: 172]
-        setTimeout(() => {
-            document.getElementById('splash-screen').classList.add('hidden');
-            document.getElementById('login-screen').classList.remove('hidden');
-        }, 2000);
-
-        function handleLogin() {
-            // Logic to check role from backend [cite: 180]
-            // For now, let's assume 'Admin'
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
-            loadSection('home');
-        }
-
-        function loadSection(section) {
-            const content = document.getElementById('content');
-            if(section === 'home') {
-                content.innerHTML = `
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white p-4 rounded-xl shadow">Total Students: 500</div>
-                        <div class="bg-white p-4 rounded-xl shadow">Attendance: 95%</div>
-                    </div>
-                `;
-            }
-            // Add other sections (attendance, homework, etc.) here
-        }
-    </script>
+    
 </body>
 </html>
