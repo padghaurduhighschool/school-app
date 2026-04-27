@@ -85,6 +85,44 @@ function loadSection(section) {
 }
 
 // 4. GEOFENCING LOGIC (Placeholder for now) [cite: 99-100, 103]
+// Add school office coordinates (Lat, Lon)
+const OFFICE_LAT = 19.2435; // Replace with your actual office latitude
+const OFFICE_LON = 73.1234; // Replace with your actual office longitude
+
 function markAttendance(type) {
-    alert(`Attendance marked as: ${type}\n(Proximity logic and Firebase logging goes here next)`);
+    const statusDiv = document.getElementById('location-status');
+    statusDiv.innerText = "Checking distance...";
+
+    navigator.geolocation.getCurrentPosition((position) => {
+        const userLat = position.coords.latitude;
+        const userLon = position.coords.longitude;
+
+        // Calculate distance in meters [cite: 6, 103]
+        const distance = calculateDistance(userLat, userLon, OFFICE_LAT, OFFICE_LON);
+        
+        let confirmMsg = `You are ${Math.round(distance)} meters from the office.`;
+        
+        if (distance > 10) {
+            confirmMsg += " You are outside the 10m range. Submit anyway?";
+        }
+
+        if (confirm(confirmMsg)) {
+            // Log to Firebase here [cite: 159]
+            alert(`Attendance logged: ${type} at ${new Date().toLocaleTimeString()}`);
+        }
+    }, (error) => {
+        alert("Please enable location services to mark attendance.");
+    });
+}
+
+// Haversine formula to calculate distance between two points
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Earth radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
 }
