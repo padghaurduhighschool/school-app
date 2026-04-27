@@ -7,14 +7,14 @@
   "theme_color": "#2563eb",
   "icons": [
     {
-      "src": "Padgha Urdu High School Logo.jpg",
+      "src": "Padgha Urdu High School Logo.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png"
     },
     {
-      "src": "Padgha Urdu High School Logo.jpg",
+      "src": "Padgha Urdu High School Logo.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png"
     }
   ]
 }
