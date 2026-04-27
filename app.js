@@ -90,14 +90,18 @@ window.loadSection = (section) => {
                             <p id="outside-logs" class="text-2xl font-bold">0</p>
                         </div>
                     </div>
-
+                    
                     <h3 class="font-bold text-gray-700 flex items-center">
                         <span class="mr-2">📋</span> Live Attendance Feed
                     </h3>
+                    <button onclick="downloadReport()" class="text-xs bg-green-600 text-white px-3 py-2 rounded-lg font-bold shadow-sm flex items-center">
+                <span class="mr-1">📥</span> Download CSV
+            </button>
                     
                     <div id="attendance-list" class="space-y-3">
                         <div class="text-center py-10 text-gray-400 italic">Loading logs...</div>
                     </div>
+                    
                 </div>
             `;
             // Trigger the data fetch
@@ -232,6 +236,39 @@ window.fetchAttendanceLogs = () => {
         listDiv.innerHTML = html;
         totalCount.innerText = total;
         outsideCount.innerText = outside;
+    });
+};
+
+window.downloadReport = () => {
+    const dateKey = new Date().toISOString().split('T')[0];
+    
+    // Fetch data from Firebase one last time to ensure we have everything
+    firebase.database().ref('attendance/' + dateKey).once('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+            alert("No data available to download for today.");
+            return;
+        }
+
+        // 1. Create CSV Header
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Name,Type,Time,Distance,Role\n";
+
+        // 2. Add Rows
+        Object.values(data).forEach(log => {
+            const row = `"${log.name}","${log.type}","${log.time}","${log.distance}","${log.role}"`;
+            csvContent += row + "\n";
+        });
+
+        // 3. Create a hidden link and trigger the download
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Attendance_Report_${dateKey}.csv`);
+        document.body.appendChild(link);
+
+        link.click(); // This starts the download
+        document.body.removeChild(link);
     });
 };
     
