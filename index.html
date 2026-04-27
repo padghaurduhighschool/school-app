@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Fonts for Multilingual Support */
+        @font-face { font-family: 'Kokila'; src: url('fonts/kokila.ttf'); }
+        @font-face { font-family: 'Jameel'; src: url('fonts/jameel.ttf'); }
+        
+        .hidden { display: none; }
+        .active-tab { border-top: 4px solid #2563eb; color: #2563eb; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div id="splash-screen" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50">
+        <div class="w-32 h-32 bg-blue-600 rounded-full flex items-center justify-center text-white text-4xl mb-4">LOGO</div>
+        <h1 class="text-2xl font-bold text-gray-800">School Name</h1>
+        <div class="mt-4 animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+
+    <div id="login-screen" class="hidden min-h-screen flex items-center justify-center p-6">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
+            <input type="tel" id="phone" placeholder="Phone Number" class="w-full p-4 mb-4 border rounded-xl">
+            <input type="text" id="code" placeholder="8-digit Code" class="w-full p-4 mb-6 border rounded-xl">
+            <button onclick="handleLogin()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold text-lg">Login</button>
+            <button class="w-full mt-4 text-blue-600 font-medium">Help (Contact School)</button>
+        </div>
+    </div>
+
+    <div id="main-app" class="hidden pb-20">
+        <header class="bg-blue-600 text-white p-4 sticky top-0">
+            <h1 id="user-role-title" class="text-lg font-bold">Dashboard</h1>
+        </header>
+
+        <main id="content" class="p-4">
+            </main>
+
+        <nav class="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 text-xs">
+            <button onclick="loadSection('home')" class="flex flex-col items-center">
+                <span>🏠</span><span>Home</span>
+            </button>
+            <button onclick="loadSection('attendance')" class="flex flex-col items-center">
+                <span>📊</span><span>Attendance</span>
+            </button>
+            <button onclick="loadSection('homework')" class="flex flex-col items-center">
+                <span>📚</span><span>Homework</span>
+            </button>
+            <button onclick="loadSection('notices')" class="flex flex-col items-center">
+                <span>📢</span><span>Notices</span>
+            </button>
+            <button onclick="loadSection('more')" class="flex flex-col items-center">
+                <span>⚙️</span><span>More</span>
+            </button>
+        </nav>
+    </div>
+
+    <script>
+        // Simulate Splash Screen timing [cite: 172]
+        setTimeout(() => {
+            document.getElementById('splash-screen').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+        }, 2000);
+
+        function handleLogin() {
+            // Logic to check role from backend [cite: 180]
+            // For now, let's assume 'Admin'
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            loadSection('home');
+        }
+
+        function loadSection(section) {
+            const content = document.getElementById('content');
+            if(section === 'home') {
+                content.innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow">Total Students: 500</div>
+                        <div class="bg-white p-4 rounded-xl shadow">Attendance: 95%</div>
+                    </div>
+                `;
+            }
+            // Add other sections (attendance, homework, etc.) here
+        }
+    </script>
+</body>
+</html>
