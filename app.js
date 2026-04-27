@@ -13,7 +13,18 @@ window.onload = () => {
     }
 };
 
+let deferredPrompt;
 
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the mini-infobar from appearing on mobile
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    // Update UI to show the install button (if we are on the 'more' page)
+    const installBtn = document.getElementById('install-button-container');
+    if (installBtn) installBtn.classList.remove('hidden');
+});
+   
 
 // 1. SPLASH SCREEN TO LOGIN [cite: 168-172]
 setTimeout(() => {
@@ -103,6 +114,14 @@ function loadSection(section) {
                     <p class="text-gray-500 text-sm">Logged in as</p>
                     <p class="font-bold text-lg">${name} (${role})</p>
                 </div>
+
+                <div id="install-button-container" class="${deferredPrompt ? '' : 'hidden'}">
+                <button onclick="triggerInstall()" class="w-full bg-blue-100 text-blue-700 p-5 rounded-2xl font-bold flex items-center justify-between">
+                    <span class="flex items-center"><span class="mr-2">📲</span> Install App on Phone</span>
+                    <span class="text-xs bg-blue-700 text-white px-2 py-1 rounded">FREE</span>
+                </button>
+                </div>
+                
                 <div class="p-4 space-y-2">
                     <button class="w-full text-left p-4 hover:bg-gray-50 rounded-xl flex items-center">
                         <span class="mr-3">👤</span> Profile Settings
@@ -158,6 +177,27 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
 }
+
+// Function to trigger the install
+async function triggerInstall() {
+    if (!deferredPrompt) return;
+    
+    // Show the install prompt
+    deferredPrompt.prompt();
+    
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+    
+    // We've used the prompt, and can't use it again
+    deferredPrompt = null;
+    
+    // Hide the button
+    const installBtn = document.getElementById('install-button-container');
+    if (installBtn) installBtn.classList.add('hidden');
+}
+
+    
 function handleLogout() {
     if (confirm("Are you sure you want to logout?")) {
         // Clear all stored user data 
