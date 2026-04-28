@@ -83,47 +83,45 @@ window.handleLogin = async function() {
 const studentRes = await fetch(STUDENT_SHEET_CSV);
 const studentText = await studentRes.text();
 
-// ✅ Proper CSV parsing
-const rows = studentText.split('\n').map(r => 
-    r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
-);
+// ✅ SAFE parsing (no syntax issues)
+const rows = studentText.split('\n').map(function(r) {
+    return r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+});
 
-const clean = (v) => v?.replace(/"/g, '').trim();
+function clean(v) {
+    return v ? v.replace(/"/g, '').trim() : "";
+}
 
-// ✅ 1. Get HEADER row
-const headers = rows[0].map(h => clean(h));
+// ✅ headers
+const headers = rows[0].map(clean);
 
-// ✅ 2. Create header map (column name → index)
+// ✅ map headers
 const headerMap = {};
-headers.forEach((h, i) => {
+headers.forEach(function(h, i) {
     headerMap[h.toLowerCase()] = i;
 });
 
-// 🔍 DEBUG (see your column names)
-console.log(headerMap);
-
-// ✅ 3. Helper to safely get value
-const get = (row, key) => {
+// ✅ helper
+function get(row, key) {
     const index = headerMap[key.toLowerCase()];
     return index !== undefined ? clean(row[index]) : "";
-};
+}
 
-// ✅ 4. Convert rows to objects
-const students = rows.slice(1).map(r => ({
-    gr: get(r, "gr no") || get(r, "gr") || get(r, "id"),
-    name: get(r, "name") || get(r, "student name"),
-    class: get(r, "class"),
-    phone: get(r, "phone") || get(r, "contact"),
-    code: get(r, "code") || get(r, "password")
-}));
+// ✅ build students
+const students = rows.slice(1).map(function(r) {
+    return {
+        gr: get(r, "gr no") || get(r, "gr"),
+        name: get(r, "name") || get(r, "student name"),
+        class: get(r, "class"),
+        phone: get(r, "phone") || get(r, "mobile no"),
+        code: get(r, "code") || get(r, "password")
+    };
+});
 
-// 🔍 DEBUG one row
-console.log(students[0]);
-
-// ✅ 5. Find student
-let student = students.find(s => 
-    s.phone === phone && s.code === code
-);
+// ✅ match
+let student = students.find(function(s) {
+    return s.phone === phone && s.code === code;
+});
 
         if (student) {
             // ✅ STUDENT LOGIN
