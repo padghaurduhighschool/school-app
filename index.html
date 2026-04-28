@@ -9,13 +9,24 @@
     <link rel="apple-touch-icon" href="Padgha Urdu High School Logo.png">
     <link rel="icon" type="image/jpg" href="Padgha Urdu High School Logo.jpg">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&family=Noto+Sans+Devanagari&display=swap" rel="stylesheet">
     <style>
-        /* Custom Fonts for Multilingual Support */
-        @font-face { font-family: 'Kokila'; src: url('fonts/kokila.ttf'); }
-        @font-face { font-family: 'Jameel'; src: url('fonts/jameel.ttf'); }
-        
-        .hidden { display: none; }
-        .active-tab { border-top: 4px solid #2563eb; color: #2563eb; }
+/* English default */
+.lang-en {
+    font-family: system-ui, sans-serif;
+}
+
+/* Marathi */
+.lang-mr {
+    font-family: 'Kokila', 'Noto Sans Devanagari', sans-serif;
+}
+
+/* Urdu */
+.lang-ur {
+    font-family: 'Noto Nastaliq Urdu', serif;
+    direction: rtl;
+    text-align: right;
+}
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
