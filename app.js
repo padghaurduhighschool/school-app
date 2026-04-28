@@ -1385,8 +1385,8 @@ window.fetchNotices = () => {
     </div>
 
     <!-- Message -->
-    <p id="msg-${n.id}" class="text-xs text-gray-600 leading-relaxed">
-        ${getMessageByLang(n)}
+<p id="msg-${n.id}" class="text-xs text-gray-600 leading-relaxed ${getLangClass()}">
+${getMessageByLang(n)}
     </p>
 
 </div>
@@ -1565,22 +1565,28 @@ function getMessageByLang(n) {
     return n.message?.[lang] || n.message?.en || "No content";
 }
 window.switchLang = (id, lang) => {
-    // Save preference
     localStorage.setItem('noticeLang', lang);
 
-    // Update only that notice text
     firebase.database().ref('notices/' + id).once('value', (snapshot) => {
         const n = snapshot.val();
         const msgDiv = document.getElementById(`msg-${id}`);
         if (msgDiv) {
             msgDiv.innerText = n.message?.[lang] || n.message?.en || "No content";
+
+            // update font class
+            msgDiv.className = `text-xs text-gray-600 leading-relaxed ${getLangClass()}`;
         }
     });
 
-    // Optional: reload to update tab colors
     loadSection('notices');
 };
 
+    function getLangClass() {
+    const lang = getLang();
+    if (lang === 'mr') return 'lang-mr';
+    if (lang === 'ur') return 'lang-ur';
+    return 'lang-en';
+}
 
     
 
