@@ -544,7 +544,8 @@ window.fetchStudentData = async () => {
                 id: cols[2]?.trim(),    // GR No (Column C)
                 name: cols[7]?.trim(),  // Full Name (Column H)
                 class: cols[1]?.trim(), // Class (Column B)
-                roll: cols[3]?.trim()   // Roll No (Column D)
+                roll: cols[3]?.trim(),   // Roll No (Column D)
+                contact: cols[13]?.trim()  // Contact No (Col N)
             };
         });
 
@@ -558,7 +559,33 @@ window.fetchStudentData = async () => {
 
 window.renderStudentList = (students) => {
     const container = document.getElementById('student-list-container');
-    container.innerHTML = students.map(s => `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50 flex justify-between"><div><p class="font-bold">${s.name}</p><p class="text-xs">ID: ${s.id}</p></div><span class="text-xs font-bold">Class ${s.class}</span></div>`).join('');
+    
+    if (students.length === 0) {
+        container.innerHTML = `<p class="text-center py-10 text-gray-400">No students found.</p>`;
+        return;
+    }
+
+    container.innerHTML = students.map(s => `
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50 flex justify-between items-center">
+            <div>
+                <p class="font-bold text-gray-800">${s.name}</p>
+                <p class="text-xs text-gray-500">GR: ${s.id} • Roll: ${s.roll}</p>
+                <p class="text-sm text-blue-600 mt-1 font-medium">
+                    📞 ${s.contact || 'No Number'}
+                </p>
+            </div>
+            <div class="text-right">
+                <span class="block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold mb-2">
+                    Class ${s.class}
+                </span>
+                ${s.contact ? `
+                    <a href="tel:${s.contact}" class="bg-green-500 text-white p-2 rounded-lg text-xs">
+                        Call Now
+                    </a>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
 };
 
 window.filterStudents = () => {
