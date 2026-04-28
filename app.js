@@ -675,6 +675,109 @@ window.handleLogout = () => {
     }
 }
 
+// 7. STUDENT ATTENDANCE MARKING LOGIC
+window.loadAttendanceSheet = async () => {
+    const classVal = document.getElementById('target-class').value;
+    const container = document.getElementById('attendance-sheet-container');
+    
+    if (!classVal || classVal === "") {
+        alert("Please select a class first");
+        return;
+    }
 
+    container.innerHTML = `<p class="text-center py-5 text-gray-400 italic text-sm">Loading students for Class ${classVal}...</p>`;
+
+    try {
+        const response = await fetch(STUDENT_SHEET_CSV);
+        const text = await response.text();
+        const rows = text.split('\n').filter(row => row.trim() !== '').slice(1);
+
+        // Filter students by selected class
+        const classStudents = rows.map(row => {
+            const cols = row.split(',');
+            return {
+                id: cols[2]?.trim(),    // GR No
+                name: cols[7]?.trim(),  // Name
+                class: cols[1]?.trim()  // Class
+            };
+        }).filter(s => s.class === classVal);
+
+        if (classStudents.length === 0) {
+            container.innerHTML = `<p class="text-center py-5 text-red-500 text-sm">No students found for this class.</p>`;
+            return;
+        }
+
+        // Render the list with checkboxes [cite: 181, 226, 272]
+        let html = `
+            <div class="bg-white rounded-2xl shadow-inner border border-gray-100 overflow-hidden">
+                <div class="p-3 bg-gray-50 border-b flex justify-between items-center">
+                    <span class="text-xs font-bold text-gray-500 uppercase">Student Name</span>
+                    <span class="text-xs font-bold text-gray-500 uppercase">Present?</span>
+                </div>
+                <div class="max-h-80 overflow-y-auto">
+        `;
+
+        classStudents.forEach(s => {
+            html += `
+                <div class="flex justify-between items-center p-4 border-b border-gray-50">
+                    <div>
+                        <p class="text-sm font-bold text-gray-800">${s.name}</p>
+                        <p class="text-[10px] text-gray-400">GR: ${s.id}</p>
+                    </div>
+                    <input type="checkbox" checked value="${s.id}" data-name="${s.name}" 
+                        class="attendance-checkbox w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+                <div class="p-4 bg-gray-50">
+                    <button onclick="submitStudentAttendance('${classVal}')" 
+                        class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">
+                        Confirm & Save Attendance
+                    </button>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error("Error:", error);
+        container.innerHTML = `<p class="text-red-500 text-sm p-4">Failed to load student list.</p>`;
+    }
+};
+
+window.submitStudentAttendance = (classID) => {
+    if (!navigator.onLine) {
+        alert("⚠️ No Internet! Please connect to the internet to submit attendance."); // 
+        return;
+    }
+
+    const dateKey = new Date().toISOString().split('T')[0];
+    const checkboxes = document.querySelectorAll('.attendance-checkbox');
+    const attendanceData = {};
+    const markedBy = localStorage.getItem('userName');
+
+    checkboxes.forEach(cb => {
+        attendanceData[cb.value] = {
+            name: cb.getAttribute('data-name'),
+            status: cb.checked ? 'Present' : 'Absent',
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        };
+    });
+
+    // Save to Firebase [cite: 324]
+    firebase.database().ref(`student_attendance/${dateKey}/${classID}`).set({
+        markedBy: markedBy,
+        records: attendanceData
+    })
+    .then(() => {
+        alert(`Attendance for Class ${classID} saved successfully!`);
+        document.getElementById('attendance-sheet-container').innerHTML = ''; // Clear sheet
+    })
+    .catch(err => alert("Error saving: " + err.message));
+};
 
 }
