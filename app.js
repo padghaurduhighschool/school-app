@@ -302,29 +302,58 @@ if (section === 'students') {
 }
     
 // 6. ATTENDANCE & GEOLOCATION
-window.markAttendance = (type) => {
-    const statusDiv = document.getElementById('location-status');
+window.markAttendance = async (type) => {
+    // 1. Reference the buttons instead of a statusDiv
+    const btnIn = document.getElementById('btn-in');
+    const btnOut = document.getElementById('btn-out');
+    
     const now = new Date();
     const timeNum = now.getHours() * 100 + now.getMinutes();
-    statusDiv.innerText = "📍 Locating your position...";
+    
+    // Visual feedback on the button itself
+    const originalText = type === 'IN' ? 'Check IN' : 'Check OUT';
+    if (type === 'IN' && btnIn) btnIn.innerText = "📍 Locating...";
+    if (type === 'OUT' && btnOut) btnOut.innerText = "📍 Locating...";
+
     let statusPrefix = "";
     if (type === 'IN' && timeNum > 720) {
         statusPrefix = "[LATE] ";
     }
+
     navigator.geolocation.getCurrentPosition((position) => {
         const distance = calculateDistance(position.coords.latitude, position.coords.longitude, OFFICE_LAT, OFFICE_LON);
         let msg = `You are ${Math.round(distance)}m from the office.`;
         
-        if (distance > 10) {
-            if (confirm(msg + "\n\nYou are outside the 10m range. Mark anyway?")) {
-                saveToDatabase(statusPrefix + type, distance);
+        const proceed = (distance > 10) ? confirm(msg + "\n\nYou are outside the 10m range. Mark anyway?") : true;
+
+        if (proceed) {
+            saveToDatabase(statusPrefix + type, distance);
+            
+            if (type === 'IN') {
+                localStorage.setItem('hasCheckedInToday', 'true');
+                if (btnIn) {
+                    btnIn.disabled = true;
+                    btnIn.innerText = 'IN ✅';
+                    btnIn.className = "py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-400";
+                }
+                if (btnOut) {
+                    btnOut.disabled = false;
+                    btnOut.className = "py-3 rounded-xl font-bold text-sm bg-red-500 text-white shadow-md active:scale-95";
+                }
+            } else {
+                localStorage.setItem('hasCheckedInToday', 'false');
+                alert("Check OUT successful!");
+                location.reload(); 
             }
         } else {
-            saveToDatabase(statusPrefix + type, distance);
+            // Reset button text if they cancel the confirm box
+            if (type === 'IN' && btnIn) btnIn.innerText = 'Check IN';
+            if (type === 'OUT' && btnOut) btnOut.innerText = 'Check OUT';
         }
-        statusDiv.innerText = `Last action: ${type} at ${new Date().toLocaleTimeString()}`;
     }, () => {
         alert("Location Access Denied. Please enable GPS.");
+        if (type === 'IN' && btnIn) btnIn.innerText = 'Check IN';
+        if (type === 'OUT' && btnOut) btnOut.innerText = 'Check OUT';
     }, { enableHighAccuracy: true });
 }
 
