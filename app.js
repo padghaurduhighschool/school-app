@@ -1221,6 +1221,7 @@ window.deleteHomework = (id) => {
     }
 };
 
+
 window.toggleNoticeFields = () => {
     const type = document.getElementById('notice-target-type').value;
     const container = document.getElementById('notice-target-details');
@@ -1238,13 +1239,17 @@ window.toggleNoticeFields = () => {
                 <input type="text" id="student-search-input" onkeyup="searchStudentForNotice()" 
                     placeholder="Type student name..." 
                     class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
-                <div id="student-search-results" class="absolute z-10 w-full bg-white shadow-xl rounded-xl mt-1 max-h-40 overflow-y-auto hidden"></div>
+                <div id="student-search-results" class="absolute z-10 w-full bg-white shadow-xl rounded-xl mt-1 max-h-48 overflow-y-auto hidden border border-gray-100">
+                </div>
                 <input type="hidden" id="notice-target-value">
-            </div>`;
+            </div>
+            <div id="selected-student-badge" class="mt-2 hidden"></div>
+        `;
     } else {
         container.innerHTML = '';
     }
 };
+    
 
 window.postNotice = () => {
     const type = document.getElementById('notice-target-type').value;
@@ -1336,36 +1341,60 @@ window.deleteNotice = (id) => {
 };
 
 window.searchStudentForNotice = () => {
-    const input = document.getElementById('student-search-input');
+    const term = document.getElementById('student-search-input').value.toLowerCase();
     const resultsDiv = document.getElementById('student-search-results');
-    const query = input.value.toLowerCase();
     
-    if (query.length < 2) {
+    if (term.length < 2) {
         resultsDiv.classList.add('hidden');
         return;
     }
 
-    // Filters from the globally stored students array (from your CSV load)
-    const matches = students.filter(s => s.name.toLowerCase().includes(query)).slice(0, 10);
+    // Filter students from your globally loaded student array
+    const matches = allStudents.filter(s => 
+        s.name.toLowerCase().includes(term) || s.grNo.toString().includes(term)
+    ).slice(0, 10); // Show top 10 matches
 
     if (matches.length > 0) {
         resultsDiv.classList.remove('hidden');
         resultsDiv.innerHTML = matches.map(s => `
-            <div onclick="selectStudentForNotice('${s.name}')" class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 text-sm">
-                <p class="font-bold text-gray-800">${s.name}</p>
-                <p class="text-[10px] text-gray-400">Class: ${s.class} | GR: ${s.gr_no}</p>
+            <div onclick="selectStudentForNotice('${s.grNo}', '${s.name}', '${s.class}')" 
+                class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-none">
+                <p class="font-bold text-xs text-gray-800">${s.name}</p>
+                <p class="text-[10px] text-gray-400">GR: ${s.grNo} • Class: ${s.class}</p>
             </div>
         `).join('');
     } else {
-        resultsDiv.innerHTML = `<p class="p-3 text-xs text-gray-400 italic">No student found</p>`;
+        resultsDiv.innerHTML = `<p class="p-3 text-[10px] text-gray-400">No student found.</p>`;
     }
 };
 
-window.selectStudentForNotice = (name) => {
-    document.getElementById('student-search-input').value = name;
-    document.getElementById('notice-target-value').value = name; // Store full name
-    document.getElementById('student-search-results').classList.add('hidden');
+window.selectStudentForNotice = (grNo, name, className) => {
+    const input = document.getElementById('student-search-input');
+    const targetValue = document.getElementById('notice-target-value');
+    const resultsDiv = document.getElementById('student-search-results');
+    const badge = document.getElementById('selected-student-badge');
+
+    // Set values
+    targetValue.value = grNo; // Store the ID for Firebase
+    input.value = name;
+    resultsDiv.classList.add('hidden');
+
+    // Show selection badge
+    badge.classList.remove('hidden');
+    badge.innerHTML = `
+        <div class="inline-flex items-center bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[10px] font-bold">
+            Target: ${name} (${className})
+            <button onclick="clearStudentSelection()" class="ml-2 font-black">✕</button>
+        </div>
+    `;
 };
+
+window.clearStudentSelection = () => {
+    document.getElementById('student-search-input').value = '';
+    document.getElementById('notice-target-value').value = '';
+    document.getElementById('selected-student-badge').classList.add('hidden');
+};
+
 
     
 
