@@ -10,12 +10,21 @@ let deferredPrompt;
 window.onload = () => {
     const savedRole = localStorage.getItem('userRole');
     
+    // --- ADD THIS RESET LOGIC ---
+    const today = new Date().toISOString().split('T')[0];
+    const lastDate = localStorage.getItem('lastActivityDate');
+    if (lastDate !== today) {
+        localStorage.setItem('hasCheckedInToday', 'false');
+        localStorage.setItem('lastActivityDate', today);
+    }
+    // ----------------------------
+
     setTimeout(() => {
         document.getElementById('splash-screen').classList.add('hidden');
         if (savedRole) {
             document.getElementById('main-app').classList.remove('hidden');
-            loadSection('home');
-            
+            // Suggestion: Start them on 'attendance' so they can check in immediately
+            loadSection('attendance'); 
         } else {
             document.getElementById('login-screen').classList.remove('hidden');
         }
