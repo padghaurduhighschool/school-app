@@ -1,4 +1,4 @@
-
+{
 
 // 1. CONFIGURATION & STATE
 const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
@@ -226,7 +226,7 @@ if (section === 'home') {
             </div>
         `;
     }
-}
+
 
 if (section === 'students') {
     content.innerHTML = `
@@ -258,6 +258,7 @@ if (section === 'students') {
         </div>
     `;
     fetchStudentData();
+}
 }
     
 // 6. ATTENDANCE & GEOLOCATION
@@ -597,3 +598,4 @@ window.handleLogout = () => {
 
 
 
+}
