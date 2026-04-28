@@ -110,17 +110,18 @@ function get(row, key) {
 // ✅ build students
 const students = rows.slice(1).map(function(r) {
     return {
-        gr: get(r, "gr no") || get(r, "gr"),
-        name: get(r, "name") || get(r, "student name"),
+        gr: get(r, "gr.") || get(r, "gr"),
+        name: get(r, "full name"),
         class: get(r, "class"),
-        phone: get(r, "phone") || get(r, "mobile no"),
-        code: get(r, "code") || get(r, "password")
+        phone: get(r, "contact no."),
+        code: get(r, "code")
     };
 });
 console.log(students.slice(0,5));
 // ✅ match
 let student = students.find(function(s) {
-    return s.phone === phone && s.code === code;
+    return String(s.phone).trim() === phone &&
+           String(s.code).trim() === code;
 });
         if (student) {
             // ✅ STUDENT LOGIN
