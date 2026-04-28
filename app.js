@@ -53,16 +53,22 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 // 4. LOGIN LOGIC
 window.handleLogin = async function() {
-    const phone = document.getElementById('phone').value;
-    const code = document.getElementById('code').value;
+    const phone = document.getElementById('phone').value.trim();
+    const code = document.getElementById('code').value.trim();
 
     try {
-        const response = await fetch(TEACHER_SHEET_CSV);
-        const text = await response.text();
-        const rows = text.split('\n').map(row => row.split(','));
-        const user = rows.find(row => row[0].trim() === phone && row[1].trim() === code);
+        // 🔹 1. Check TEACHER sheet
+        const teacherRes = await fetch(TEACHER_SHEET_CSV);
+        const teacherText = await teacherRes.text();
+        const teacherRows = teacherText.split('\n').map(r => r.split(','));
+
+        let user = teacherRows.find(row => 
+            row[0]?.trim() === phone && 
+            row[1]?.trim() === code
+        );
 
         if (user) {
+            // ✅ STAFF LOGIN
             localStorage.setItem('userRole', user[3].trim());
             localStorage.setItem('userName', user[2].trim());
             localStorage.setItem('mappedClass', user[5] ? user[5].trim() : "");
@@ -70,11 +76,38 @@ window.handleLogin = async function() {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
             loadSection('home');
-        } else {
-            alert("Credentials not found. Please contact the school office.");
+            return;
         }
+
+        // 🔹 2. Check STUDENT sheet
+        const studentRes = await fetch(STUDENT_SHEET_CSV);
+        const studentText = await studentRes.text();
+        const studentRows = studentText.split('\n').map(r => r.split(','));
+
+let student = studentRows.find(row => 
+    row[15]?.replace(/"/g, '').trim() === phone &&   // Phone
+    row[23]?.replace(/"/g, '').trim() === code       // Code (Column X)
+);
+
+        if (student) {
+            // ✅ STUDENT LOGIN
+            localStorage.setItem('userRole', 'Student');
+            localStorage.setItem('userName', student[7].trim()); // Name
+            localStorage.setItem('mappedClass', student[1].trim()); // Class
+            localStorage.setItem('userGR', student[2].trim()); // GR No
+
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            loadSection('home');
+            return;
+        }
+
+        // ❌ Not found
+        alert("Invalid credentials. Please check phone or GR No.");
+
     } catch (error) {
-        alert("Login failed. Check your internet.");
+        console.error(error);
+        alert("Login failed. Check internet or CSV access.");
     }
 };
 
