@@ -92,16 +92,25 @@ if (section === 'home') {
                     <p class="text-xs opacity-80">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
-                        <p class="text-gray-500 text-[10px] uppercase font-bold">Present Staff</p>
-                        <p id="home-staff-present" class="text-2xl font-bold text-green-600">0</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500">
-                        <p class="text-gray-500 text-[10px] uppercase font-bold">Absent Staff</p>
-                        <p id="home-staff-absent" class="text-2xl font-bold text-red-600">0</p>
-                    </div>
-                </div>
+<div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+    <div class="flex justify-between items-center mb-2">
+        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Staff Attendance</h3>
+        <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold" id="home-staff-total">0</span>
+    </div>
+    <div class="flex items-end justify-between">
+        <div>
+            <p class="text-2xl font-black text-gray-800" id="home-staff-present">0</p>
+            <p class="text-[10px] text-gray-400 font-bold uppercase">Present Today</p>
+        </div>
+        <div class="text-right">
+            <p class="text-lg font-bold text-red-500" id="home-staff-absent">0</p>
+            <p class="text-[10px] text-gray-400 font-bold uppercase">Absent</p>
+        </div>
+    </div>
+    <div class="mt-3 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
+        <div id="home-staff-bar" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
+    </div>
+</div>
 
                 <div class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 text-center">
                     <p class="text-gray-500 text-[10px] uppercase font-bold mb-2">Student Attendance Summary</p>
@@ -180,6 +189,7 @@ if (section === 'attendance') {
     if (role !== 'Student') {
         const time = now.getHours() * 100 + now.getMinutes();
         const hasCheckedIn = localStorage.getItem('hasCheckedInToday') === 'true';
+        
         const isTooEarly = time < 710;
         const isShortDay = (day === 5);
         const closingLabel = isShortDay ? "10:45 AM" : "01:00 PM";
@@ -575,11 +585,12 @@ window.downloadMonthlyReport = () => {
 
 window.updateHomeSummary = async () => {
     const dateKey = new Date().toISOString().split('T')[0];
-    
+
     // 1. Fetch Total Counts from CSVs
     const staffRes = await fetch(TEACHER_SHEET_CSV);
     const staffText = await staffRes.text();
     const totalStaffCount = staffText.split('\n').filter(r => r.trim()).length - 1;
+    document.getElementById('home-staff-total').innerText = totalStaffCount;
 
     const studRes = await fetch(STUDENT_SHEET_CSV);
     const studText = await studRes.text();
@@ -596,8 +607,12 @@ window.updateHomeSummary = async () => {
             });
             presentStaff = uniqueNames.size;
         }
+        const absentStaff = Math.max(0, totalStaffCount - presentStaff);
+        const percent = totalStaffCount > 0 ? (presentStaff / totalStaffCount) * 100 : 0;
+
         document.getElementById('home-staff-present').innerText = presentStaff;
-        document.getElementById('home-staff-absent').innerText = Math.max(0, totalStaffCount - presentStaff);
+        document.getElementById('home-staff-absent').innerText = absentStaff;
+        document.getElementById('home-staff-bar').style.width = percent + "%";
     });
 
     // 3. NEW: Update Student Summary from student_attendance node
