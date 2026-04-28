@@ -83,19 +83,54 @@ window.loadSection = (section) => {
     document.getElementById('user-role-title').innerText = `${role} Dashboard`;
 
 if (section === 'home') {
+    if (role === "Supervisor" || role === "Clerk" || role === "Super Admin" || role === "Admin") {
         content.innerHTML = `
             <div class="space-y-4">
                 <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
-                    <h2 class="text-2xl font-bold">Hello, ${name}</h2>
-                    <p class="opacity-90">Padgha Urdu High School ERP</p>
+                    <h2 class="text-xl font-bold">School Overview</h2>
+                    <p class="text-xs opacity-80">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                 </div>
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold mb-2">School Notices</h3>
-                    <p class="text-sm text-gray-500 italic">No new notices for today.</p>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
+                        <p class="text-gray-500 text-[10px] uppercase font-bold">Present Staff</p>
+                        <p id="home-staff-present" class="text-2xl font-bold text-green-600">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500">
+                        <p class="text-gray-500 text-[10px] uppercase font-bold">Absent Staff</p>
+                        <p id="home-staff-absent" class="text-2xl font-bold text-red-600">0</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+                        <p class="text-gray-500 text-[10px] uppercase font-bold">Present Students</p>
+                        <p id="home-stud-present" class="text-2xl font-bold text-blue-600">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-gray-400">
+                        <p class="text-gray-500 text-[10px] uppercase font-bold">Absent Students</p>
+                        <p id="home-stud-absent" class="text-2xl font-bold text-gray-700">0</p>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-100">
+                    <p class="text-[10px] text-yellow-700 font-bold uppercase">Quick Note</p>
+                    <p class="text-xs text-yellow-800 italic">Totals update automatically as staff check in.</p>
                 </div>
             </div>
         `;
+        // Fetch the summary numbers
+        updateHomeSummary();
+    } else {
+        // Teacher Home View (Greeting Only)
+        content.innerHTML = `
+            <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
+                <h2 class="text-2xl font-bold">Hello, ${name}</h2>
+                <p class="opacity-90 text-sm">Welcome to Padgha Urdu High School ERP</p>
+            </div>
+        `;
     }
+}
     
     if (section === 'attendance') {
         if (role === "Teacher") {
@@ -148,16 +183,7 @@ if (section === 'home') {
     } else {
                 content.innerHTML = `
                 <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-600">
-                            <p class="text-gray-500 text-xs uppercase font-bold">Today's Logs</p>
-                            <p id="total-logs" class="text-2xl font-bold">0</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500">
-                            <p class="text-gray-500 text-xs uppercase font-bold">Outside 10m</p>
-                            <p id="outside-logs" class="text-2xl font-bold">0</p>
-                        </div>
-                    </div>
+ 
                     
                     <h3 class="font-bold text-gray-700 flex items-center">
                         <span class="mr-2">📋</span> Live Attendance Feed
@@ -434,6 +460,40 @@ window.downloadMonthlyReport = () => {
     });
 };
 
+window.updateHomeSummary = async () => {
+    const dateKey = new Date().toISOString().split('T')[0];
+    
+    // 1. Get Total Staff Count from your CSV
+    const response = await fetch(TEACHER_SHEET_CSV);
+    const text = await response.text();
+    const totalStaffCount = text.split('\n').length - 1; // Subtract 1 for header
+
+    // 2. Get Present Staff from Firebase
+    firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
+        const data = snapshot.val();
+        let presentStaff = 0;
+        
+        if (data) {
+            // Count unique names who have "IN" status
+            const uniqueNames = new Set();
+            Object.values(data).forEach(log => {
+                if (log.type.includes('IN')) uniqueNames.add(log.name);
+            });
+            presentStaff = uniqueNames.size;
+        }
+
+        const absentStaff = Math.max(0, totalStaffCount - presentStaff);
+
+        // Update UI for Staff
+        document.getElementById('home-staff-present').innerText = presentStaff;
+        document.getElementById('home-staff-absent').innerText = absentStaff;
+        
+        // Placeholder for Student logic 
+        // (This will require your Student attendance database structure)
+        document.getElementById('home-stud-present').innerText = "-";
+        document.getElementById('home-stud-absent').innerText = "-";
+    });
+};
     
 window.handleLogout = () => {
     if (confirm("Sign out of the system?")) {
