@@ -122,11 +122,9 @@ if (section === 'home') {
                     <div class="flex items-center space-x-3">
                         <div>
                             <p class="text-gray-500 text-[10px] uppercase font-bold">View records, GR Nos, and Contacts</p>
-                            <span class="text-blue-600">Student Details</span>
-
+                            <p class="text-2xl font-bold text-blue-600">Student Details</p>
                         </div>
                     </div>
-                    <span class="text-blue-400">❯</span>
                 </div>  
             </div>
         `;
