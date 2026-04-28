@@ -330,26 +330,36 @@ if (section === 'students') {
 if (section === 'staff_logs_detail') {
     content.innerHTML = `
         <div class="space-y-4">
-            <div class="flex items-center space-x-2 mb-4">
-                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full text-gray-600">←</button>
-                <h2 class="text-lg font-bold text-gray-800">Today's Staff Logs</h2>
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-2">
+                    <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full text-gray-600">←</button>
+                    <h2 class="text-lg font-bold text-gray-800">Staff Logs</h2>
+                </div>
+                <span class="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold" id="log-count">0 Logs</span>
+            </div>
+
+            <div class="relative">
+                <input type="text" id="staffLogSearch" onkeyup="filterStaffLogs()" 
+                    placeholder="Search teacher name..." 
+                    class="w-full p-3 pl-10 bg-white rounded-xl text-sm border border-gray-100 shadow-sm focus:ring-2 focus:ring-blue-500">
+                <span class="absolute left-3 top-3.5 opacity-30">🔍</span>
             </div>
             
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <button onclick="downloadReport()" class="bg-blue-50 text-blue-600 p-3 rounded-xl text-xs font-bold shadow-sm">
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="downloadReport()" class="bg-blue-50 text-blue-600 p-3 rounded-xl text-[10px] font-bold shadow-sm active:scale-95 transition-all">
                     📥 DAILY CSV
                 </button>
-                <button onclick="downloadMonthlyReport()" class="bg-indigo-50 text-indigo-600 p-3 rounded-xl text-xs font-bold shadow-sm">
+                <button onclick="downloadMonthlyReport()" class="bg-indigo-50 text-indigo-600 p-3 rounded-xl text-[10px] font-bold shadow-sm active:scale-95 transition-all">
                     📅 MONTHLY CSV
                 </button>
             </div>
 
-            <div id="full-staff-log-container" class="space-y-2">
-                <p class="text-center py-10 text-gray-400 italic">Connecting to database...</p>
+            <div id="full-staff-log-container" class="space-y-2 pb-10">
+                <p class="text-center py-10 text-gray-400 italic">Loading...</p>
             </div>
         </div>
     `;
-    fetchFullStaffLogs(); // Call the data fetcher
+    fetchFullStaffLogs();
 }
     
 }    
@@ -918,98 +928,74 @@ window.submitStudentAttendance = (classID) => {
     .catch(err => alert("Error saving: " + err.message));
 };
 
+let currentDayLogs = []; // Global store for filtering
+
 window.fetchFullStaffLogs = () => {
     const dateKey = new Date().toISOString().split('T')[0];
     const container = document.getElementById('full-staff-log-container');
+    const countBadge = document.getElementById('log-count');
 
     firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
         const data = snapshot.val();
         if (!data) {
-            container.innerHTML = `
-                <div class="text-center py-10 bg-gray-50 rounded-2xl border border-dashed">
-                    <p class="text-gray-400 text-sm">No attendance marked yet today.</p>
-                </div>`;
+            currentDayLogs = [];
+            if (container) container.innerHTML = `<div class="text-center py-10 text-gray-400">No logs today.</div>`;
             return;
         }
 
-        // Convert object to array and sort by latest time
-        const logs = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
-
-        container.innerHTML = logs.map(log => {
-            const isOut = log.type.includes('OUT');
-            const isLate = log.type.includes('[LATE]');
-            
-            return `
-                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full ${isOut ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'} flex items-center justify-center font-bold">
-                            ${log.name.charAt(0)}
-                        </div>
-                        <div>
-                            <p class="font-bold text-gray-800 text-sm">${log.name}</p>
-                            <p class="text-[10px] text-gray-400 font-medium">
-                                ${isLate ? '<span class="text-orange-500 font-bold">● LATE </span>' : ''}
-                                ${Math.round(log.distance)}m from office
-                            </p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-black text-sm ${isOut ? 'text-red-500' : 'text-green-600'}">${log.type.replace('[LATE] ', '')}</p>
-                        <p class="text-[10px] text-gray-400">${new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        // Convert to array and sort by latest activity
+        currentDayLogs = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
+        
+        if (countBadge) countBadge.innerText = `${currentDayLogs.length} Logs`;
+        renderStaffLogList(currentDayLogs);
     });
 };
-window.fetchFullStaffLogs = () => {
-    const dateKey = new Date().toISOString().split('T')[0];
-    const container = document.getElementById('full-staff-log-container');
 
+window.filterStaffLogs = () => {
+    const term = document.getElementById('staffLogSearch').value.toLowerCase();
+    const filtered = currentDayLogs.filter(log => 
+        log.name.toLowerCase().includes(term)
+    );
+    renderStaffLogList(filtered);
+};
+
+window.renderStaffLogList = (logs) => {
+    const container = document.getElementById('full-staff-log-container');
     if (!container) return;
 
-    firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) {
-            container.innerHTML = `
-                <div class="text-center py-10 bg-white rounded-2xl border border-dashed border-gray-200">
-                    <p class="text-gray-400 text-sm font-medium">No activity recorded for today yet.</p>
-                </div>`;
-            return;
-        }
+    if (logs.length === 0) {
+        container.innerHTML = `<p class="text-center py-10 text-gray-400 text-sm">No matching records found.</p>`;
+        return;
+    }
 
-        // Convert object to array and sort by latest activity first
-        const logs = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
-
-        container.innerHTML = logs.map(log => {
-            const isOut = log.type.includes('OUT');
-            const isLate = log.type.includes('[LATE]');
-            const distance = typeof log.distance === 'string' ? log.distance : Math.round(log.distance) + 'm';
-            
-            return `
-                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full ${isOut ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'} flex items-center justify-center font-bold text-sm">
-                            ${log.name ? log.name.charAt(0).toUpperCase() : '?'}
-                        </div>
-                        <div>
-                            <p class="font-bold text-gray-800 text-sm">${log.name}</p>
-                            <p class="text-[10px] text-gray-400 font-medium">
-                                ${isLate ? '<span class="text-orange-500 font-bold">● LATE </span>' : ''}
-                                ${distance} from office
-                            </p>
-                        </div>
+    container.innerHTML = logs.map(log => {
+        const isOut = log.type.includes('OUT');
+        const isLate = log.type.includes('[LATE]');
+        const distance = typeof log.distance === 'string' ? log.distance : Math.round(log.distance) + 'm';
+        
+        return `
+            <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full ${isOut ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'} flex items-center justify-center font-bold text-sm">
+                        ${log.name.charAt(0).toUpperCase()}
                     </div>
-                    <div class="text-right">
-                        <p class="font-black text-sm ${isOut ? 'text-red-500' : 'text-green-600'}">
-                            ${log.type.replace('[LATE] ', '')}
+                    <div>
+                        <p class="font-bold text-gray-800 text-sm">${log.name}</p>
+                        <p class="text-[10px] text-gray-400 font-medium">
+                            ${isLate ? '<span class="text-orange-500 font-bold">● LATE </span>' : ''}
+                            ${distance} from office
                         </p>
-                        <p class="text-[10px] text-gray-400">${log.time}</p>
                     </div>
                 </div>
-            `;
-        }).join('');
-    });
+                <div class="text-right">
+                    <p class="font-black text-sm ${isOut ? 'text-red-500' : 'text-green-600'}">
+                        ${log.type.replace('[LATE] ', '')}
+                    </p>
+                    <p class="text-[10px] text-gray-400">${log.time}</p>
+                </div>
+            </div>
+        `;
+    }).join('');
 };
 
 
