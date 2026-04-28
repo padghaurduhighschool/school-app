@@ -1,4 +1,4 @@
-{
+studentRows {
 
 // 1. CONFIGURATION & STATE
 const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
@@ -80,14 +80,49 @@ window.handleLogin = async function() {
         }
 
         // 🔹 2. Check STUDENT sheet
-        const studentRes = await fetch(STUDENT_SHEET_CSV);
-        const studentText = await studentRes.text();
-const studentRows = studentText.split('\n').map(r => 
+const studentRes = await fetch(STUDENT_SHEET_CSV);
+const studentText = await studentRes.text();
+
+// ✅ Proper CSV parsing
+const rows = studentText.split('\n').map(r => 
     r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
 );
-let student = studentRows.find(row => 
-    row[15]?.replace(/"/g, '').trim() === phone &&   // Phone
-    row[23]?.replace(/"/g, '').trim() === code       // Code (Column X)
+
+const clean = (v) => v?.replace(/"/g, '').trim();
+
+// ✅ 1. Get HEADER row
+const headers = rows[0].map(h => clean(h));
+
+// ✅ 2. Create header map (column name → index)
+const headerMap = {};
+headers.forEach((h, i) => {
+    headerMap[h.toLowerCase()] = i;
+});
+
+// 🔍 DEBUG (see your column names)
+console.log(headerMap);
+
+// ✅ 3. Helper to safely get value
+const get = (row, key) => {
+    const index = headerMap[key.toLowerCase()];
+    return index !== undefined ? clean(row[index]) : "";
+};
+
+// ✅ 4. Convert rows to objects
+const students = rows.slice(1).map(r => ({
+    gr: get(r, "gr no") || get(r, "gr") || get(r, "id"),
+    name: get(r, "name") || get(r, "student name"),
+    class: get(r, "class"),
+    phone: get(r, "phone") || get(r, "contact"),
+    code: get(r, "code") || get(r, "password")
+}));
+
+// 🔍 DEBUG one row
+console.log(students[0]);
+
+// ✅ 5. Find student
+let student = students.find(s => 
+    s.phone === phone && s.code === code
 );
 
         if (student) {
