@@ -201,24 +201,31 @@ if (section === 'attendance') {
         `;
 
         // Student Marking Interface for Staff
-        document.getElementById('student-interface').innerHTML = `
-            <div class="bg-blue-600 p-4 rounded-2xl text-white shadow-lg">
-                <p class="text-[10px] opacity-80 font-bold uppercase">Mark Attendance For:</p>
-                <div class="flex gap-2 mt-2">
-                    <select id="target-class" class="flex-1 bg-blue-700 border-none rounded-lg text-sm p-2 focus:ring-0" ${role === 'Teacher' ? 'disabled' : ''}>
-                        <option value="${mappedClass}">Class ${mappedClass}</option>
-                        ${role !== 'Teacher' ? `
-                            <option value="Jr. KG">Jr. KG</option><option value="Sr. KG">Sr. KG</option>
-                            ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}th Std</option>`).join('')}
-                        ` : ''}
-                    </select>
-                    <button onclick="loadAttendanceSheet()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-sm">
-                        Open List
-                    </button>
-                </div>
-            </div>
-            <div id="attendance-sheet-container" class="mt-4"></div>
-        `;
+// Student Marking Interface for Staff (Admin/Teacher/Supervisor)
+document.getElementById('student-interface').innerHTML = `
+    <div class="bg-blue-600 p-4 rounded-2xl text-white shadow-lg">
+        <p class="text-[10px] opacity-80 font-bold uppercase">Mark Attendance For:</p>
+        <div class="flex gap-2 mt-2">
+            <select id="target-class" class="flex-1 bg-blue-700 border-none rounded-lg text-sm p-2 focus:ring-0 text-white" 
+                ${role === 'Teacher' ? 'disabled' : ''}>
+                
+                <option value="${mappedClass}">Class ${mappedClass}</option>
+                
+                ${role !== 'Teacher' ? `
+                    <option value="Jr. KG">Jr. KG</option>
+                    <option value="Sr. KG">Sr. KG</option>
+                    ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option value="${n}">${n}th Std</option>`).join('')}
+                ` : ''}
+            </select>
+            
+            <button onclick="loadAttendanceSheet()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-sm active:scale-95 transition-all">
+                Open List
+            </button>
+        </div>
+        ${role === 'Teacher' ? `<p class="text-[9px] mt-2 opacity-70 italic text-white">Teachers can only mark their assigned class.</p>` : ''}
+    </div>
+    <div id="attendance-sheet-container" class="mt-4"></div>
+`;
     } 
     
     // 4. Logic for Students (View Only)
