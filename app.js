@@ -1370,11 +1370,26 @@ window.fetchNotices = () => {
                         <span class="text-[10px] text-gray-400">${n.date}</span>
                     </div>
                     <h3 class="font-black text-gray-800 text-sm">${n.title}</h3>
-<p class="text-xs text-gray-600 mt-2 leading-relaxed">
-    ${n.message?.en ? `<div><b>EN:</b> ${n.message.en}</div>` : ''}
-    ${n.message?.mr ? `<div><b>MR:</b> ${n.message.mr}</div>` : ''}
-    ${n.message?.ur ? `<div><b>UR:</b> ${n.message.ur}</div>` : ''}
-</p>
+<div class="mt-2">
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-2 text-[10px] font-bold">
+        <button onclick="switchLang('${n.id}','en')" 
+            class="lang-tab px-2 py-1 rounded ${getLang() === 'en' ? 'bg-blue-600 text-white' : 'bg-gray-100'}">EN</button>
+        
+        <button onclick="switchLang('${n.id}','mr')" 
+            class="lang-tab px-2 py-1 rounded ${getLang() === 'mr' ? 'bg-blue-600 text-white' : 'bg-gray-100'}">MR</button>
+        
+        <button onclick="switchLang('${n.id}','ur')" 
+            class="lang-tab px-2 py-1 rounded ${getLang() === 'ur' ? 'bg-blue-600 text-white' : 'bg-gray-100'}">UR</button>
+    </div>
+
+    <!-- Message -->
+    <p id="msg-${n.id}" class="text-xs text-gray-600 leading-relaxed">
+        ${getMessageByLang(n)}
+    </p>
+
+</div>
                     <p class="text-[8px] text-gray-400 mt-3 italic">Authored by: ${n.sender}</p>
 ${canManage ? `
     <div class="absolute bottom-4 right-4 flex gap-2">
@@ -1540,6 +1555,32 @@ window.editNotice = (id) => {
         }, 300);
     });
 };
+
+function getLang() {
+    return localStorage.getItem('noticeLang') || 'en';
+}
+
+function getMessageByLang(n) {
+    const lang = getLang();
+    return n.message?.[lang] || n.message?.en || "No content";
+}
+window.switchLang = (id, lang) => {
+    // Save preference
+    localStorage.setItem('noticeLang', lang);
+
+    // Update only that notice text
+    firebase.database().ref('notices/' + id).once('value', (snapshot) => {
+        const n = snapshot.val();
+        const msgDiv = document.getElementById(`msg-${id}`);
+        if (msgDiv) {
+            msgDiv.innerText = n.message?.[lang] || n.message?.en || "No content";
+        }
+    });
+
+    // Optional: reload to update tab colors
+    loadSection('notices');
+};
+
 
     
 
