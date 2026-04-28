@@ -535,13 +535,25 @@ window.fetchStudentData = async () => {
     try {
         const response = await fetch(STUDENT_SHEET_CSV);
         const text = await response.text();
-        const rows = text.split('\n').slice(1);
+        // Split by lines and remove empty rows
+        const rows = text.split('\n').filter(row => row.trim() !== '').slice(1); 
+
         allStudents = rows.map(row => {
             const cols = row.split(',');
-            return { id: cols[0]?.trim(), name: cols[1]?.trim(), class: cols[2]?.trim(), roll: cols[3]?.trim() };
+            return {
+                id: cols[2]?.trim(),    // GR No (Column C)
+                name: cols[7]?.trim(),  // Full Name (Column H)
+                class: cols[1]?.trim(), // Class (Column B)
+                roll: cols[3]?.trim()   // Roll No (Column D)
+            };
         });
+
         renderStudentList(allStudents);
-    } catch (e) { console.error("Student Load Error"); }
+    } catch (error) {
+        console.error("Error loading student data:", error);
+        document.getElementById('student-list-container').innerHTML = 
+            `<p class="text-red-500 text-center">Failed to load student data. Check CSV publishing settings.</p>`;
+    }
 };
 
 window.renderStudentList = (students) => {
