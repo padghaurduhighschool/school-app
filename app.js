@@ -337,6 +337,15 @@ window.markAttendance = async (type) => {
                     btnIn.innerText = 'IN ✅';
                     btnIn.className = "py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-400";
                 }
+                const feedback = document.getElementById('attendance-feedback');
+        if (feedback) {
+            feedback.innerHTML = `
+                <p class="text-[10px] text-gray-500 font-medium">
+                    Checked in at <span class="text-blue-600">${timeStr}</span> 
+                    at <span class="text-blue-600">${Math.round(distance)}m</span> from office.
+                </p>
+            `;
+        }
                 if (btnOut) {
                     btnOut.disabled = false;
                     btnOut.className = "py-3 rounded-xl font-bold text-sm bg-red-500 text-white shadow-md active:scale-95";
