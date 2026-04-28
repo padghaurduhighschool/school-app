@@ -154,9 +154,12 @@ if (section === 'home') {
                     <h3 class="font-bold text-gray-700 flex items-center">
                         <span class="mr-2">📋</span> Live Attendance Feed
                     </h3>
-                    <button onclick="downloadReport()" class="text-xs bg-green-600 text-white px-3 py-2 rounded-lg font-bold shadow-sm flex items-center">
-                <span class="mr-1">📥</span> Download CSV
-            </button>
+                <button onclick="downloadReport()" class="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold text-xs">
+                    📥 Daily Report (CSV)
+                </button>
+                <button onclick="downloadMonthlyReport()" class="flex-1 bg-green-600 text-white p-3 rounded-xl font-bold text-xs">
+                    📅 Monthly Report (Excel)
+                </button>
                     
                     <div id="attendance-list" class="space-y-3">
                         <div class="text-center py-10 text-gray-400 italic">Loading logs...</div>
@@ -197,7 +200,7 @@ window.markAttendance = (type) => {
     const timeNum = now.getHours() * 100 + now.getMinutes();
     statusDiv.innerText = "📍 Locating your position...";
     let statusPrefix = "";
-    if (type === 'IN' && timeNum > 725) {
+    if (type === 'IN' && timeNum > 720) {
         statusPrefix = "[LATE] ";
     }
     navigator.geolocation.getCurrentPosition((position) => {
@@ -282,30 +285,35 @@ window.fetchAttendanceLogs = () => {
         let total = 0;
         let outside = 0;
 
+        let tableHtml = `
+    <table class="w-full bg-white rounded-lg overflow-hidden shadow-sm text-sm">
+        <thead class="bg-gray-50 border-b">
+            <tr>
+                <th class="p-3 text-left">Staff Name</th>
+                <th class="p-3 text-left">Action</th>
+                <th class="p-3 text-left">Time</th>
+                <th class="p-3 text-left">Dist.</th>
+            </tr>
+        </thead>
+        <tbody>`;
+        
         // Convert object to array and reverse to see newest first
         const logs = Object.values(data).reverse();
 
-        logs.forEach(log => {
-            total++;
-            const isOutside = parseInt(log.distance) > 10;
-            if (isOutside) outside++;
-
-            html += `
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="font-bold text-gray-800">${log.name}</p>
-                            <p class="text-xs text-gray-500">${log.time} • ${log.type}</p>
-                        </div>
-                        <span class="px-2 py-1 rounded text-[10px] font-bold ${isOutside ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}">
-                            ${log.distance}
-                        </span>
-                    </div>
-                </div>
-            `;
-        });
+logs.forEach(log => {
+    tableHtml += `
+        <tr class="border-b">
+            <td class="p-3 font-bold">${log.name}</td>
+            <td class="p-3">${log.type}</td>
+            <td class="p-3">${log.time}</td>
+            <td class="p-3 text-xs">${log.distance}</td>
+        </tr>`;
+});
+tableHtml += `</tbody></table>`;
+        
 
         listDiv.innerHTML = html;
+        listDiv.innerHTML = tableHtml;
         totalCount.innerText = total;
         outsideCount.innerText = outside;
     });
@@ -343,6 +351,62 @@ window.downloadReport = () => {
         document.body.removeChild(link);
     });
 };
+
+window.downloadMonthlyReport = () => {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    // Fetch the entire month of attendance
+    firebase.database().ref('attendance').once('value', (snapshot) => {
+        const allData = snapshot.val(); // Contains all dates
+        if (!allData) return alert("No data found.");
+
+        const report = {}; // Structure: { "Name": { "Day1_IN": "", "Day1_OUT": "" } }
+
+        // Process all dates in the database
+        Object.keys(allData).forEach(dateStr => {
+            if (dateStr.startsWith(`${year}-${month.toString().padStart(2, '0')}`)) {
+                const day = parseInt(dateStr.split('-')[2]);
+                const logs = Object.values(allData[dateStr]);
+
+                logs.forEach(log => {
+                    if (!report[log.name]) report[log.name] = {};
+                    // Store the time for that specific day and type
+                    report[log.name][`${day}_${log.type}`] = log.time;
+                });
+            }
+        });
+
+        // 1. Create CSV Header (Name, 1 April IN, 1 April OUT, 2 April IN...)
+        let csvContent = "data:text/csv;charset=utf-8,Staff Name";
+        for (let i = 1; i <= daysInMonth; i++) {
+            csvContent += `,${i} April IN,${i} April OUT`;
+        }
+        csvContent += "\n";
+
+        // 2. Add Employee Rows
+        Object.keys(report).forEach(staffName => {
+            let row = `"${staffName}"`;
+            for (let i = 1; i <= daysInMonth; i++) {
+                const checkIn = report[staffName][`${i}_IN`] || "-";
+                const checkOut = report[staffName][`${i}_OUT`] || "-";
+                row += `,${checkIn},${checkOut}`;
+            }
+            csvContent += row + "\n";
+        });
+
+        // 3. Download
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Monthly_Report_${month}_${year}.csv`);
+        document.body.appendChild(link);
+        link.click();
+    });
+};
+
     
 window.handleLogout = () => {
     if (confirm("Sign out of the system?")) {
