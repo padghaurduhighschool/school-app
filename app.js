@@ -532,28 +532,31 @@ window.updateHomeSummary = async () => {
 let allStudents = []; // Global variable to store the list for filtering
 
 window.fetchStudentData = async () => {
-    // Replace with your actual Student Google Sheet CSV Link
-    
     try {
         const response = await fetch(STUDENT_SHEET_CSV);
         const text = await response.text();
-        const rows = text.split('\n').slice(1); // Skip header
-
+        const rows = text.split('\n').slice(1);
         allStudents = rows.map(row => {
             const cols = row.split(',');
-            return {
-                id: cols[0]?.trim(),
-                name: cols[1]?.trim(),
-                class: cols[2]?.trim(),
-                roll: cols[3]?.trim()
-            };
+            return { id: cols[0]?.trim(), name: cols[1]?.trim(), class: cols[2]?.trim(), roll: cols[3]?.trim() };
         });
-
         renderStudentList(allStudents);
-    } catch (error) {
-        document.getElementById('student-list-container').innerHTML = 
-            `<p class="text-red-500 text-center">Failed to load student data.</p>`;
-    }
+    } catch (e) { console.error("Student Load Error"); }
+};
+
+window.renderStudentList = (students) => {
+    const container = document.getElementById('student-list-container');
+    container.innerHTML = students.map(s => `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50 flex justify-between"><div><p class="font-bold">${s.name}</p><p class="text-xs">ID: ${s.id}</p></div><span class="text-xs font-bold">Class ${s.class}</span></div>`).join('');
+};
+
+window.filterStudents = () => {
+    const term = document.getElementById('studentSearch').value.toLowerCase();
+    const filtered = allStudents.filter(s => s.name.toLowerCase().includes(term) || s.id.includes(term));
+    renderStudentList(filtered);
+};
+
+window.handleLogout = () => {
+    if (confirm("Sign out?")) { localStorage.clear(); location.reload(); }
 };
 
 window.renderStudentList = (students) => {
