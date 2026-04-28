@@ -122,13 +122,13 @@ const students = rows.slice(1).map(function(r) {
 let student = students.find(function(s) {
     return s.phone === phone && s.code === code;
 });
-
+console.log(student);
         if (student) {
             // ✅ STUDENT LOGIN
             localStorage.setItem('userRole', 'Student');
-            localStorage.setItem('userName', student[7].trim()); // Name
-            localStorage.setItem('mappedClass', student[1].trim()); // Class
-            localStorage.setItem('userGR', student[2].trim()); // GR No
+localStorage.setItem('userName', student.name);
+localStorage.setItem('mappedClass', student.class);
+localStorage.setItem('userGR', student.gr);
 
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
