@@ -63,7 +63,22 @@ window.loadSection = (section) => {
     const name = localStorage.getItem('userName');
     document.getElementById('user-role-title').innerText = `${role} Dashboard`;
 
-    if (section === 'home') {
+if (section === 'home') {
+        content.innerHTML = `
+            <div class="space-y-4">
+                <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
+                    <h2 class="text-2xl font-bold">Hello, ${name}</h2>
+                    <p class="opacity-90">Padgha Urdu High School ERP</p>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold mb-2">School Notices</h3>
+                    <p class="text-sm text-gray-500 italic">No new notices for today.</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    if (section === 'attendance') {
         if (role === "Teacher") {
             const hasCheckedIn = localStorage.getItem('hasCheckedInToday') === 'true';
 
@@ -120,7 +135,9 @@ window.loadSection = (section) => {
             // Trigger the data fetch
             fetchAttendanceLogs();
         }
-    } else if (section === 'more') {
+    } 
+    
+    else if (section === 'more') {
         content.innerHTML = `
             <div class="bg-white rounded-2xl shadow-sm p-4 space-y-4">
                 <div class="border-b pb-4">
