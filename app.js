@@ -416,6 +416,44 @@ if (section === 'homework') {
     fetchHomework();
 }
 
+    if (section === 'notices') {
+    const role = localStorage.getItem('userRole');
+    const userName = localStorage.getItem('userName');
+    const userClass = localStorage.getItem('mappedClass');
+    
+    content.innerHTML = `
+        <div class="space-y-4">
+            <h2 class="text-lg font-bold text-gray-800">School Notices</h2>
+            
+            ${["Admin", "Super Admin", "Supervisor", "Clerk"].includes(role) ? `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-orange-50">
+                    <p class="text-[10px] font-bold text-orange-600 uppercase mb-2">Send Official Notice</p>
+                    <div class="space-y-3">
+                        <select id="notice-target-type" onchange="toggleNoticeFields()" class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
+                            <option value="school">Whole School</option>
+                            <option value="class">Specific Class</option>
+                            <option value="student">Specific Student (GR No)</option>
+                        </select>
+
+                        <div id="notice-target-details"></div>
+
+                        <input type="text" id="notice-title" placeholder="Notice Title (e.g. Holiday Alert)" class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
+                        <textarea id="notice-body" placeholder="Type notice message here..." class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none h-24"></textarea>
+                        
+                        <button onclick="postNotice()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow-md active:scale-95 transition-all">
+                            Send Notice
+                        </button>
+                    </div>
+                </div>
+            ` : ''}
+
+            <div id="notices-list" class="space-y-3 pb-10">
+                <p class="text-center py-10 text-gray-400 italic text-sm">Loading notices...</p>
+            </div>
+        </div>
+    `;
+    fetchNotices();
+}
     
 
 
@@ -1182,7 +1220,111 @@ window.deleteHomework = (id) => {
             .catch(err => alert("Error: " + err.message));
     }
 };
+
+    window.toggleNoticeFields = () => {
+    const type = document.getElementById('notice-target-type').value;
+    const container = document.getElementById('notice-target-details');
     
+    if (type === 'class') {
+        container.innerHTML = `
+            <select id="notice-target-value" class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none mt-2">
+                <option value="Jr KG">Jr KG</option>
+                <option value="Sr KG">Sr KG</option>
+                ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}th Std</option>`).join('')}
+            </select>`;
+    } else if (type === 'student') {
+        container.innerHTML = `<input type="text" id="notice-target-value" placeholder="Enter Student GR No." class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none mt-2">`;
+    } else {
+        container.innerHTML = '';
+    }
+};
+
+window.postNotice = () => {
+    const type = document.getElementById('notice-target-type').value;
+    const targetValue = document.getElementById('notice-target-value')?.value || 'ALL';
+    const title = document.getElementById('notice-title').value;
+    const body = document.getElementById('notice-body').value;
+    const sender = localStorage.getItem('userName');
+
+    if (!title || !body) return alert("Please enter title and message");
+
+    firebase.database().ref('notices').push({
+        targetType: type, // 'school', 'class', or 'student'
+        targetValue: targetValue,
+        title: title,
+        message: body,
+        sender: sender,
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        date: new Date().toLocaleDateString('en-GB')
+    }).then(() => {
+        alert("Notice sent!");
+        loadSection('notices'); // Refresh
+    });
+};
+
+window.fetchNotices = () => {
+    const role = localStorage.getItem('userRole');
+    const userName = localStorage.getItem('userName'); // Used for individual student targeting
+    const userClass = localStorage.getItem('mappedClass');
+    const container = document.getElementById('notices-list');
+
+    // We fetch the student's GR No from their profile if they are a student
+    // For this example, we assume their 'userName' matches their name in records, 
+    // but usually, you'd store their GR No in localStorage at login.
+    const userGR = localStorage.getItem('userGR') || ""; 
+
+    firebase.database().ref('notices').orderByChild('timestamp').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+            container.innerHTML = `<p class="text-center py-10 text-gray-400">No active notices.</p>`;
+            return;
+        }
+
+        const notices = Object.keys(data).map(key => ({ id: key, ...data[key] })).reverse();
+
+        container.innerHTML = notices.map(n => {
+            // Visibility Filter
+            let visible = false;
+            if (["Admin", "Super Admin", "Supervisor", "Clerk"].includes(role)) {
+                visible = true; // Admins see everything
+            } else {
+                if (n.targetType === 'school') visible = true;
+                if (n.targetType === 'class' && n.targetValue === userClass) visible = true;
+                if (n.targetType === 'student' && n.targetValue === userGR) visible = true;
+            }
+
+            if (!visible) return '';
+
+            const canManage = ["Admin", "Super Admin", "Supervisor", "Clerk"].includes(role);
+
+            return `
+                <div class="bg-white p-5 rounded-2xl border-l-4 border-orange-500 shadow-sm relative">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-[9px] font-black text-orange-600 uppercase tracking-tighter">
+                            📢 ${n.targetType === 'school' ? 'Public' : n.targetValue}
+                        </span>
+                        <span class="text-[10px] text-gray-400">${n.date}</span>
+                    </div>
+                    <h3 class="font-black text-gray-800 text-sm">${n.title}</h3>
+                    <p class="text-xs text-gray-600 mt-2 leading-relaxed">${n.message}</p>
+                    <p class="text-[8px] text-gray-400 mt-3 italic">Authored by: ${n.sender}</p>
+
+                    ${canManage ? `
+                        <button onclick="deleteNotice('${n.id}')" class="absolute bottom-4 right-4 text-gray-300 hover:text-red-500">
+                            🗑️
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    });
+};
+
+window.deleteNotice = (id) => {
+    if (confirm("Delete this notice for everyone?")) {
+        firebase.database().ref(`notices/${id}`).remove();
+    }
+};
 
 
     
