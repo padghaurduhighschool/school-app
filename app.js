@@ -325,28 +325,7 @@ if (section === 'students') {
     fetchStudentData();
 }
 
-case 'staff_logs_detail':
-    content.innerHTML = `
-        <div class="space-y-4">
-            <div class="flex items-center gap-3 mb-2">
-                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">←</button>
-                <h2 class="text-lg font-black text-gray-800">Staff Attendance Log</h2>
-            </div>
-            
-            <div class="bg-blue-50 p-3 rounded-xl border border-blue-100 mb-2">
-                <p class="text-[10px] font-bold text-blue-600 uppercase">Live Feed: ${new Date().toLocaleDateString('en-GB')}</p>
-            </div>
-
-            <div id="full-staff-log-container" class="space-y-3">
-                <div class="text-center py-20 text-gray-400 italic">Fetching today's logs...</div>
-            </div>
-        </div>
-    `;
-    fetchFullStaffLogs();
-    break;
-    
-}
-    
+}    
 // 6. ATTENDANCE & GEOLOCATION
 window.markAttendance = async (type) => {
     // 1. Reference the buttons instead of a statusDiv
