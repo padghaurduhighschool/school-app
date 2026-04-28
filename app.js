@@ -361,6 +361,27 @@ if (section === 'staff_logs_detail') {
     `;
     fetchFullStaffLogs();
 }
+
+if (section === 'student_attendance_summary') {
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-2">
+                    <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full text-gray-600">←</button>
+                    <h2 class="text-lg font-bold text-gray-800">Class Attendance Status</h2>
+                </div>
+            </div>
+
+            <div id="class-status-container" class="grid grid-cols-1 gap-3 pb-10">
+                <p class="text-center py-10 text-gray-400 italic">Checking class records...</p>
+            </div>
+        </div>
+    `;
+    fetchClassAttendanceStatus();
+}
+
+
+
     
 }    
 // 6. ATTENDANCE & GEOLOCATION
@@ -998,7 +1019,59 @@ window.renderStaffLogList = (logs) => {
     }).join('');
 };
 
+window.fetchClassAttendanceStatus = () => {
+    const dateKey = new Date().toISOString().split('T')[0];
+    const container = document.getElementById('class-status-container');
+    
+    // Define all classes in your school
+    const allClasses = ["Jr KG", "Sr KG", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
+    firebase.database().ref(`student_attendance/${dateKey}`).on('value', (snapshot) => {
+        const attendanceData = snapshot.val() || {};
+        
+        container.innerHTML = allClasses.map(className => {
+            const record = attendanceData[className];
+            const isMarked = !!record;
+            
+            return `
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl ${isMarked ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'} flex flex-col items-center justify-center">
+                            <span class="text-[10px] font-bold uppercase leading-none">Class</span>
+                            <span class="text-lg font-black">${className}</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-gray-800">${isMarked ? '✅ Completed' : '⏳ Pending'}</p>
+                            <p class="text-[10px] text-gray-400 font-medium">
+                                ${isMarked ? `Marked by: ${record.markedBy}` : 'Waiting for teacher to submit'}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <button onclick="loadAttendanceForClass('${className}')" 
+                        class="px-4 py-2 rounded-lg text-xs font-bold ${isMarked ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}">
+                        ${isMarked ? 'VIEW' : 'MARK'}
+                    </button>
+                </div>
+            `;
+        }).join('');
+    });
+};
+
+// Helper to jump directly to that class marking sheet
+window.loadAttendanceForClass = (className) => {
+    loadSection('attendance');
+    setTimeout(() => {
+        const selector = document.getElementById('target-class');
+        if (selector) {
+            selector.value = className;
+            loadAttendanceSheet();
+        }
+    }, 100);
+};
+
+
+    
 
 
     
