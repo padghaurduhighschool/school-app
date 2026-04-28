@@ -134,79 +134,106 @@ if (section === 'home') {
     }
 }
     
-    if (section === 'attendance') {
-        if (role === "Teacher") {
-        const now = new Date();
-        const day = now.getDay(); // 0=Sun, 5=Fri, 6=Sat
-        const time = now.getHours() * 100 + now.getMinutes(); // e.g., 7:20 -> 720
-        
-        const isSunday = day === 0;
-        const hasCheckedIn = localStorage.getItem('hasCheckedInToday') === 'true';
+if (section === 'attendance') {
+    const role = localStorage.getItem('userRole');
+    const mappedClass = localStorage.getItem('mappedClass');
+    const name = localStorage.getItem('userName');
+    const now = new Date();
+    const day = now.getDay();
+    const dateKey = now.toISOString().split('T')[0];
+    const isSunday = day === 0;
 
-        // Define Rules
-        const isTooEarly = time < 710; // Block before 7:10 AM
-        
-        // Logic for Short Day (Example: Friday = Day 5)
-        const isShortDay = (day === 5); 
-        const closingTime = isShortDay ? 1045 : 1300;
+    // 1. Common Sunday Check
+    if (isSunday) {
+        content.innerHTML = `<div class="p-10 text-center bg-white rounded-2xl shadow-sm">
+            <p class="text-4xl mb-4">🏠</p>
+            <p class="font-bold text-lg">Today is Sunday</p>
+            <p class="text-gray-500">School is closed.</p>
+        </div>`;
+        return;
+    }
+
+    // 2. Prepare Container
+    content.innerHTML = `
+        <div class="space-y-6">
+            <div id="staff-section" class="${role === 'Student' ? 'hidden' : 'space-y-4'}">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">My Attendance (Staff)</h3>
+                <div id="staff-controls"></div> 
+            </div>
+
+            <hr class="border-gray-100 ${role === 'Student' ? 'hidden' : ''}">
+
+            <div id="student-section" class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Student Attendance</h3>
+                    ${role !== 'Student' ? `
+                        <button onclick="downloadStudentReport()" class="text-blue-600 text-[10px] font-bold">📥 REPORT</button>
+                    ` : ''}
+                </div>
+                
+                <div id="student-interface"></div>
+            </div>
+        </div>
+    `;
+
+    // 3. Logic for Staff Controls (Teachers, Supervisor, Admin)
+    if (role !== 'Student') {
+        const time = now.getHours() * 100 + now.getMinutes();
+        const hasCheckedIn = localStorage.getItem('hasCheckedInToday') === 'true';
+        const isTooEarly = time < 710;
+        const isShortDay = (day === 5);
         const closingLabel = isShortDay ? "10:45 AM" : "01:00 PM";
 
-        if (isSunday) {
-            content.innerHTML = `<div class="p-10 text-center bg-white rounded-2xl shadow-sm">
-                <p class="text-4xl mb-4">🏠</p>
-                <p class="font-bold text-lg">Today is Sunday</p>
-                <p class="text-gray-500">School is closed. Enjoy your holiday!</p>
-            </div>`;
-            return;
-        }
+        document.getElementById('staff-controls').innerHTML = `
+            <div class="bg-gray-100 p-3 rounded-lg text-center text-[10px] font-bold text-gray-600 mb-3">
+                Shift: 07:20 AM to ${closingLabel}
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="markAttendance('IN')" ${hasCheckedIn || isTooEarly ? 'disabled' : ''} 
+                    class="p-4 rounded-xl font-bold text-sm ${hasCheckedIn || isTooEarly ? 'bg-gray-200 text-gray-400' : 'bg-green-500 text-white shadow-md'}">
+                    ${isTooEarly ? 'Too Early' : (hasCheckedIn ? 'IN ✅' : 'Check IN')}
+                </button>
+                <button onclick="markAttendance('OUT')" ${!hasCheckedIn ? 'disabled' : ''} 
+                    class="p-4 rounded-xl font-bold text-sm ${!hasCheckedIn ? 'bg-gray-200 text-gray-400' : 'bg-red-500 text-white shadow-md'}">
+                    Check OUT
+                </button>
+            </div>
+        `;
 
-        content.innerHTML = `
-            <div class="space-y-4">
-                <div class="bg-gray-100 p-3 rounded-lg text-center text-xs font-bold text-gray-600">
-                    Shift: 07:20 AM to ${closingLabel}
-                </div>
-                <div class="grid grid-cols-1 gap-4">
-                    <button id="btn-in" onclick="markAttendance('IN')" 
-                        ${hasCheckedIn || isTooEarly ? 'disabled' : ''} 
-                        class="w-full p-6 rounded-2xl font-bold shadow-lg transition-all
-                        ${hasCheckedIn || isTooEarly ? 'bg-gray-300 text-gray-500' : 'bg-green-500 text-white active:scale-95'}">
-                        ${isTooEarly ? 'Too Early to Check IN' : (hasCheckedIn ? '✅ Already Checked IN' : 'Check IN')}
-                    </button>
-
-                    <button id="btn-out" onclick="markAttendance('OUT')" 
-                        ${!hasCheckedIn ? 'disabled' : ''} 
-                        class="w-full p-6 rounded-2xl font-bold shadow-lg transition-all
-                        ${!hasCheckedIn ? 'bg-gray-300 text-gray-500' : 'bg-red-500 text-white active:scale-95'}">
-                        Check OUT
+        // Student Marking Interface for Staff
+        document.getElementById('student-interface').innerHTML = `
+            <div class="bg-blue-600 p-4 rounded-2xl text-white shadow-lg">
+                <p class="text-[10px] opacity-80 font-bold uppercase">Mark Attendance For:</p>
+                <div class="flex gap-2 mt-2">
+                    <select id="target-class" class="flex-1 bg-blue-700 border-none rounded-lg text-sm p-2 focus:ring-0" ${role === 'Teacher' ? 'disabled' : ''}>
+                        <option value="${mappedClass}">Class ${mappedClass}</option>
+                        ${role !== 'Teacher' ? `
+                            <option value="Jr. KG">Jr. KG</option><option value="Sr. KG">Sr. KG</option>
+                            ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}th Std</option>`).join('')}
+                        ` : ''}
+                    </select>
+                    <button onclick="loadAttendanceSheet()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-sm">
+                        Open List
                     </button>
                 </div>
             </div>
+            <div id="attendance-sheet-container" class="mt-4"></div>
         `;
-    } else {
-                content.innerHTML = `
-                <div class="space-y-4">
- 
-                    
-
-                <button onclick="downloadReport()" class="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold text-xs">
-                    📥 Daily Report (CSV)
-                </button>
-                <button onclick="downloadMonthlyReport()" class="flex-1 bg-green-600 text-white p-3 rounded-xl font-bold text-xs">
-                    📅 Monthly Report (Excel)
-                </button>
-                    <h3 class="font-bold text-gray-700 flex items-center">
-                        <span class="mr-2">📋</span> Live Attendance Feed
-                    </h3>                    
-                    <div id="attendance-list" class="space-y-3">
-                        <div class="text-center py-10 text-gray-400 italic">Loading logs...</div>
-                    </div>
-                    
-                </div>
-            `;
-            // Trigger the data fetch
-            fetchAttendanceLogs();
-        }
     } 
+    
+    // 4. Logic for Students (View Only)
+    else {
+        document.getElementById('student-interface').innerHTML = `
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-sm font-bold text-gray-700">My Attendance History</p>
+                <div id="personal-logs" class="mt-3 space-y-2 text-xs">
+                    <p class="text-gray-400 italic">Fetching your records...</p>
+                </div>
+            </div>
+        `;
+        fetchPersonalStudentLogs(name);
+    }
+}
     
     else if (section === 'more') {
         content.innerHTML = `
