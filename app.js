@@ -531,17 +531,16 @@ window.downloadMonthlyReport = () => {
 window.updateHomeSummary = async () => {
     const dateKey = new Date().toISOString().split('T')[0];
     
-    // 1. Fetch Staff Count from CSV
+    // 1. Fetch Total Counts from CSVs
     const staffRes = await fetch(TEACHER_SHEET_CSV);
     const staffText = await staffRes.text();
     const totalStaffCount = staffText.split('\n').filter(r => r.trim()).length - 1;
 
-    // 2. Fetch Student Count from CSV
     const studRes = await fetch(STUDENT_SHEET_CSV);
     const studText = await studRes.text();
     const totalStudentCount = studText.split('\n').filter(r => r.trim()).length - 1;
 
-    // 3. Update Staff via Firebase
+    // 2. Update Staff Summary (Existing Logic)
     firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
         const data = snapshot.val();
         let presentStaff = 0;
@@ -552,14 +551,28 @@ window.updateHomeSummary = async () => {
             });
             presentStaff = uniqueNames.size;
         }
-
         document.getElementById('home-staff-present').innerText = presentStaff;
         document.getElementById('home-staff-absent').innerText = Math.max(0, totalStaffCount - presentStaff);
-        
-        // Student Logic Placeholder (Update values here when student DB is ready)
-        const sPresent = 0; // Set current student presence
-        const sAbsent = totalStudentCount - sPresent;
+    });
 
+    // 3. NEW: Update Student Summary from student_attendance node
+    firebase.database().ref('student_attendance/' + dateKey).on('value', (snapshot) => {
+        const classesData = snapshot.val();
+        let sPresent = 0;
+
+        if (classesData) {
+            // Iterate through each class marked today
+            Object.values(classesData).forEach(classObj => {
+                if (classObj.records) {
+                    // Count students marked 'Present' in this class
+                    Object.values(classObj.records).forEach(record => {
+                        if (record.status === 'Present') sPresent++;
+                    });
+                }
+            });
+        }
+
+        const sAbsent = Math.max(0, totalStudentCount - sPresent);
         document.getElementById('home-stud-present').innerText = sPresent;
         document.getElementById('home-stud-absent').innerText = sAbsent;
         document.getElementById('home-stud-total').innerText = totalStudentCount;
