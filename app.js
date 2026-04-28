@@ -717,17 +717,20 @@ window.loadAttendanceSheet = async () => {
         const text = await response.text();
         const rows = text.split('\n').filter(row => row.trim() !== '').slice(1);
 
+        const normalize = (val) => val ? val.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim() : "";
+        const targetClassNormalized = normalize(classVal);
+
         const classStudents = rows.map(row => {
             const cols = row.split(',');
             return {
-                id: cols[2]?.trim(),    // GR No
-                name: cols[7]?.trim(),  // Name
-                class: cols[1]?.trim()  // Class
+                id: cols[2]?.replace(/^"|"$/g, '').trim(),    // GR No (strips quotes)
+                name: cols[7]?.replace(/^"|"$/g, '').trim(),  // Name
+                class: cols[1]?.replace(/^"|"$/g, '').trim()  // Class
             };
-        }).filter(s => s.class === classVal);
+        }).filter(s => normalize(s.class) === targetClassNormalized);
 
         if (classStudents.length === 0) {
-            container.innerHTML = `<p class="text-center py-5 text-red-500 text-sm">No students found for this class.</p>`;
+            container.innerHTML = `<p class="text-center py-5 text-red-500 text-sm">No students found for "${classVal}".<br><span class="text-[10px] text-gray-400">Tip: Check if CSV uses "Jr KG" vs "Jr. KG"</span></p>`;
             return;
         }
 
