@@ -962,7 +962,60 @@ window.fetchFullStaffLogs = () => {
         }).join('');
     });
 };
+window.fetchFullStaffLogs = () => {
+    const dateKey = new Date().toISOString().split('T')[0];
+    const container = document.getElementById('full-staff-log-container');
 
+    if (!container) return;
+
+    firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+            container.innerHTML = `
+                <div class="text-center py-10 bg-white rounded-2xl border border-dashed border-gray-200">
+                    <p class="text-gray-400 text-sm font-medium">No activity recorded for today yet.</p>
+                </div>`;
+            return;
+        }
+
+        // Convert object to array and sort by latest activity first
+        const logs = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
+
+        container.innerHTML = logs.map(log => {
+            const isOut = log.type.includes('OUT');
+            const isLate = log.type.includes('[LATE]');
+            const distance = typeof log.distance === 'string' ? log.distance : Math.round(log.distance) + 'm';
+            
+            return `
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full ${isOut ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'} flex items-center justify-center font-bold text-sm">
+                            ${log.name ? log.name.charAt(0).toUpperCase() : '?'}
+                        </div>
+                        <div>
+                            <p class="font-bold text-gray-800 text-sm">${log.name}</p>
+                            <p class="text-[10px] text-gray-400 font-medium">
+                                ${isLate ? '<span class="text-orange-500 font-bold">● LATE </span>' : ''}
+                                ${distance} from office
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-black text-sm ${isOut ? 'text-red-500' : 'text-green-600'}">
+                            ${log.type.replace('[LATE] ', '')}
+                        </p>
+                        <p class="text-[10px] text-gray-400">${log.time}</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    });
+};
+
+
+
+
+    
 
 
     
