@@ -113,24 +113,25 @@ if (section === 'home') {
 </div>
 
 
-<div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+<div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:scale-95 transition-all" onclick="loadSection('student_attendance_summary')">
     <div class="flex justify-between items-center mb-2">
         <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Student Attendance</h3>
         <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold" id="home-stud-total">0</span>
     </div>
     
     <div class="grid grid-cols-3 gap-2 items-end">
-        <div>
-            <p class="text-xs font-bold text-orange-500" id="home-stud-unchecked">0</p>
-            <p class="text-[8px] text-gray-400 font-bold uppercase">Unchecked</p>
-        </div>
-        <div class="text-center">
+
+        <div >
             <p class="text-xl font-black text-gray-800" id="home-stud-present">0</p>
             <p class="text-[8px] text-gray-400 font-bold uppercase">Present</p>
         </div>
-        <div class="text-right">
+        <div class="text-center">
             <p class="text-xs font-bold text-red-500" id="home-stud-absent">0</p>
             <p class="text-[8px] text-gray-400 font-bold uppercase">Absent</p>
+        </div>
+        <div class="text-right">
+            <p class="text-xs font-bold text-orange-500" id="home-stud-unchecked">0</p>
+            <p class="text-[8px] text-gray-400 font-bold uppercase">Unchecked</p>
         </div>
     </div>
 
