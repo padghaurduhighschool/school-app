@@ -545,7 +545,7 @@ window.fetchStudentData = async () => {
                 name: cols[7]?.trim(),  // Full Name (Column H)
                 class: cols[1]?.trim(), // Class (Column B)
                 roll: cols[3]?.trim(),   // Roll No (Column D)
-                contact: cols[13]?.trim()  // Contact No (Col N)
+                contact: cols[14]?.trim()  // Contact No (Col N)
             };
         });
 
