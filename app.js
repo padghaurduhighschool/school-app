@@ -1238,8 +1238,17 @@ window.toggleNoticeFields = () => {
     } else if (type === 'student') {
         container.innerHTML = `
             <div class="relative mt-2">
-                <input type="text" id="studentSearch" placeholder="Search student name or GR No" autocomplete="off">
-                <div id="suggestionsBox"></div>
+<input type="text" id="studentSearch" oninput="searchStudentNotice()" 
+    placeholder="Search student name or GR No" 
+    class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
+
+<div id="suggestionsBox" 
+    class="bg-white border rounded-xl mt-1 max-h-40 overflow-y-auto hidden">
+</div>
+
+<input type="hidden" id="notice-target-value">
+
+                
                 <div id="student-search-results" class="absolute z-10 w-full bg-white shadow-xl rounded-xl mt-1 max-h-48 overflow-y-auto hidden border border-gray-100">
                 </div>
                 <input type="hidden" id="notice-target-value">
@@ -1406,38 +1415,50 @@ async function loadStudents() {
     students = snapshot.docs.map(doc => doc.data());
 }
 
-loadStudents(); // call it
+window.searchStudentNotice = () => {
+    const input = document.getElementById("studentSearch");
+    const box = document.getElementById("suggestionsBox");
 
+    if (!input || !box) return;
 
-const input = document.getElementById("studentSearch");
-const box = document.getElementById("suggestionsBox");
-
-input.addEventListener("input", function () {
-    let value = this.value.toLowerCase();
+    let value = input.value.toLowerCase();
     box.innerHTML = "";
 
-    if (!value) return;
+    if (!value) {
+        box.classList.add("hidden");
+        return;
+    }
 
-    let filtered = students.filter(s =>
+    let filtered = allStudents.filter(s =>
         (s.name && s.name.toLowerCase().includes(value)) ||
-        (s.gr && s.gr.toString().includes(value))
-    );
+        (s.id && s.id.toString().includes(value))
+    ).slice(0, 10); // limit results
+
+    if (filtered.length === 0) {
+        box.innerHTML = `<div class="p-2 text-gray-400 text-xs">No student found</div>`;
+        box.classList.remove("hidden");
+        return;
+    }
 
     filtered.forEach(student => {
         let div = document.createElement("div");
-        div.textContent = student.name + " (GR: " + student.gr + ")";
+        div.className = "p-2 hover:bg-blue-50 cursor-pointer text-sm";
+        div.innerHTML = `
+            <b>${student.name}</b><br>
+            <span class="text-xs text-gray-500">GR: ${student.id} • Class: ${student.class}</span>
+        `;
 
         div.onclick = () => {
-            input.value = student.name + " (GR: " + student.gr + ")";
-            box.innerHTML = "";
-
-            // 👉 Save GR number (IMPORTANT)
-            selectedStudentGR = student.gr;
+            input.value = student.name;
+            document.getElementById("notice-target-value").value = student.id;
+            box.classList.add("hidden");
         };
 
         box.appendChild(div);
     });
-});    
+
+    box.classList.remove("hidden");
+};
 
 
     
