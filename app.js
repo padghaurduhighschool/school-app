@@ -325,6 +325,33 @@ if (section === 'students') {
     fetchStudentData();
 }
 
+// Add this inside window.loadSection = (section) => { ... }
+
+if (section === 'staff_logs_detail') {
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center space-x-2 mb-4">
+                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full text-gray-600">←</button>
+                <h2 class="text-lg font-bold text-gray-800">Today's Staff Logs</h2>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <button onclick="downloadReport()" class="bg-blue-50 text-blue-600 p-3 rounded-xl text-xs font-bold shadow-sm">
+                    📥 DAILY CSV
+                </button>
+                <button onclick="downloadMonthlyReport()" class="bg-indigo-50 text-indigo-600 p-3 rounded-xl text-xs font-bold shadow-sm">
+                    📅 MONTHLY CSV
+                </button>
+            </div>
+
+            <div id="full-staff-log-container" class="space-y-2">
+                <p class="text-center py-10 text-gray-400 italic">Connecting to database...</p>
+            </div>
+        </div>
+    `;
+    fetchFullStaffLogs(); // Call the data fetcher
+}
+    
 }    
 // 6. ATTENDANCE & GEOLOCATION
 window.markAttendance = async (type) => {
