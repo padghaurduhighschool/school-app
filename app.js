@@ -201,7 +201,7 @@ if (section === 'attendance') {
         `;
 
         // Student Marking Interface for Staff
-// Student Marking Interface for Staff (Admin/Teacher/Supervisor)
+// Updated Student Marking Interface for both Admin and Teacher
 document.getElementById('student-interface').innerHTML = `
     <div class="bg-blue-600 p-4 rounded-2xl text-white shadow-lg">
         <p class="text-[10px] opacity-80 font-bold uppercase">Mark Attendance For:</p>
@@ -212,9 +212,9 @@ document.getElementById('student-interface').innerHTML = `
                 <option value="${mappedClass}">Class ${mappedClass}</option>
                 
                 ${role !== 'Teacher' ? `
-                    <option value="Jr. KG">Jr. KG</option>
-                    <option value="Sr. KG">Sr. KG</option>
-                    ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option value="${n}">${n}th Std</option>`).join('')}
+                    <option value="Jr. KG">Class Jr. KG</option>
+                    <option value="Sr. KG">Class Sr. KG</option>
+                    ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option value="${n}">Class ${n}th Std</option>`).join('')}
                 ` : ''}
             </select>
             
@@ -222,7 +222,6 @@ document.getElementById('student-interface').innerHTML = `
                 Open List
             </button>
         </div>
-        ${role === 'Teacher' ? `<p class="text-[9px] mt-2 opacity-70 italic text-white">Teachers can only mark their assigned class.</p>` : ''}
     </div>
     <div id="attendance-sheet-container" class="mt-4"></div>
 `;
