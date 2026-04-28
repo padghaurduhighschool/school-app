@@ -227,6 +227,38 @@ if (section === 'home') {
     }
 }
 
+if (section === 'students') {
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm sticky top-0 z-10">
+                <h2 class="text-lg font-bold mb-3">Student Directory</h2>
+                
+                <div class="space-y-2">
+                    <input type="text" id="studentSearch" onkeyup="filterStudents()" 
+                        placeholder="Search by name or ID..." 
+                        class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none focus:ring-2 focus:ring-blue-500">
+                    
+                    <select id="classFilter" onchange="filterStudents()" 
+                        class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
+                        <option value="All">All Classes</option>
+                        <option value="5th">5th Standard</option>
+                        <option value="6th">6th Standard</option>
+                        <option value="7th">7th Standard</option>
+                        <option value="8th">8th Standard</option>
+                        <option value="9th">9th Standard</option>
+                        <option value="10th">10th Standard</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="student-list-container" class="space-y-2">
+                <p class="text-center py-10 text-gray-400 italic">Loading students...</p>
+            </div>
+        </div>
+    `;
+    fetchStudentData();
+}
+    
 // 6. ATTENDANCE & GEOLOCATION
 window.markAttendance = (type) => {
     const statusDiv = document.getElementById('location-status');
@@ -493,6 +525,67 @@ window.updateHomeSummary = async () => {
         document.getElementById('home-stud-present').innerText = "-";
         document.getElementById('home-stud-absent').innerText = "-";
     });
+};
+
+let allStudents = []; // Global variable to store the list for filtering
+
+window.fetchStudentData = async () => {
+    // Replace with your actual Student Google Sheet CSV Link
+    const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv"; 
+    
+    try {
+        const response = await fetch(STUDENT_SHEET_CSV);
+        const text = await response.text();
+        const rows = text.split('\n').slice(1); // Skip header
+
+        allStudents = rows.map(row => {
+            const cols = row.split(',');
+            return {
+                id: cols[0]?.trim(),
+                name: cols[1]?.trim(),
+                class: cols[2]?.trim(),
+                roll: cols[3]?.trim()
+            };
+        });
+
+        renderStudentList(allStudents);
+    } catch (error) {
+        document.getElementById('student-list-container').innerHTML = 
+            `<p class="text-red-500 text-center">Failed to load student data.</p>`;
+    }
+};
+
+window.renderStudentList = (students) => {
+    const container = document.getElementById('student-list-container');
+    if (students.length === 0) {
+        container.innerHTML = `<p class="text-center py-10 text-gray-400">No students found.</p>`;
+        return;
+    }
+
+    container.innerHTML = students.map(s => `
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50 flex justify-between items-center">
+            <div>
+                <p class="font-bold text-gray-800">${s.name}</p>
+                <p class="text-xs text-gray-500">ID: ${s.id} • Roll No: ${s.roll}</p>
+            </div>
+            <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-bold">
+                Class ${s.class}
+            </span>
+        </div>
+    `).join('');
+};
+
+window.filterStudents = () => {
+    const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+    const classVal = document.getElementById('classFilter').value;
+
+    const filtered = allStudents.filter(s => {
+        const matchesSearch = s.name.toLowerCase().includes(searchTerm) || s.id.includes(searchTerm);
+        const matchesClass = (classVal === "All" || s.class === classVal);
+        return matchesSearch && matchesClass;
+    });
+
+    renderStudentList(filtered);
 };
     
 window.handleLogout = () => {
