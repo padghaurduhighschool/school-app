@@ -112,21 +112,35 @@ if (section === 'home') {
     </div>
 </div>
 
-                <div class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 text-center">
-                    <p class="text-gray-500 text-[10px] uppercase font-bold mb-2">Student Attendance Summary</p>
-                    <div class="flex items-center justify-center space-x-2 text-xl font-bold">
-                        <span id="home-stud-present" class="text-blue-600">0</span>
-                        <span class="text-gray-400">+</span>
-                        <span id="home-stud-absent" class="text-red-500">0</span>
-                        <span class="text-gray-400">=</span>
-                        <span id="home-stud-total" class="text-gray-800">0</span>
-                    </div>
-                    <div class="flex justify-center space-x-8 mt-1 text-[9px] uppercase text-gray-400 font-bold">
-                        <span>Present</span>
-                        <span>Absent</span>
-                        <span>Total</span>
-                    </div>
-                </div>
+
+<div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+    <div class="flex justify-between items-center mb-2">
+        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Student Attendance</h3>
+        <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold" id="home-stud-total">0</span>
+    </div>
+    
+    <div class="grid grid-cols-3 gap-2 items-end">
+        <div>
+            <p class="text-xs font-bold text-orange-500" id="home-stud-unchecked">0</p>
+            <p class="text-[8px] text-gray-400 font-bold uppercase">Unchecked</p>
+        </div>
+        <div class="text-center">
+            <p class="text-xl font-black text-gray-800" id="home-stud-present">0</p>
+            <p class="text-[8px] text-gray-400 font-bold uppercase">Present</p>
+        </div>
+        <div class="text-right">
+            <p class="text-xs font-bold text-red-500" id="home-stud-absent">0</p>
+            <p class="text-[8px] text-gray-400 font-bold uppercase">Absent</p>
+        </div>
+    </div>
+
+    <div class="mt-3 w-full bg-gray-100 h-1.5 rounded-full overflow-hidden flex">
+        <div id="home-stud-bar-present" class="bg-green-500 h-full transition-all duration-500" style="width: 0%"></div>
+        <div id="home-stud-bar-absent" class="bg-red-400 h-full transition-all duration-500" style="width: 0%"></div>
+    </div>
+</div>
+
+                
              <div onclick="loadSection('students')" class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 text-center">
                     <div class="flex items-center space-x-3">
                         <div>
