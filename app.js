@@ -609,7 +609,7 @@ window.renderStudentList = (students) => {
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50 flex justify-between items-center">
             <div>
                 <p class="font-bold text-gray-800">${s.name}</p>
-                <p class="text-xs text-gray-500">ID: ${s.id} • Roll No: ${s.roll}</p>
+                <p class="text-xs text-gray-500">GR: ${s.id} • Roll No: ${s.roll} • Phone No: ${s.contact}</p>
             </div>
             <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-bold">
                 Class ${s.class}
