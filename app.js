@@ -188,7 +188,7 @@ if (section === 'attendance') {
             <div class="bg-gray-100 p-3 rounded-lg text-center text-[10px] font-bold text-gray-600 mb-3">
                 Shift: 07:20 AM to ${closingLabel}
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-1">
                 <button onclick="markAttendance('IN')" ${hasCheckedIn || isTooEarly ? 'disabled' : ''} 
                     class="p-4 rounded-xl font-bold text-sm ${hasCheckedIn || isTooEarly ? 'bg-gray-200 text-gray-400' : 'bg-green-500 text-white shadow-md'}">
                     ${isTooEarly ? 'Too Early' : (hasCheckedIn ? 'IN ✅' : 'Check IN')}
@@ -197,6 +197,7 @@ if (section === 'attendance') {
                     class="p-4 rounded-xl font-bold text-sm ${!hasCheckedIn ? 'bg-gray-200 text-gray-400' : 'bg-red-500 text-white shadow-md'}">
                     Check OUT
                 </button>
+                <div id="attendance-feedback" class="mt-2 text-center"></div>
             </div>
         `;
 
