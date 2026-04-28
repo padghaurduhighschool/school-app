@@ -440,8 +440,21 @@ if (section === 'homework') {
                         <div id="notice-target-details"></div>
 
                         <input type="text" id="notice-title" placeholder="Notice Title (e.g. Holiday Alert)" class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
-                        <textarea id="notice-body" placeholder="Type notice message here..." class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none h-24"></textarea>
-                        
+<div class="space-y-2">
+
+    <textarea id="notice-body-en" 
+        placeholder="English Notice..." 
+        class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none h-20"></textarea>
+
+    <textarea id="notice-body-mr" 
+        placeholder="मराठी सूचना..." 
+        class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none h-20"></textarea>
+
+    <textarea id="notice-body-ur" 
+        placeholder="اردو نوٹس..." 
+        class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none h-20"></textarea>
+
+</div>                        
                         <button onclick="postNotice()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow-md active:scale-95 transition-all">
                             Send Notice
                         </button>
@@ -1265,17 +1278,24 @@ window.postNotice = () => {
     const type = document.getElementById('notice-target-type').value;
     const targetValue = document.getElementById('notice-target-value')?.value || 'ALL';
     const title = document.getElementById('notice-title').value;
-    const body = document.getElementById('notice-body').value;
+const bodyEN = document.getElementById('notice-body-en').value;
+const bodyMR = document.getElementById('notice-body-mr').value;
+const bodyUR = document.getElementById('notice-body-ur').value;
+    
     const sender = localStorage.getItem('userName');
 
-    if (!title || !body) return alert("Please enter title and message");
-
+if (!title || (!bodyEN && !bodyMR && !bodyUR)) {
+    return alert("Please enter at least one language message");
+}
     firebase.database().ref('notices').push({
         targetType: type, // 'school', 'class', or 'student'
         targetValue: targetValue,
         title: title,
-        message: body,
-        sender: sender,
+message: {
+    en: bodyEN,
+    mr: bodyMR,
+    ur: bodyUR
+},        sender: sender,
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         date: new Date().toLocaleDateString('en-GB')
     }).then(() => {
@@ -1330,7 +1350,11 @@ window.fetchNotices = () => {
                         <span class="text-[10px] text-gray-400">${n.date}</span>
                     </div>
                     <h3 class="font-black text-gray-800 text-sm">${n.title}</h3>
-                    <p class="text-xs text-gray-600 mt-2 leading-relaxed">${n.message}</p>
+<p class="text-xs text-gray-600 mt-2 leading-relaxed">
+    ${n.message?.en ? `<div><b>EN:</b> ${n.message.en}</div>` : ''}
+    ${n.message?.mr ? `<div><b>MR:</b> ${n.message.mr}</div>` : ''}
+    ${n.message?.ur ? `<div><b>UR:</b> ${n.message.ur}</div>` : ''}
+</p>
                     <p class="text-[8px] text-gray-400 mt-3 italic">Authored by: ${n.sender}</p>
 
                     ${canManage ? `
