@@ -127,6 +127,8 @@ if (section === 'home') {
                             </svg>
                         </div>
                         <div>
+                            <p class="text-gray-500 text-[10px] uppercase font-bold">View records, GR Nos, and Contacts</p>
+                            <span class="text-blue-600">Student Details</span>
                             <p class="font-bold text-blue-900">Student Directory</p>
                             <p class="text-[10px] text-blue-700">View records, GR Nos, and Contacts</p>
                         </div>
