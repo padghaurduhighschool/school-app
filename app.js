@@ -1221,7 +1221,7 @@ window.deleteHomework = (id) => {
     }
 };
 
-    window.toggleNoticeFields = () => {
+window.toggleNoticeFields = () => {
     const type = document.getElementById('notice-target-type').value;
     const container = document.getElementById('notice-target-details');
     
@@ -1233,7 +1233,14 @@ window.deleteHomework = (id) => {
                 ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}th Std</option>`).join('')}
             </select>`;
     } else if (type === 'student') {
-        container.innerHTML = `<input type="text" id="notice-target-value" placeholder="Enter Student GR No." class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none mt-2">`;
+        container.innerHTML = `
+            <div class="relative mt-2">
+                <input type="text" id="student-search-input" onkeyup="searchStudentForNotice()" 
+                    placeholder="Type student name..." 
+                    class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
+                <div id="student-search-results" class="absolute z-10 w-full bg-white shadow-xl rounded-xl mt-1 max-h-40 overflow-y-auto hidden"></div>
+                <input type="hidden" id="notice-target-value">
+            </div>`;
     } else {
         container.innerHTML = '';
     }
@@ -1285,6 +1292,8 @@ window.fetchNotices = () => {
         container.innerHTML = notices.map(n => {
             // Visibility Filter
             let visible = false;
+            const currentUserName = localStorage.getItem('userName'); // The student's logged-in name
+            const userClass = localStorage.getItem('mappedClass');
             if (["Admin", "Super Admin", "Supervisor", "Clerk"].includes(role)) {
                 visible = true; // Admins see everything
             } else {
@@ -1326,6 +1335,42 @@ window.deleteNotice = (id) => {
     }
 };
 
+window.searchStudentForNotice = () => {
+    const input = document.getElementById('student-search-input');
+    const resultsDiv = document.getElementById('student-search-results');
+    const query = input.value.toLowerCase();
+    
+    if (query.length < 2) {
+        resultsDiv.classList.add('hidden');
+        return;
+    }
+
+    // Filters from the globally stored students array (from your CSV load)
+    const matches = students.filter(s => s.name.toLowerCase().includes(query)).slice(0, 10);
+
+    if (matches.length > 0) {
+        resultsDiv.classList.remove('hidden');
+        resultsDiv.innerHTML = matches.map(s => `
+            <div onclick="selectStudentForNotice('${s.name}')" class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 text-sm">
+                <p class="font-bold text-gray-800">${s.name}</p>
+                <p class="text-[10px] text-gray-400">Class: ${s.class} | GR: ${s.gr_no}</p>
+            </div>
+        `).join('');
+    } else {
+        resultsDiv.innerHTML = `<p class="p-3 text-xs text-gray-400 italic">No student found</p>`;
+    }
+};
+
+window.selectStudentForNotice = (name) => {
+    document.getElementById('student-search-input').value = name;
+    document.getElementById('notice-target-value').value = name; // Store full name
+    document.getElementById('student-search-results').classList.add('hidden');
+};
+
+    
+
+
+    
 
     
 
