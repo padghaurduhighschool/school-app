@@ -692,20 +692,25 @@ window.handleLogout = () => {
 window.loadAttendanceSheet = async () => {
     const classVal = document.getElementById('target-class').value;
     const container = document.getElementById('attendance-sheet-container');
+    const dateKey = new Date().toISOString().split('T')[0];
     
     if (!classVal || classVal === "") {
         alert("Please select a class first");
         return;
     }
 
-    container.innerHTML = `<p class="text-center py-5 text-gray-400 italic text-sm">Loading students for Class ${classVal}...</p>`;
+    container.innerHTML = `<p class="text-center py-5 text-gray-400 italic text-sm">Loading data for Class ${classVal}...</p>`;
 
     try {
+        // 1. Fetch current saved attendance from Firebase
+        const snapshot = await firebase.database().ref(`student_attendance/${dateKey}/${classVal}/records`).once('value');
+        const existingRecords = snapshot.val() || {};
+
+        // 2. Fetch student list from CSV 
         const response = await fetch(STUDENT_SHEET_CSV);
         const text = await response.text();
         const rows = text.split('\n').filter(row => row.trim() !== '').slice(1);
 
-        // Filter students by selected class
         const classStudents = rows.map(row => {
             const cols = row.split(',');
             return {
@@ -720,7 +725,7 @@ window.loadAttendanceSheet = async () => {
             return;
         }
 
-        // Render the list with checkboxes [cite: 181, 226, 272]
+        // 3. Render the list
         let html = `
             <div class="bg-white rounded-2xl shadow-inner border border-gray-100 overflow-hidden">
                 <div class="p-3 bg-gray-50 border-b flex justify-between items-center">
@@ -731,18 +736,25 @@ window.loadAttendanceSheet = async () => {
         `;
 
         classStudents.forEach((s, index) => {
-    // If ID is missing, use a fallback like 'TEMP_' + index
-    const studentKey = (s.id && s.id.trim() !== "") ? s.id : `UNKNOWN_${index}`;
-html += `
-        <div class="flex justify-between items-center p-4 border-b border-gray-50">
-            <div>
-                <p class="text-sm font-bold text-gray-800">${s.name}</p>
-                <p class="text-[10px] text-gray-400">GR: ${s.id || 'N/A'}</p>
-            </div>
-            <input type="checkbox" checked value="${studentKey}" data-name="${s.name}" 
-                class="attendance-checkbox w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-        </div>
-    `;
+            const studentKey = (s.id && s.id.trim() !== "") ? s.id : `UNKNOWN_${index}`;
+            
+            // Check if there is existing data for this student today
+            // If no data exists yet, default to 'checked' (Present)
+            let isChecked = true; 
+            if (existingRecords[studentKey]) {
+                isChecked = existingRecords[studentKey].status === 'Present';
+            }
+
+            html += `
+                <div class="flex justify-between items-center p-4 border-b border-gray-50">
+                    <div>
+                        <p class="text-sm font-bold text-gray-800">${s.name}</p>
+                        <p class="text-[10px] text-gray-400">GR: ${s.id || 'N/A'}</p>
+                    </div>
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} value="${studentKey}" data-name="${s.name}" 
+                        class="attendance-checkbox w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                </div>
+            `;
         });
 
         html += `
@@ -750,7 +762,7 @@ html += `
                 <div class="p-4 bg-gray-50">
                     <button onclick="submitStudentAttendance('${classVal}')" 
                         class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">
-                        Confirm & Save Attendance
+                        Update Attendance
                     </button>
                 </div>
             </div>
@@ -759,8 +771,8 @@ html += `
         container.innerHTML = html;
 
     } catch (error) {
-        console.error("Error:", error);
-        container.innerHTML = `<p class="text-red-500 text-sm p-4">Failed to load student list.</p>`;
+        console.error("Error loading attendance sheet:", error);
+        container.innerHTML = `<p class="text-red-500 text-sm p-4">Failed to load attendance list.</p>`;
     }
 };
 
