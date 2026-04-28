@@ -60,7 +60,7 @@ window.handleLogin = async function() {
         // 🔹 1. Check TEACHER sheet
         const teacherRes = await fetch(TEACHER_SHEET_CSV);
         const teacherText = await teacherRes.text();
-        const teacherRows = teacherText.split('\n').map(r => r.split(','));
+        const teacherRows = teacherText.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
 
         let user = teacherRows.find(row => 
             row[0]?.trim() === phone && 
@@ -82,8 +82,9 @@ window.handleLogin = async function() {
         // 🔹 2. Check STUDENT sheet
         const studentRes = await fetch(STUDENT_SHEET_CSV);
         const studentText = await studentRes.text();
-        const studentRows = studentText.split('\n').map(r => r.split(','));
-
+const studentRows = studentText.split('\n').map(r => 
+    r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+);
 let student = studentRows.find(row => 
     row[15]?.replace(/"/g, '').trim() === phone &&   // Phone
     row[23]?.replace(/"/g, '').trim() === code       // Code (Column X)
