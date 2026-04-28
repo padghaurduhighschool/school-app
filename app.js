@@ -242,12 +242,12 @@ if (section === 'students') {
                     <select id="classFilter" onchange="filterStudents()" 
                         class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
                         <option value="All">All Classes</option>
-                        <option value="5th">5th Standard</option>
-                        <option value="6th">6th Standard</option>
-                        <option value="7th">7th Standard</option>
-                        <option value="8th">8th Standard</option>
-                        <option value="9th">9th Standard</option>
-                        <option value="10th">10th Standard</option>
+                        <option value="5">5th Standard</option>
+                        <option value="6">6th Standard</option>
+                        <option value="7">7th Standard</option>
+                        <option value="8">8th Standard</option>
+                        <option value="9">9th Standard</option>
+                        <option value="10">10th Standard</option>
                     </select>
                 </div>
             </div>
