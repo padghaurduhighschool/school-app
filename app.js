@@ -717,17 +717,19 @@ window.loadAttendanceSheet = async () => {
                 <div class="max-h-80 overflow-y-auto">
         `;
 
-        classStudents.forEach(s => {
-            html += `
-                <div class="flex justify-between items-center p-4 border-b border-gray-50">
-                    <div>
-                        <p class="text-sm font-bold text-gray-800">${s.name}</p>
-                        <p class="text-[10px] text-gray-400">GR: ${s.id}</p>
-                    </div>
-                    <input type="checkbox" checked value="${s.id}" data-name="${s.name}" 
-                        class="attendance-checkbox w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                </div>
-            `;
+        classStudents.forEach((s, index) => {
+    // If ID is missing, use a fallback like 'TEMP_' + index
+    const studentKey = (s.id && s.id.trim() !== "") ? s.id : `UNKNOWN_${index}`;
+html += `
+        <div class="flex justify-between items-center p-4 border-b border-gray-50">
+            <div>
+                <p class="text-sm font-bold text-gray-800">${s.name}</p>
+                <p class="text-[10px] text-gray-400">GR: ${s.id || 'N/A'}</p>
+            </div>
+            <input type="checkbox" checked value="${studentKey}" data-name="${s.name}" 
+                class="attendance-checkbox w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+        </div>
+    `;
         });
 
         html += `
