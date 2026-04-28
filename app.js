@@ -118,7 +118,7 @@ if (section === 'home') {
                         <span>Total</span>
                     </div>
                 </div>
-             <div onclick="loadSection('students')" class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-100 shadow-sm flex items-center justify-between active:scale-95 transition-transform cursor-pointer">
+             <div onclick="loadSection('students')" class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 text-center">
                     <div class="flex items-center space-x-3">
                         <div class="bg-blue-600 p-2 rounded-lg text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
