@@ -8,23 +8,24 @@ let deferredPrompt;
 
 // 2. STARTUP LOGIC (Splash vs Dashboard)
 window.onload = () => {
-    const savedRole = localStorage.getItem('userRole');
+    const today = new Date();
+    const dateKey = today.toISOString().split('T')[0];
+    const isSunday = today.getDay() === 0; // 0 is Sunday
     
-    // --- ADD THIS RESET LOGIC ---
-    const today = new Date().toISOString().split('T')[0];
-    const lastDate = localStorage.getItem('lastActivityDate');
-    if (lastDate !== today) {
+    // Reset daily status
+    if (localStorage.getItem('lastActivityDate') !== dateKey) {
         localStorage.setItem('hasCheckedInToday', 'false');
-        localStorage.setItem('lastActivityDate', today);
+        localStorage.setItem('lastActivityDate', dateKey);
     }
-    // ----------------------------
+
+    // Save Sunday status to use in loadSection
+    localStorage.setItem('isSunday', isSunday);
 
     setTimeout(() => {
         document.getElementById('splash-screen').classList.add('hidden');
-        if (savedRole) {
+        if (localStorage.getItem('userRole')) {
             document.getElementById('main-app').classList.remove('hidden');
-            // Suggestion: Start them on 'attendance' so they can check in immediately
-            loadSection('attendance'); 
+            loadSection('attendance');
         } else {
             document.getElementById('login-screen').classList.remove('hidden');
         }
@@ -90,32 +91,53 @@ if (section === 'home') {
     
     if (section === 'attendance') {
         if (role === "Teacher") {
-            const hasCheckedIn = localStorage.getItem('hasCheckedInToday') === 'true';
+        const now = new Date();
+        const day = now.getDay(); // 0=Sun, 5=Fri, 6=Sat
+        const time = now.getHours() * 100 + now.getMinutes(); // e.g., 7:20 -> 720
+        
+        const isSunday = day === 0;
+        const hasCheckedIn = localStorage.getItem('hasCheckedInToday') === 'true';
 
-    content.innerHTML = `
-        <div class="space-y-4">
-            <h2 class="text-xl font-bold">Welcome, ${name}</h2>
-            <div class="grid grid-cols-1 gap-4">
-                <button id="btn-in" onclick="markAttendance('IN')" 
-                    ${hasCheckedIn ? 'disabled' : ''} 
-                    class="w-full p-6 rounded-2xl font-bold shadow-lg transition-all
-                    ${hasCheckedIn ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-500 text-white active:scale-95'}">
-                    ${hasCheckedIn ? '✅ Already Checked IN' : 'Check IN'}
-                </button>
+        // Define Rules
+        const isTooEarly = time < 710; // Block before 7:10 AM
+        
+        // Logic for Short Day (Example: Friday = Day 5)
+        const isShortDay = (day === 5); 
+        const closingTime = isShortDay ? 1045 : 1300;
+        const closingLabel = isShortDay ? "10:45 AM" : "01:00 PM";
 
-                <button id="btn-out" onclick="markAttendance('OUT')" 
-                    ${!hasCheckedIn ? 'disabled' : ''} 
-                    class="w-full p-6 rounded-2xl font-bold shadow-lg transition-all
-                    ${!hasCheckedIn ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-500 text-white active:scale-95'}">
-                    Check OUT
-                </button>
+        if (isSunday) {
+            content.innerHTML = `<div class="p-10 text-center bg-white rounded-2xl shadow-sm">
+                <p class="text-4xl mb-4">🏠</p>
+                <p class="font-bold text-lg">Today is Sunday</p>
+                <p class="text-gray-500">School is closed. Enjoy your holiday!</p>
+            </div>`;
+            return;
+        }
+
+        content.innerHTML = `
+            <div class="space-y-4">
+                <div class="bg-gray-100 p-3 rounded-lg text-center text-xs font-bold text-gray-600">
+                    Shift: 07:20 AM to ${closingLabel}
+                </div>
+                <div class="grid grid-cols-1 gap-4">
+                    <button id="btn-in" onclick="markAttendance('IN')" 
+                        ${hasCheckedIn || isTooEarly ? 'disabled' : ''} 
+                        class="w-full p-6 rounded-2xl font-bold shadow-lg transition-all
+                        ${hasCheckedIn || isTooEarly ? 'bg-gray-300 text-gray-500' : 'bg-green-500 text-white active:scale-95'}">
+                        ${isTooEarly ? 'Too Early to Check IN' : (hasCheckedIn ? '✅ Already Checked IN' : 'Check IN')}
+                    </button>
+
+                    <button id="btn-out" onclick="markAttendance('OUT')" 
+                        ${!hasCheckedIn ? 'disabled' : ''} 
+                        class="w-full p-6 rounded-2xl font-bold shadow-lg transition-all
+                        ${!hasCheckedIn ? 'bg-gray-300 text-gray-500' : 'bg-red-500 text-white active:scale-95'}">
+                        Check OUT
+                    </button>
+                </div>
             </div>
-            <div id="location-status" class="text-sm text-gray-600 mt-4 text-center italic">
-                ${hasCheckedIn ? 'You are currently on duty.' : 'Ready to mark attendance.'}
-            </div>
-        </div>
-    `;
-        } else {
+        `;
+    } else {
                 content.innerHTML = `
                 <div class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
@@ -171,18 +193,23 @@ if (section === 'home') {
 // 6. ATTENDANCE & GEOLOCATION
 window.markAttendance = (type) => {
     const statusDiv = document.getElementById('location-status');
+    const now = new Date();
+    const timeNum = now.getHours() * 100 + now.getMinutes();
     statusDiv.innerText = "📍 Locating your position...";
-
+    let statusPrefix = "";
+    if (type === 'IN' && timeNum > 725) {
+        statusPrefix = "[LATE] ";
+    }
     navigator.geolocation.getCurrentPosition((position) => {
         const distance = calculateDistance(position.coords.latitude, position.coords.longitude, OFFICE_LAT, OFFICE_LON);
         let msg = `You are ${Math.round(distance)}m from the office.`;
         
         if (distance > 10) {
             if (confirm(msg + "\n\nYou are outside the 10m range. Mark anyway?")) {
-                saveToDatabase(type, distance);
+                saveToDatabase(statusPrefix + type, distance);
             }
         } else {
-            saveToDatabase(type, distance);
+            saveToDatabase(statusPrefix + type, distance);
         }
         statusDiv.innerText = `Last action: ${type} at ${new Date().toLocaleTimeString()}`;
     }, () => {
