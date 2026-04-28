@@ -1278,31 +1278,51 @@ window.postNotice = () => {
     const type = document.getElementById('notice-target-type').value;
     const targetValue = document.getElementById('notice-target-value')?.value || 'ALL';
     const title = document.getElementById('notice-title').value;
-const bodyEN = document.getElementById('notice-body-en').value;
-const bodyMR = document.getElementById('notice-body-mr').value;
-const bodyUR = document.getElementById('notice-body-ur').value;
-    
+
+    const bodyEN = document.getElementById('notice-body-en')?.value || "";
+    const bodyMR = document.getElementById('notice-body-mr')?.value || "";
+    const bodyUR = document.getElementById('notice-body-ur')?.value || "";
+
     const sender = localStorage.getItem('userName');
 
-if (!title || (!bodyEN && !bodyMR && !bodyUR)) {
-    return alert("Please enter at least one language message");
-}
-    firebase.database().ref('notices').push({
-        targetType: type, // 'school', 'class', or 'student'
+    if (!title || (!bodyEN && !bodyMR && !bodyUR)) {
+        return alert("Please enter at least one language message");
+    }
+
+    const noticeData = {
+        targetType: type,
         targetValue: targetValue,
         title: title,
-message: {
-    en: bodyEN,
-    mr: bodyMR,
-    ur: bodyUR
-},        sender: sender,
+        message: {
+            en: bodyEN,
+            mr: bodyMR,
+            ur: bodyUR
+        },
+        sender: sender,
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         date: new Date().toLocaleDateString('en-GB')
-    }).then(() => {
-        alert("Notice sent!");
-        loadSection('notices'); // Refresh
-    });
+    };
+
+    const isEdit = window.editingNoticeId || null;
+
+    if (isEdit) {
+        firebase.database().ref('notices/' + isEdit).update(noticeData)
+            .then(() => {
+                alert("Notice updated!");
+                window.editingNoticeId = null;
+                loadSection('notices');
+            });
+    } else {
+        firebase.database().ref('notices').push(noticeData)
+            .then(() => {
+                alert("Notice sent!");
+                loadSection('notices');
+            });
+    }
 };
+    
+
+    
 
 window.fetchNotices = () => {
     const role = localStorage.getItem('userRole');
@@ -1356,12 +1376,14 @@ window.fetchNotices = () => {
     ${n.message?.ur ? `<div><b>UR:</b> ${n.message.ur}</div>` : ''}
 </p>
                     <p class="text-[8px] text-gray-400 mt-3 italic">Authored by: ${n.sender}</p>
-
-                    ${canManage ? `
-                        <button onclick="deleteNotice('${n.id}')" class="absolute bottom-4 right-4 text-gray-300 hover:text-red-500">
-                            🗑️
-                        </button>
-                    ` : ''}
+${canManage ? `
+    <div class="absolute bottom-4 right-4 flex gap-2">
+        <button onclick="editNotice('${n.id}')" 
+            class="text-blue-400 hover:text-blue-600 text-xs">✏️</button>
+        <button onclick="deleteNotice('${n.id}')" 
+            class="text-gray-300 hover:text-red-500 text-xs">🗑️</button>
+    </div>
+` : ''}
                 </div>
             `;
         }).join('');
@@ -1484,6 +1506,40 @@ window.searchStudentNotice = () => {
     box.classList.remove("hidden");
 };
 
+window.editNotice = (id) => {
+    firebase.database().ref('notices/' + id).once('value', (snapshot) => {
+        const n = snapshot.val();
+        if (!n) return;
+
+        // Switch to notice tab
+        loadSection('notices');
+
+        setTimeout(() => {
+            // Fill fields
+            document.getElementById('notice-title').value = n.title || "";
+
+            document.getElementById('notice-body-en').value = n.message?.en || "";
+            document.getElementById('notice-body-mr').value = n.message?.mr || "";
+            document.getElementById('notice-body-ur').value = n.message?.ur || "";
+
+            document.getElementById('notice-target-type').value = n.targetType;
+            toggleNoticeFields();
+
+            setTimeout(() => {
+                if (n.targetType !== 'school') {
+                    document.getElementById('notice-target-value').value = n.targetValue;
+                }
+            }, 100);
+
+            // Store edit ID
+            window.editingNoticeId = id;
+
+            // Change button text
+            const btn = document.querySelector('#notices button[onclick="postNotice()"]');
+            if (btn) btn.innerText = "Update Notice";
+        }, 300);
+    });
+};
 
     
 
