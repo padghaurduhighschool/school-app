@@ -212,8 +212,8 @@ document.getElementById('student-interface').innerHTML = `
                 <option value="${mappedClass}">Class ${mappedClass}</option>
                 
                 ${role !== 'Teacher' ? `
-                    <option value="Jr. KG">Class Jr. KG</option>
-                    <option value="Sr. KG">Class Sr. KG</option>
+                    <option value="Jr KG">Class Jr KG</option>
+                    <option value="Sr KG">Class Sr KG</option>
                     ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option value="${n}">Class ${n}th Std</option>`).join('')}
                 ` : ''}
             </select>
@@ -276,8 +276,8 @@ if (section === 'students') {
                     <select id="classFilter" onchange="filterStudents()" 
                         class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
                         <option value="All">All Classes</option>
-                        <option value="Jr. KG">Jr. KG</option>
-                        <option value="Sr. KG">Sr. KG</option>
+                        <option value="Jr KG">Jr KG</option>
+                        <option value="Sr KG">Sr KG</option>
                         <option value="1">1st Standard</option>
                         <option value="2">2nd Standard</option>
                         <option value="3">3rd Standard</option>
