@@ -15,6 +15,7 @@ window.onload = () => {
         if (savedRole) {
             document.getElementById('main-app').classList.remove('hidden');
             loadSection('home');
+            
         } else {
             document.getElementById('login-screen').classList.remove('hidden');
         }
@@ -204,9 +205,14 @@ window.saveToDatabase = (type, dist) => {
         time: new Date().toLocaleTimeString(),
         timestamp: firebase.database.ServerValue.TIMESTAMP
     })
-    .then(() => {
-        alert("Success: " + type + " logged in database!");
-    })
+.then(() => {
+    if (type === 'IN') localStorage.setItem('hasCheckedInToday', 'true');
+    else if (type === 'OUT') localStorage.setItem('hasCheckedInToday', 'false');
+    
+    // Stay on the attendance tab to see the button change
+    loadSection('attendance');
+    alert(`Success: ${type} logged!`);
+})
     .catch((error) => {
         alert("Database Error: " + error.message);
     });
