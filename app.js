@@ -7,6 +7,8 @@ const OFFICE_LAT = 19.2435;
 const OFFICE_LON = 73.1234; 
 let deferredPrompt;
 
+let selectedStudentGR = null;
+
 const formatTime12 = (date) => {
     return date.toLocaleTimeString('en-US', { 
         hour: 'numeric', 
@@ -1236,9 +1238,8 @@ window.toggleNoticeFields = () => {
     } else if (type === 'student') {
         container.innerHTML = `
             <div class="relative mt-2">
-                <input type="text" id="student-search-input" onkeyup="searchStudentForNotice()" 
-                    placeholder="Type student name..." 
-                    class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
+                <input type="text" id="studentSearch" placeholder="Search student name or GR No" autocomplete="off">
+                <div id="suggestionsBox"></div>
                 <div id="student-search-results" class="absolute z-10 w-full bg-white shadow-xl rounded-xl mt-1 max-h-48 overflow-y-auto hidden border border-gray-100">
                 </div>
                 <input type="hidden" id="notice-target-value">
@@ -1396,7 +1397,47 @@ window.clearStudentSelection = () => {
 };
 
 
-    
+// 🔹 Replace this with your real student data
+let students = [];
+
+// Example: if using Firestore
+async function loadStudents() {
+    const snapshot = await getDocs(collection(db, "students"));
+    students = snapshot.docs.map(doc => doc.data());
+}
+
+loadStudents(); // call it
+
+
+const input = document.getElementById("studentSearch");
+const box = document.getElementById("suggestionsBox");
+
+input.addEventListener("input", function () {
+    let value = this.value.toLowerCase();
+    box.innerHTML = "";
+
+    if (!value) return;
+
+    let filtered = students.filter(s =>
+        (s.name && s.name.toLowerCase().includes(value)) ||
+        (s.gr && s.gr.toString().includes(value))
+    );
+
+    filtered.forEach(student => {
+        let div = document.createElement("div");
+        div.textContent = student.name + " (GR: " + student.gr + ")";
+
+        div.onclick = () => {
+            input.value = student.name + " (GR: " + student.gr + ")";
+            box.innerHTML = "";
+
+            // 👉 Save GR number (IMPORTANT)
+            selectedStudentGR = student.gr;
+        };
+
+        box.appendChild(div);
+    });
+});    
 
 
     
