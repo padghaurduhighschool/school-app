@@ -185,16 +185,16 @@ if (section === 'home') {
                 <div class="space-y-4">
  
                     
-                    <h3 class="font-bold text-gray-700 flex items-center">
-                        <span class="mr-2">📋</span> Live Attendance Feed
-                    </h3>
+
                 <button onclick="downloadReport()" class="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold text-xs">
                     📥 Daily Report (CSV)
                 </button>
                 <button onclick="downloadMonthlyReport()" class="flex-1 bg-green-600 text-white p-3 rounded-xl font-bold text-xs">
                     📅 Monthly Report (Excel)
                 </button>
-                    
+                    <h3 class="font-bold text-gray-700 flex items-center">
+                        <span class="mr-2">📋</span> Live Attendance Feed
+                    </h3>                    
                     <div id="attendance-list" class="space-y-3">
                         <div class="text-center py-10 text-gray-400 italic">Loading logs...</div>
                     </div>
