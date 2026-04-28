@@ -6,6 +6,14 @@ const OFFICE_LAT = 19.2435;
 const OFFICE_LON = 73.1234; 
 let deferredPrompt;
 
+const formatTime12 = (date) => {
+    return date.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+    });
+};
+    
 // 2. STARTUP LOGIC (Splash vs Dashboard)
 window.onload = () => {
     const today = new Date();
@@ -358,52 +366,71 @@ window.downloadMonthlyReport = () => {
     const year = now.getFullYear();
     const daysInMonth = new Date(year, month, 0).getDate();
 
-    // Fetch the entire month of attendance
     firebase.database().ref('attendance').once('value', (snapshot) => {
-        const allData = snapshot.val(); // Contains all dates
+        const allData = snapshot.val();
         if (!allData) return alert("No data found.");
 
-        const report = {}; // Structure: { "Name": { "Day1_IN": "", "Day1_OUT": "" } }
+        const report = {}; 
 
-        // Process all dates in the database
         Object.keys(allData).forEach(dateStr => {
             if (dateStr.startsWith(`${year}-${month.toString().padStart(2, '0')}`)) {
                 const day = parseInt(dateStr.split('-')[2]);
                 const logs = Object.values(allData[dateStr]);
 
                 logs.forEach(log => {
-                    if (!report[log.name]) report[log.name] = {};
-                    // Store the time for that specific day and type
-                    report[log.name][`${day}_${log.type}`] = log.time;
+                    if (!report[log.name]) report[log.name] = { days: {}, totalMinutes: 0 };
+                    
+                    // Store the raw timestamp for calculation and the formatted time for the CSV
+                    report[log.name].days[`${day}_${log.type}`] = log.time;
+                    report[log.name].days[`${day}_${log.type}_raw`] = log.timestamp;
                 });
             }
         });
 
-        // 1. Create CSV Header (Name, 1 April IN, 1 April OUT, 2 April IN...)
+        // 1. Create CSV Header
         let csvContent = "data:text/csv;charset=utf-8,Staff Name";
         for (let i = 1; i <= daysInMonth; i++) {
-            csvContent += `,${i} April IN,${i} April OUT`;
+            csvContent += `,${i} IN,${i} OUT`;
         }
-        csvContent += "\n";
+        csvContent += ",TOTAL WORKING HOURS\n";
 
-        // 2. Add Employee Rows
+        // 2. Process Rows & Calculate Durations
         Object.keys(report).forEach(staffName => {
             let row = `"${staffName}"`;
+            let staffTotalMin = 0;
+
             for (let i = 1; i <= daysInMonth; i++) {
-                const checkIn = report[staffName][`${i}_IN`] || "-";
-                const checkOut = report[staffName][`${i}_OUT`] || "-";
-                row += `,${checkIn},${checkOut}`;
+                const checkInTime = report[staffName].days[`${i}_IN`] || "-";
+                const checkOutTime = report[staffName].days[`${i}_OUT`] || "-";
+                
+                row += `,${checkInTime},${checkOutTime}`;
+
+                // Calculate duration if both IN and OUT exist for the day
+                const rawIn = report[staffName].days[`${i}_IN_raw`];
+                const rawOut = report[staffName].days[`${i}_OUT_raw`];
+
+                if (rawIn && rawOut && rawOut > rawIn) {
+                    const diffMs = rawOut - rawIn;
+                    staffTotalMin += Math.floor(diffMs / 60000);
+                }
             }
+
+            // Convert total minutes to "X hrs Y mins"
+            const finalHrs = Math.floor(staffTotalMin / 60);
+            const finalMins = staffTotalMin % 60;
+            row += `,"${finalHrs} hrs ${finalMins} mins"`;
+            
             csvContent += row + "\n";
         });
 
-        // 3. Download
+        // 3. Download Trigger
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
         link.setAttribute("download", `Monthly_Report_${month}_${year}.csv`);
         document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
     });
 };
 
