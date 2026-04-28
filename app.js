@@ -117,18 +117,17 @@ const students = rows.slice(1).map(function(r) {
         code: get(r, "code") || get(r, "password")
     };
 });
-
+console.log(students.slice(0,5));
 // ✅ match
 let student = students.find(function(s) {
     return s.phone === phone && s.code === code;
 });
-console.log(student);
         if (student) {
             // ✅ STUDENT LOGIN
             localStorage.setItem('userRole', 'Student');
-localStorage.setItem('userName', student.name);
-localStorage.setItem('mappedClass', student.class);
-localStorage.setItem('userGR', student.gr);
+            localStorage.setItem('userName', student.name);
+            localStorage.setItem('mappedClass', student.class);
+            localStorage.setItem('userGR', student.gr);
 
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
