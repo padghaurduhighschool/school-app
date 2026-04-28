@@ -118,6 +118,21 @@ if (section === 'home') {
                         <span>Total</span>
                     </div>
                 </div>
+             <div onclick="loadSection('students')" class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-100 shadow-sm flex items-center justify-between active:scale-95 transition-transform cursor-pointer">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-blue-600 p-2 rounded-lg text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="Vector path for users/students..." />
+                                <circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="font-bold text-blue-900">Student Directory</p>
+                            <p class="text-[10px] text-blue-700">View records, GR Nos, and Contacts</p>
+                        </div>
+                    </div>
+                    <span class="text-blue-400">❯</span>
+                </div>  
             </div>
         `;
         updateHomeSummary();
