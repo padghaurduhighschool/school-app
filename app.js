@@ -702,14 +702,16 @@ window.loadAttendanceSheet = async () => {
     container.innerHTML = `<p class="text-center py-5 text-gray-400 italic text-sm">Loading data for Class ${classVal}...</p>`;
 
     try {
-        // 1. Fetch current saved attendance from Firebase
         const snapshot = await firebase.database().ref(`student_attendance/${dateKey}/${classVal}/records`).once('value');
         const existingRecords = snapshot.val() || {};
 
-        // 2. Fetch student list from CSV 
         const response = await fetch(STUDENT_SHEET_CSV);
         const text = await response.text();
         const rows = text.split('\n').filter(row => row.trim() !== '').slice(1);
+
+        // helper to clean CSV data (removes quotes and extra spaces)
+        const clean = (val) => val ? val.replace(/^"|"$/g, '').trim().toLowerCase() : "";
+        const targetClassClean = classVal.trim().toLowerCase();
 
         const classStudents = rows.map(row => {
             const cols = row.split(',');
@@ -718,64 +720,25 @@ window.loadAttendanceSheet = async () => {
                 name: cols[7]?.trim(),  // Name
                 class: cols[1]?.trim()  // Class
             };
-        }).filter(s => s.class === classVal);
+        }).filter(s => clean(s.class) === targetClassClean); // Robust match
 
         if (classStudents.length === 0) {
-            container.innerHTML = `<p class="text-center py-5 text-red-500 text-sm">No students found for this class.</p>`;
+            // This will help you debug if the name is slightly different
+            console.log("No match found for:", targetClassClean);
+            container.innerHTML = `<p class="text-center py-5 text-red-500 text-sm">No students found for "${classVal}". Check CSV naming.</p>`;
             return;
         }
 
-        // 3. Render the list
-        let html = `
-            <div class="bg-white rounded-2xl shadow-inner border border-gray-100 overflow-hidden">
-                <div class="p-3 bg-gray-50 border-b flex justify-between items-center">
-                    <span class="text-xs font-bold text-gray-500 uppercase">Student Name</span>
-                    <span class="text-xs font-bold text-gray-500 uppercase">Present?</span>
-                </div>
-                <div class="max-h-80 overflow-y-auto">
-        `;
-
-        classStudents.forEach((s, index) => {
-            const studentKey = (s.id && s.id.trim() !== "") ? s.id : `UNKNOWN_${index}`;
-            
-            // Check if there is existing data for this student today
-            // If no data exists yet, default to 'checked' (Present)
-            let isChecked = true; 
-            if (existingRecords[studentKey]) {
-                isChecked = existingRecords[studentKey].status === 'Present';
-            }
-
-            html += `
-                <div class="flex justify-between items-center p-4 border-b border-gray-50">
-                    <div>
-                        <p class="text-sm font-bold text-gray-800">${s.name}</p>
-                        <p class="text-[10px] text-gray-400">GR: ${s.id || 'N/A'}</p>
-                    </div>
-                    <input type="checkbox" ${isChecked ? 'checked' : ''} value="${studentKey}" data-name="${s.name}" 
-                        class="attendance-checkbox w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                </div>
-            `;
-        });
-
-        html += `
-                </div>
-                <div class="p-4 bg-gray-50">
-                    <button onclick="submitStudentAttendance('${classVal}')" 
-                        class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">
-                        Update Attendance
-                    </button>
-                </div>
-            </div>
-        `;
-
-        container.innerHTML = html;
+        // ... rest of your rendering logic ...
+        renderAttendanceUI(container, classStudents, existingRecords, classVal);
 
     } catch (error) {
-        console.error("Error loading attendance sheet:", error);
+        console.error("Error:", error);
         container.innerHTML = `<p class="text-red-500 text-sm p-4">Failed to load attendance list.</p>`;
     }
 };
 
+    
 window.submitStudentAttendance = (classID) => {
     if (!navigator.onLine) {
         alert("⚠️ No Internet! Please connect to the internet to submit attendance."); // 
