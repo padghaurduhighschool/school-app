@@ -599,57 +599,64 @@ window.downloadMonthlyReport = () => {
 
 window.updateHomeSummary = async () => {
     const dateKey = new Date().toISOString().split('T')[0];
+    
+    // 1. Fetch Totals from CSVs
+    const [staffRes, studRes] = await Promise.all([
+        fetch(TEACHER_SHEET_CSV),
+        fetch(STUDENT_SHEET_CSV)
+    ]);
+    
+    const totalStaffCount = (await staffRes.text()).split('\n').filter(r => r.trim()).length - 1;
+    const totalStudentCount = (await studRes.text()).split('\n').filter(r => r.trim()).length - 1;
 
-    // 1. Fetch Total Counts from CSVs
-    const staffRes = await fetch(TEACHER_SHEET_CSV);
-    const staffText = await staffRes.text();
-    const totalStaffCount = staffText.split('\n').filter(r => r.trim()).length - 1;
     document.getElementById('home-staff-total').innerText = totalStaffCount;
+    document.getElementById('home-stud-total').innerText = totalStudentCount;
 
-    const studRes = await fetch(STUDENT_SHEET_CSV);
-    const studText = await studRes.text();
-    const totalStudentCount = studText.split('\n').filter(r => r.trim()).length - 1;
-
-    // 2. Update Staff Summary (Existing Logic)
+    // 2. Staff Logic (Unchanged but ensuring it targets merged card)
     firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
         const data = snapshot.val();
-        let presentStaff = 0;
+        let pStaff = 0;
         if (data) {
-            const uniqueNames = new Set();
-            Object.values(data).forEach(log => {
-                if (log.type.includes('IN')) uniqueNames.add(log.name);
-            });
-            presentStaff = uniqueNames.size;
+            const names = new Set();
+            Object.values(data).forEach(log => { if(log.type.includes('IN')) names.add(log.name); });
+            pStaff = names.size;
         }
-        const absentStaff = Math.max(0, totalStaffCount - presentStaff);
-        const percent = totalStaffCount > 0 ? (presentStaff / totalStaffCount) * 100 : 0;
-
-        document.getElementById('home-staff-present').innerText = presentStaff;
-        document.getElementById('home-staff-absent').innerText = absentStaff;
-        document.getElementById('home-staff-bar').style.width = percent + "%";
+        document.getElementById('home-staff-present').innerText = pStaff;
+        document.getElementById('home-staff-absent').innerText = Math.max(0, totalStaffCount - pStaff);
+        document.getElementById('home-staff-bar').style.width = (pStaff / totalStaffCount * 100) + "%";
     });
 
-    // 3. NEW: Update Student Summary from student_attendance node
+    // 3. Updated Student Logic for "Unchecked"
     firebase.database().ref('student_attendance/' + dateKey).on('value', (snapshot) => {
         const classesData = snapshot.val();
         let sPresent = 0;
+        let sAbsent = 0;
+        let totalMarked = 0;
 
         if (classesData) {
-            // Iterate through each class marked today
             Object.values(classesData).forEach(classObj => {
                 if (classObj.records) {
-                    // Count students marked 'Present' in this class
                     Object.values(classObj.records).forEach(record => {
+                        totalMarked++; // Count every student that has been "saved"
                         if (record.status === 'Present') sPresent++;
+                        else if (record.status === 'Absent') sAbsent++;
                     });
                 }
             });
         }
 
-        const sAbsent = Math.max(0, totalStudentCount - sPresent);
+        const sUnchecked = Math.max(0, totalStudentCount - totalMarked);
+
+        // Update Text
         document.getElementById('home-stud-present').innerText = sPresent;
         document.getElementById('home-stud-absent').innerText = sAbsent;
-        document.getElementById('home-stud-total').innerText = totalStudentCount;
+        document.getElementById('home-stud-unchecked').innerText = sUnchecked;
+
+        // Update Multi-color Progress Bar
+        const pWidth = (sPresent / totalStudentCount) * 100;
+        const aWidth = (sAbsent / totalStudentCount) * 100;
+        document.getElementById('home-stud-bar-present').style.width = pWidth + "%";
+        document.getElementById('home-stud-bar-absent').style.width = aWidth + "%";
     });
 };
 
