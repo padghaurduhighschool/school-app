@@ -84,7 +84,7 @@ window.loadSection = (section) => {
     document.getElementById('user-role-title').innerText = `${role} Dashboard`;
 
 if (section === 'home') {
-    if (role === "Supervisor" || role === "Clerk" || role === "Super Admin" || role === "Admin") {
+    if (["Supervisor", "Clerk", "Super Admin", "Admin"].includes(role)) {
         content.innerHTML = `
             <div class="space-y-4">
                 <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
@@ -103,33 +103,26 @@ if (section === 'home') {
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
-                        <p class="text-gray-500 text-[10px] uppercase font-bold">Present Students</p>
-                        <p id="home-stud-present" class="text-2xl font-bold text-blue-600">0</p>
+                <div class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 text-center">
+                    <p class="text-gray-500 text-[10px] uppercase font-bold mb-2">Student Attendance Summary</p>
+                    <div class="flex items-center justify-center space-x-2 text-xl font-bold">
+                        <span id="home-stud-present" class="text-blue-600">0</span>
+                        <span class="text-gray-400">+</span>
+                        <span id="home-stud-absent" class="text-red-500">0</span>
+                        <span class="text-gray-400">=</span>
+                        <span id="home-stud-total" class="text-gray-800">0</span>
                     </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-gray-400">
-                        <p class="text-gray-500 text-[10px] uppercase font-bold">Absent Students</p>
-                        <p id="home-stud-absent" class="text-2xl font-bold text-gray-700">0</p>
+                    <div class="flex justify-center space-x-8 mt-1 text-[9px] uppercase text-gray-400 font-bold">
+                        <span>Present</span>
+                        <span>Absent</span>
+                        <span>Total</span>
                     </div>
-                </div>
-
-                <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-100">
-                    <p class="text-[10px] text-yellow-700 font-bold uppercase">Quick Note</p>
-                    <p class="text-xs text-yellow-800 italic">Totals update automatically as staff check in.</p>
                 </div>
             </div>
         `;
-        // Fetch the summary numbers
         updateHomeSummary();
     } else {
-        // Teacher Home View (Greeting Only)
-        content.innerHTML = `
-            <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
-                <h2 class="text-2xl font-bold">Hello, ${name}</h2>
-                <p class="opacity-90 text-sm">Welcome to Padgha Urdu High School ERP</p>
-            </div>
-        `;
+        content.innerHTML = `<div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg"><h2 class="text-2xl font-bold">Hello, ${name}</h2></div>`;
     }
 }
     
@@ -503,18 +496,21 @@ window.downloadMonthlyReport = () => {
 window.updateHomeSummary = async () => {
     const dateKey = new Date().toISOString().split('T')[0];
     
-    // 1. Get Total Staff Count from your CSV
-    const response = await fetch(TEACHER_SHEET_CSV);
-    const text = await response.text();
-    const totalStaffCount = text.split('\n').length - 1; // Subtract 1 for header
+    // 1. Fetch Staff Count from CSV
+    const staffRes = await fetch(TEACHER_SHEET_CSV);
+    const staffText = await staffRes.text();
+    const totalStaffCount = staffText.split('\n').filter(r => r.trim()).length - 1;
 
-    // 2. Get Present Staff from Firebase
+    // 2. Fetch Student Count from CSV
+    const studRes = await fetch(STUDENT_SHEET_CSV);
+    const studText = await studRes.text();
+    const totalStudentCount = studText.split('\n').filter(r => r.trim()).length - 1;
+
+    // 3. Update Staff via Firebase
     firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
         const data = snapshot.val();
         let presentStaff = 0;
-        
         if (data) {
-            // Count unique names who have "IN" status
             const uniqueNames = new Set();
             Object.values(data).forEach(log => {
                 if (log.type.includes('IN')) uniqueNames.add(log.name);
@@ -522,16 +518,16 @@ window.updateHomeSummary = async () => {
             presentStaff = uniqueNames.size;
         }
 
-        const absentStaff = Math.max(0, totalStaffCount - presentStaff);
-
-        // Update UI for Staff
         document.getElementById('home-staff-present').innerText = presentStaff;
-        document.getElementById('home-staff-absent').innerText = absentStaff;
+        document.getElementById('home-staff-absent').innerText = Math.max(0, totalStaffCount - presentStaff);
         
-        // Placeholder for Student logic 
-        // (This will require your Student attendance database structure)
-        document.getElementById('home-stud-present').innerText = "-";
-        document.getElementById('home-stud-absent').innerText = "-";
+        // Student Logic Placeholder (Update values here when student DB is ready)
+        const sPresent = 0; // Set current student presence
+        const sAbsent = totalStudentCount - sPresent;
+
+        document.getElementById('home-stud-present').innerText = sPresent;
+        document.getElementById('home-stud-absent').innerText = sAbsent;
+        document.getElementById('home-stud-total').innerText = totalStudentCount;
     });
 };
 
