@@ -155,15 +155,15 @@ if (section === 'attendance') {
 
     // 2. Prepare Container
     content.innerHTML = `
-        <div class="space-y-6">
-            <div id="staff-section" class="${role === 'Student' ? 'hidden' : 'space-y-4'}">
+        <div class="space-y-2">
+            <div id="staff-section" class="${role === 'Student' ? 'hidden' : 'space-y-2'}">
                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">My Attendance (Staff)</h3>
                 <div id="staff-controls"></div> 
             </div>
 
             <hr class="border-gray-100 ${role === 'Student' ? 'hidden' : ''}">
 
-            <div id="student-section" class="space-y-4">
+            <div id="student-section" class="space-y-2">
                 <div class="flex justify-between items-center">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Student Attendance</h3>
                     ${role !== 'Student' ? `
