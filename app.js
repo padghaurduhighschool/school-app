@@ -33,7 +33,7 @@ window.onload = () => {
         document.getElementById('splash-screen').classList.add('hidden');
         if (localStorage.getItem('userRole')) {
             document.getElementById('main-app').classList.remove('hidden');
-            loadSection('attendance');
+            loadSection('home');
         } else {
             document.getElementById('login-screen').classList.remove('hidden');
         }
