@@ -92,8 +92,8 @@ if (section === 'home') {
                     <p class="text-xs opacity-80">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                 </div>
 
-<div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-    <div class="flex justify-between items-center mb-2">
+<div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:scale-95 transition-all" onclick="loadSection('staff_logs_detail')">
+     <div class="flex justify-between items-center mb-2">
         <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Staff Attendance</h3>
         <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold" id="home-staff-total">0</span>
     </div>
@@ -324,6 +324,27 @@ if (section === 'students') {
     `;
     fetchStudentData();
 }
+
+case 'staff_logs_detail':
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center gap-3 mb-2">
+                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">←</button>
+                <h2 class="text-lg font-black text-gray-800">Staff Attendance Log</h2>
+            </div>
+            
+            <div class="bg-blue-50 p-3 rounded-xl border border-blue-100 mb-2">
+                <p class="text-[10px] font-bold text-blue-600 uppercase">Live Feed: ${new Date().toLocaleDateString('en-GB')}</p>
+            </div>
+
+            <div id="full-staff-log-container" class="space-y-3">
+                <div class="text-center py-20 text-gray-400 italic">Fetching today's logs...</div>
+            </div>
+        </div>
+    `;
+    fetchFullStaffLogs();
+    break;
+    
 }
     
 // 6. ATTENDANCE & GEOLOCATION
@@ -891,4 +912,53 @@ window.submitStudentAttendance = (classID) => {
     .catch(err => alert("Error saving: " + err.message));
 };
 
+window.fetchFullStaffLogs = () => {
+    const dateKey = new Date().toISOString().split('T')[0];
+    const container = document.getElementById('full-staff-log-container');
+
+    firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+            container.innerHTML = `
+                <div class="text-center py-10 bg-gray-50 rounded-2xl border border-dashed">
+                    <p class="text-gray-400 text-sm">No attendance marked yet today.</p>
+                </div>`;
+            return;
+        }
+
+        // Convert object to array and sort by latest time
+        const logs = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
+
+        container.innerHTML = logs.map(log => {
+            const isOut = log.type.includes('OUT');
+            const isLate = log.type.includes('[LATE]');
+            
+            return `
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full ${isOut ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'} flex items-center justify-center font-bold">
+                            ${log.name.charAt(0)}
+                        </div>
+                        <div>
+                            <p class="font-bold text-gray-800 text-sm">${log.name}</p>
+                            <p class="text-[10px] text-gray-400 font-medium">
+                                ${isLate ? '<span class="text-orange-500 font-bold">● LATE </span>' : ''}
+                                ${Math.round(log.distance)}m from office
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-black text-sm ${isOut ? 'text-red-500' : 'text-green-600'}">${log.type.replace('[LATE] ', '')}</p>
+                        <p class="text-[10px] text-gray-400">${new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    });
+};
+
+
+
+    
 }
+
