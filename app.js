@@ -381,6 +381,42 @@ if (section === 'student_attendance_summary') {
     fetchClassAttendanceStatus();
 }
 
+if (section === 'homework') {
+    const role = localStorage.getItem('userRole');
+    const mappedClass = localStorage.getItem('mappedClass');
+    
+    content.innerHTML = `
+        <div class="space-y-4">
+            <h2 class="text-lg font-bold text-gray-800">Class Homework</h2>
+            
+            ${["Teacher", "Admin", "Super Admin", "Supervisor", "Clerk"].includes(role) ? `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50">
+                    <p class="text-[10px] font-bold text-blue-600 uppercase mb-2">Post New Homework</p>
+                    <div class="space-y-3">
+                        <select id="hw-target-class" class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
+                            <option value="${mappedClass}">My Class (${mappedClass})</option>
+                            <option value="Jr KG">Jr KG</option>
+                            <option value="Sr KG">Sr KG</option>
+                            ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option value="${n}">${n}th Std</option>`).join('')}
+                        </select>
+                        <input type="text" id="hw-subject" placeholder="Subject (e.g. Maths)" class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none">
+                        <textarea id="hw-desc" placeholder="Enter homework details..." class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none h-24"></textarea>
+                        <button onclick="postHomework()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:scale-95 transition-all">
+                            Post Homework
+                        </button>
+                    </div>
+                </div>
+            ` : ''}
+
+            <div id="homework-list" class="space-y-3 pb-10">
+                <p class="text-center py-10 text-gray-400 italic text-sm">Loading homework...</p>
+            </div>
+        </div>
+    `;
+    fetchHomework();
+}
+
+    
 
 
     
@@ -1071,7 +1107,81 @@ window.loadAttendanceForClass = (className) => {
     }, 100);
 };
 
+window.postHomework = () => {
+    const targetClass = document.getElementById('hw-target-class').value;
+    const subject = document.getElementById('hw-subject').value;
+    const desc = document.getElementById('hw-desc').value;
+    const sender = localStorage.getItem('userName');
 
+    if (!subject || !desc) return alert("Please fill in Subject and Details");
+
+    const homeworkRef = firebase.database().ref('homework');
+    homeworkRef.push({
+        class: targetClass,
+        subject: subject,
+        description: desc,
+        sender: sender,
+        date: new Date().toLocaleDateString('en-GB'),
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    }).then(() => {
+        alert("Homework posted successfully!");
+        document.getElementById('hw-subject').value = '';
+        document.getElementById('hw-desc').value = '';
+    });
+};
+
+window.fetchHomework = () => {
+    const role = localStorage.getItem('userRole');
+    const userClass = localStorage.getItem('mappedClass'); // For students/teachers
+    const container = document.getElementById('homework-list');
+
+    firebase.database().ref('homework').orderByChild('timestamp').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+            container.innerHTML = `<p class="text-center py-10 text-gray-400">No homework posted yet.</p>`;
+            return;
+        }
+
+        const hwArray = Object.keys(data).map(key => ({ id: key, ...data[key] })).reverse();
+
+        container.innerHTML = hwArray.map(hw => {
+            // Logic: Students only see homework for their specific class. 
+            // Admin/Staff see everything.
+            if (role === 'Student' && hw.class !== userClass) return '';
+
+            const canDelete = ["Super Admin", "Admin", "Supervisor", "Clerk"].includes(role);
+
+            return `
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">
+                            ${hw.subject}
+                        </span>
+                        <span class="text-[10px] text-gray-400 font-medium">${hw.date}</span>
+                    </div>
+                    <h3 class="font-bold text-gray-800">Class ${hw.class}</h3>
+                    <p class="text-sm text-gray-600 mt-2 whitespace-pre-wrap">${hw.description}</p>
+                    <p class="text-[9px] text-gray-400 mt-4 border-t pt-2 uppercase tracking-widest">Posted by ${hw.sender}</p>
+                    
+                    ${canDelete ? `
+                        <button onclick="deleteHomework('${hw.id}')" 
+                            class="absolute top-4 right-4 text-red-400 hover:text-red-600 text-xs">
+                            🗑️
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    });
+};
+
+window.deleteHomework = (id) => {
+    if (confirm("Are you sure you want to delete this homework?")) {
+        firebase.database().ref(`homework/${id}`).remove()
+            .then(() => alert("Deleted successfully"))
+            .catch(err => alert("Error: " + err.message));
+    }
+};
     
 
 
