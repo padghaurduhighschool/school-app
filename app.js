@@ -210,19 +210,6 @@ if (role === 'Teacher') {
                 document.getElementById('content').insertAdjacentHTML('beforeend', timetableCard);
             }
         });
-<div onclick="openExamTimeTable()" class="bg-gradient-to-br from-red-600 to-orange-600 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer mt-4">
-  <div class="flex items-center justify-between text-white">
-    <div>
-      <p class="text-red-100 text-[10px] uppercase font-bold">Assessments</p>
-      <h3 class="text-xl font-black">Exam Time Table</h3>
-      <p class="text-red-200 text-xs mt-1">View all class schedules</p>
-    </div>
-    <div class="bg-white/20 p-3 rounded-xl">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-    </div>
-  </div>
-</div>
-
     
     
     }
@@ -348,7 +335,18 @@ if (section === 'home') {
             </div>
           </div>
         </div>
-        
+<div onclick="openExamTimeTable()" class="bg-gradient-to-br from-red-600 to-orange-600 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer mt-4">
+  <div class="flex items-center justify-between text-white">
+    <div>
+      <p class="text-red-100 text-[10px] uppercase font-bold">Assessments</p>
+      <h3 class="text-xl font-black">Exam Time Table</h3>
+      <p class="text-red-200 text-xs mt-1">View all class schedules</p>
+    </div>
+    <div class="bg-white/20 p-3 rounded-xl">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+    </div>
+  </div>
+</div>
         <div onclick="loadSection('view_teacher_timetable')"
              class="mt-6 bg-gradient-to-br from-purple-600 to-indigo-700 p-5 rounded-2xl shadow-lg border-none transform active:scale-95 transition-all cursor-pointer">
           <div class="flex items-center justify-between">
@@ -372,8 +370,6 @@ if (section === 'home') {
         </div>
       </div>
     `;
-} else {
-    // STUDENT home view: greeting + Daily Time Table card
 } else {
             // This is the STUDENT BLOCK
             const name = localStorage.getItem('userName');
@@ -401,7 +397,15 @@ if (section === 'home') {
                     </div>
                   </div>
                 </div>
-
+<div onclick="openExamTimeTable()" class="bg-white p-5 rounded-2xl shadow-md border-l-4 border-orange-500 flex items-center justify-between active:scale-95 transition-all cursor-pointer">
+                        <div>
+                            <h3 class="text-gray-800 text-lg font-bold">Exam Time Table</h3>
+                            <p class="text-gray-500 text-xs">Check your upcoming exams</p>
+                        </div>
+                        <div class="bg-orange-100 p-3 rounded-full text-orange-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                        </div>
+</div>
                 <div onclick="openExamTimeTable()" class="bg-gradient-to-br from-red-600 to-orange-600 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer">
                   <div class="flex items-center justify-between text-white">
                     <div>
