@@ -173,6 +173,45 @@ window.loadSection = (section) => {
     const name = localStorage.getItem('userName');
     document.getElementById('user-role-title').innerText = `${role} Dashboard`;
 
+if (role === 'Teacher') {
+        const publishedRef = firebase.database().ref('settings/teacher_timetable_published');
+        
+        publishedRef.on('value', (snap) => {
+            const isPublished = snap.val();
+            
+            // Only show the card if the Admin has clicked "Publish"
+            if (isPublished) {
+                const timetableCard = `
+                    <div onclick="loadSection('view_teacher_timetable')" 
+                         class="mt-6 bg-gradient-to-br from-purple-600 to-indigo-700 p-5 rounded-2xl shadow-lg border-none transform active:scale-95 transition-all cursor-pointer">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-purple-100 text-[10px] uppercase tracking-widest font-bold">Your Schedule</p>
+                                <h3 class="text-white text-xl font-black mt-1">Teacher Time Table</h3>
+                                <p class="text-purple-200 text-sm font-medium mt-1 italic">${userName}</p>
+                            </div>
+                            <div class="bg-white/20 p-3 rounded-xl">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="Date_Range" />
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center text-xs text-purple-100 font-bold">
+                            <span>Tap to view full week</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                `;
+                
+                // Append the card to your main content area
+                document.getElementById('content').insertAdjacentHTML('beforeend', timetableCard);
+            }
+        });
+    }
+    
 if (section === 'home') {
     if (["Supervisor", "Clerk", "Super Admin", "Admin"].includes(role)) {
         content.innerHTML = `
