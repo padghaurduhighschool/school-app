@@ -712,6 +712,7 @@ if (section === 'homework') {
     fetchNotices();
 }
 // --- replace existing view_teacher_timetable block with this ---
+// Replace existing view_teacher_timetable with this:
 if (section === 'view_teacher_timetable') {
     const teacherName = (localStorage.getItem('userName') || '').trim();
     content.innerHTML = `
@@ -721,64 +722,91 @@ if (section === 'view_teacher_timetable') {
                 <h2 class="text-lg font-bold">My Weekly Schedule</h2>
             </div>
             <div id="tt-display" class="grid gap-3"></div>
+            <div id="tt-debug" class="text-xs text-gray-500"></div>
         </div>
     `;
 
     const display = document.getElementById('tt-display');
+    const debug = document.getElementById('tt-debug');
     display.innerHTML = `<p class="text-center py-10 text-gray-400">Loading timetable...</p>`;
+    debug.innerText = 'Debug: looking for timetable for "' + teacherName + '"';
 
     const normalize = s => String(s || '').toLowerCase().replace(/\s+/g, '').replace(/[^\w]/g, '');
     const sanitizeKey = s => String(s || '').toLowerCase().trim().replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
 
-    firebase.database().ref('teacher_timetables').once('value')
-    .then(snap => {
-        const all = snap.val() || {};
-        if (!Object.keys(all).length) {
-            display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
-            return;
+    // Check both candidate parent paths
+    const parentsToCheck = ['teacher_timetables', 'timetable/teacher'];
+
+    // Helper to try to find a matching node inside an object using several strategies
+    function findKeyForName(allObj, targetName) {
+        const normTarget = normalize(targetName);
+        // direct key
+        if (allObj[targetName]) return targetName;
+        // sanitized key
+        const sKey = sanitizeKey(targetName);
+        if (allObj[sKey]) return sKey;
+        // normalized displayName inside nodes or normalized key
+        const keys = Object.keys(allObj || {});
+        for (const k of keys) {
+            const node = allObj[k];
+            // node.displayName match
+            if (node && node.displayName && normalize(node.displayName) === normTarget) return k;
+            // normalized key match
+            if (normalize(k) === normTarget) return k;
+            // fallback substring heuristics
+            if (k.toLowerCase().includes(targetName.toLowerCase()) || targetName.toLowerCase().includes(k.toLowerCase())) return k;
+        }
+        return null;
+    }
+
+    // Load both parents and attempt to match
+    Promise.all(parentsToCheck.map(p => firebase.database().ref(p).once('value').then(s => ({parent: p, val: s.val()})).catch(e => ({parent: p, error: e}))))
+    .then(results => {
+        // show what parents exist and keys for debug
+        debug.innerHTML = results.map(r => {
+            if (r.error) return `${r.parent}: ERROR (${r.error.message})`;
+            const keys = r.val ? Object.keys(r.val).slice(0,50).join(', ') : '(empty)';
+            return `${r.parent}: keys=${keys}`;
+        }).join(' | ');
+
+        // Try to find and render from the first parent that matches
+        for (const r of results) {
+            if (r.error || !r.val) continue;
+            const foundKey = findKeyForName(r.val, teacherName);
+            if (foundKey) {
+                debug.innerHTML += `<br>Matched in ${r.parent} as key="${foundKey}"`;
+                renderTimetable(r.val[foundKey]);
+                return;
+            }
         }
 
-        // 1) Exact key match using displayed teacherName
-        if (all[teacherName]) {
-            render(all[teacherName]);
-            return;
+        // If not found in exact parents, try cross-parent normalized search (look across both)
+        const combined = results.reduce((acc, r) => (r.val ? Object.assign(acc, r.val) : acc), {});
+        const foundAny = findKeyForName(combined, teacherName);
+        if (foundAny) {
+            debug.innerHTML += `<br>Matched in combined keys as "${foundAny}"`;
+            // find which parent contains it and render
+            for (const r of results) {
+                if (r.val && r.val[foundAny]) { renderTimetable(r.val[foundAny]); return; }
+            }
         }
 
-        // 2) Sanitized-key match (new saves)
-        const keyTry = sanitizeKey(teacherName);
-        if (all[keyTry]) { render(all[keyTry]); return; }
-
-        // 3) Normalized displayName match inside stored objects
-        const normTarget = normalize(teacherName);
-        const foundKey = Object.keys(all).find(k => {
-            const node = all[k];
-            // if node has displayName saved, compare normalized displayName
-            if (node && node.displayName && normalize(node.displayName) === normTarget) return true;
-            // else if key normalized matches
-            if (normalize(k) === normTarget) return true;
-            // fallback: substring match either way
-            if (k.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(k.toLowerCase())) return true;
-            return false;
-        });
-
-        if (foundKey) {
-            render(all[foundKey]);
-        } else {
-            display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
-        }
+        // nothing found
+        display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
     })
     .catch(err => {
-        console.error('Error fetching timetables:', err);
-        display.innerHTML = `<p class="text-center py-10 text-red-500">Failed to load timetable. Check network or permissions.</p>`;
+        console.error('Error loading timetable parents:', err);
+        display.innerHTML = `<p class="text-center py-10 text-red-500">Failed to load timetable.</p>`;
+        debug.innerText = 'Error: ' + err.message;
     });
 
-    function render(node) {
+    function renderTimetable(node) {
         if (!node) {
             display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
             return;
         }
 
-        // If saved in new format { displayName, schedule: {day: text} }
+        // If new format { displayName, schedule: {day: text} }
         if (node.schedule && typeof node.schedule === 'object') {
             display.innerHTML = Object.entries(node.schedule).map(([day, schedule]) => `
                 <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
@@ -789,7 +817,7 @@ if (section === 'view_teacher_timetable') {
             return;
         }
 
-        // If old format is day => text directly (no wrapper)
+        // If node is day -> string
         if (Object.values(node).every(v => typeof v === 'string')) {
             display.innerHTML = Object.entries(node).map(([day, schedule]) => `
                 <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
@@ -800,7 +828,7 @@ if (section === 'view_teacher_timetable') {
             return;
         }
 
-        // If node is periods mapping {1: {Monday: ...}}
+        // If node is period -> {day: text}
         const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
         const periods = Object.keys(node).sort((a,b) => Number(a) - Number(b));
         if (periods.length && node[periods[0]] && typeof node[periods[0]] === 'object') {
@@ -820,7 +848,7 @@ if (section === 'view_teacher_timetable') {
             return;
         }
 
-        // Fallback
+        // fallback
         display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
     }
 }
