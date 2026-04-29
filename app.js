@@ -2672,30 +2672,38 @@ window.loadExamTimetable = async (className) => {
         const snap = await firebase.database().ref("exam_timetable/" + className).once('value');
         const data = snap.val() || {};
 
-        // Exams usually have Date, Day, Subject
-        let html = `<table class="w-full text-left border-collapse">
+        let html = `<div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="p-3 border text-[10px] uppercase text-gray-500">Date/Day</th>
-                    <th class="p-3 border text-[10px] uppercase text-gray-500">Subject</th>
+                    <th class="p-2 border text-[10px] uppercase text-gray-500">Date</th>
+                    <th class="p-2 border text-[10px] uppercase text-gray-500">Day</th>
+                    <th class="p-2 border text-[10px] uppercase text-gray-500">Time</th>
+                    <th class="p-2 border text-[10px] uppercase text-gray-500">Subject</th>
                 </tr>
             </thead>
             <tbody>`;
 
         // We create 10 rows for the exam schedule
         for (let i = 1; i <= 10; i++) {
-            const rowData = data[i] || { date: "", sub: "" };
+            const rowData = data[i] || { date: "", day: "", time: "", sub: "" };
             html += `<tr>
                 <td class="p-2 border">
-                    ${isAdmin ? `<input type="text" id="ex-date-${i}" value="${rowData.date}" class="w-full p-1 text-xs border-none bg-gray-50 rounded" placeholder="e.g. 10 May">` : `<span class="text-xs font-bold text-gray-700">${rowData.date || '-'}</span>`}
+                    ${isAdmin ? `<input type="text" id="ex-date-${i}" value="${rowData.date || ''}" class="w-full p-1 text-[11px] border-none bg-gray-50 rounded" placeholder="Date">` : `<span class="text-[11px] text-gray-700">${rowData.date || '-'}</span>`}
                 </td>
                 <td class="p-2 border">
-                    ${isAdmin ? `<input type="text" id="ex-sub-${i}" value="${rowData.sub}" class="w-full p-1 text-xs border-none bg-blue-50 rounded" placeholder="Subject">` : `<span class="text-xs font-medium text-blue-600">${rowData.sub || '-'}</span>`}
+                    ${isAdmin ? `<input type="text" id="ex-day-${i}" value="${rowData.day || ''}" class="w-full p-1 text-[11px] border-none bg-gray-50 rounded" placeholder="Day">` : `<span class="text-[11px] text-gray-700">${rowData.day || '-'}</span>`}
+                </td>
+                <td class="p-2 border">
+                    ${isAdmin ? `<input type="text" id="ex-time-${i}" value="${rowData.time || ''}" class="w-full p-1 text-[11px] border-none bg-gray-50 rounded" placeholder="Time">` : `<span class="text-[11px] text-gray-700">${rowData.time || '-'}</span>`}
+                </td>
+                <td class="p-2 border">
+                    ${isAdmin ? `<input type="text" id="ex-sub-${i}" value="${rowData.sub || ''}" class="w-full p-1 text-[11px] border-none bg-blue-50 rounded" placeholder="Subject">` : `<span class="text-[11px] font-bold text-blue-600">${rowData.sub || '-'}</span>`}
                 </td>
             </tr>`;
         }
 
-        html += `</tbody></table>`;
+        html += `</tbody></table></div>`;
         grid.innerHTML = html;
     } catch (err) {
         grid.innerHTML = `<p class="p-5 text-red-500 text-xs">Error: ${err.message}</p>`;
@@ -2707,20 +2715,22 @@ window.saveExamTimetable = async () => {
 
     const examData = {};
     for (let i = 1; i <= 10; i++) {
+        // Collect all 4 columns for each row
         examData[i] = {
             date: document.getElementById(`ex-date-${i}`).value.trim(),
+            day: document.getElementById(`ex-day-${i}`).value.trim(),
+            time: document.getElementById(`ex-time-${i}`).value.trim(),
             sub: document.getElementById(`ex-sub-${i}`).value.trim()
         };
     }
 
     try {
         await firebase.database().ref("exam_timetable/" + className).set(examData);
-        alert("Exam Timetable saved for Class " + className);
+        alert("Exam Timetable (4 Columns) saved for Class " + className);
     } catch (err) {
-        alert("Error: " + err.message);
+        alert("Error while saving: " + err.message);
     }
 };
-
 
 
     
