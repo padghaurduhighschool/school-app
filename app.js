@@ -2091,44 +2091,54 @@ window.saveTimeTableSettings = (type) => {
 };
 window.openDailyTimeTable = () => {
     const content = document.getElementById('content');
-    const role = localStorage.getItem('userRole');
-    const studentClass = localStorage.getItem('mappedClass'); // Automatically gets student's class
+    const role = localStorage.getItem('userRole'); // Gets the person's role
     const userName = localStorage.getItem('userName');
+    const mappedClass = localStorage.getItem('mappedClass'); // Used for students
 
+    // 1. Identify permissions
+    const isAdmin = ['Admin', 'Super Admin', 'Supervisor', 'Clerk'].includes(role);
+    const isTeacher = (role === 'Teacher');
+    const isStudent = (role === 'Student');
+
+    // 2. Setup the Screen Layout
     content.innerHTML = `
-        <div class="space-y-4">
-            <div class="flex items-center space-x-3 mb-2">
-                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full text-gray-600 active:scale-90 transition-all">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-                    </svg>
-                </button>
-                <div>
-                    <h2 class="text-lg font-bold text-gray-800">Daily Time Table</h2>
-                    <p class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">Viewing Class: ${studentClass}</p>
+        <div class="space-y-4 pb-20">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                    <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <h2 class="text-xl font-bold">Daily Time Table</h2>
                 </div>
+                ${isAdmin ? `
+                <button onclick="saveClassTimetable()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md active:scale-95">
+                    SAVE
+                </button>` : ''}
             </div>
 
-            <div class="hidden">
-                <select id="tt-class-select">
-                    <option value="${studentClass}">${studentClass}</option>
+            <div class="${isStudent ? 'hidden' : 'block'} bg-white p-4 rounded-xl shadow-sm border">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">Select Class</label>
+                <select id="tt-class-select" onchange="loadClassTimetable(this.value)" class="w-full p-3 bg-gray-50 rounded-lg border-none font-bold text-gray-700 focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- Choose Class --</option>
+                    ${schoolClasses.map(c => `<option value="${c}">${c}</option>`).join('')}
                 </select>
             </div>
 
             <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
-                <div id="tt-display-grid" class="divide-y divide-gray-50">
-                    <p class="text-center py-10 text-gray-400 italic text-sm">Loading your schedule...</p>
+                <div id="tt-display-grid">
+                    <p class="text-center py-10 text-gray-400 italic text-sm">Please select a class to view schedule</p>
                 </div>
             </div>
-            
-            <p class="text-center text-[10px] text-gray-400 font-medium pb-10">
-                Logged in as: ${userName}
-            </p>
         </div>
     `;
 
-    // Automatically load the data for the student's class without needing a button
-    window.loadClassTimetable(studentClass);
+    // 3. Logic for Students: Auto-load their class only
+    if (isStudent && mappedClass) {
+        document.getElementById('tt-class-select').value = mappedClass;
+        loadClassTimetable(mappedClass);
+    }
 };
 window.saveDaily = () => {
     const cls = document.getElementById("class-select").value;
@@ -2572,58 +2582,46 @@ window.loadTeacherDataForEdit = async (teacherName) => {
 // Add "window." to the front so the browser can find it anywhere
 window.loadClassTimetable = async (className) => {
     const grid = document.getElementById('tt-display-grid');
-    if (!grid) return;
-
-    // 1. Clean the class name (e.g., "Class 2" becomes "2")
-    const cleanClassName = String(className).replace(/class/i, "").trim();
+    const role = localStorage.getItem('userRole');
+    const isAdmin = ['Admin', 'Super Admin', 'Supervisor', 'Clerk'].includes(role);
+    
+    if (!className || !grid) return;
 
     try {
-        // 2. Fetch the data from your specific Firebase path
-        const snap = await firebase.database().ref("timetable/class/" + cleanClassName).once('value');
-        const data = snap.val();
+        const snap = await firebase.database().ref("timetable/class/" + className).once('value');
+        const data = snap.val() || {};
 
-        if (!data) {
-            grid.innerHTML = `<div class="p-10 text-center text-gray-400">No timetable found for Class ${cleanClassName}</div>`;
-            return;
-        }
-
-        // 3. Define the structure based on your database image
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const periods = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
-        // 4. Build the Table Layout
         let html = '<div class="overflow-x-auto"><table class="w-full text-left border-collapse">';
         
-        // Header Row (Days)
-        html += `
-            <thead>
-                <tr class="bg-gray-100">
-                    <th class="p-2 text-[10px] font-bold text-gray-500 border">PRD</th>
-                    ${days.map(d => `<th class="p-2 text-[10px] font-bold text-gray-500 border">${d.substring(0,3)}</th>`).join('')}
-                </tr>
-            </thead>
-            <tbody>`;
+        // Header
+        html += `<tr class="bg-gray-50"><th class="p-2 border text-[10px] text-gray-400">PRD</th>`;
+        days.forEach(d => html += `<th class="p-2 border text-[10px] text-gray-400">${d.substring(0,3)}</th>`);
+        html += `</tr>`;
 
-        // Data Rows (Periods)
+        // Body
         periods.forEach(p => {
-            html += `<tr>
-                <td class="p-2 text-[10px] font-bold bg-blue-50 text-blue-600 border text-center">${p}</td>`;
-            
+            html += `<tr><td class="p-2 border bg-gray-50 font-bold text-blue-600 text-center text-xs">${p}</td>`;
             days.forEach(d => {
-                // ACCORDING TO YOUR DATABASE: data[Day][Period]
-                const subject = (data[d] && data[d][p]) ? data[d][p] : '-';
-                html += `<td class="p-2 text-[11px] font-medium text-gray-700 border">${subject}</td>`;
+                const value = (data[d] && data[d][p]) ? data[d][p] : "";
+                
+                if (isAdmin) {
+                    // Editable for Admins/Clerks
+                    html += `<td class="p-1 border"><input type="text" id="cell-${d}-${p}" value="${value}" class="w-full p-1 text-[11px] border-none focus:bg-yellow-50" placeholder="-"></td>`;
+                } else {
+                    // Read-only for Teachers/Students
+                    html += `<td class="p-2 border text-[11px] font-medium text-gray-700">${value || '-'}</td>`;
+                }
             });
-            
             html += `</tr>`;
         });
 
-        html += '</tbody></table></div>';
+        html += '</table></div>';
         grid.innerHTML = html;
-
     } catch (err) {
-        console.error("Timetable Error:", err);
-        grid.innerHTML = `<div class="p-10 text-center text-red-500 text-xs">Error: ${err.message}</div>`;
+        grid.innerHTML = `<p class="p-5 text-red-500">Error: ${err.message}</p>`;
     }
 };
     
