@@ -2128,7 +2128,7 @@ window.openDailyTimeTable = () => {
     `;
 
     // Automatically load the data for the student's class without needing a button
-    loadClassTimetable(studentClass);
+    window.loadClassTimetable(studentClass);
 };
 window.saveDaily = () => {
     const cls = document.getElementById("class-select").value;
@@ -2569,7 +2569,46 @@ window.loadTeacherDataForEdit = async (teacherName) => {
         console.error("Error loading teacher timetable:", err);
     }
 };
+// Add "window." to the front so the browser can find it anywhere
+window.loadClassTimetable = async (className) => {
+    const grid = document.getElementById('tt-display-grid');
+    if (!grid) return;
 
+    try {
+        const snap = await firebase.database().ref("timetable/class/" + className).once('value');
+        const data = snap.val();
+
+        if (!data) {
+            grid.innerHTML = `<div class="p-10 text-center text-gray-400">No timetable found for Class ${className}</div>`;
+            return;
+        }
+
+        let html = '<div class="divide-y divide-gray-100">';
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        
+        for (let i = 1; i <= 8; i++) {
+            html += `
+                <div class="p-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <span class="bg-blue-50 text-blue-600 font-bold w-8 h-8 rounded-lg flex items-center justify-center text-xs">P${i}</span>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+                            ${days.map(d => `
+                                <div class="text-[10px]">
+                                    <span class="text-gray-400 font-medium">${d.substring(0,3)}:</span>
+                                    <span class="text-gray-700 font-bold">${data[i] && data[i][d] ? data[i][d] : '-'}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>`;
+        }
+        html += '</div>';
+        grid.innerHTML = html;
+    } catch (err) {
+        console.error(err);
+        grid.innerHTML = `<div class="p-10 text-center text-red-500">Error loading timetable.</div>`;
+    }
+};
     
     
 
