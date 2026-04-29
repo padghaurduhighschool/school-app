@@ -1,8 +1,10 @@
 const CACHE_NAME = 'school-app-v1';
 const ASSETS = [
-  'index.html',
-  'app.js',
-  'Padgha Urdu High School Logo.png',
+  '/school-app/',
+  '/school-app/index.html',
+  '/school-app/app.js',
+  '/school-app/style.css',
+  '/school-app/Padgha Urdu High School Logo.png'
 ];
 
 self.addEventListener('install', (e) => {
