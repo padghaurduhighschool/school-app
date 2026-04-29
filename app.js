@@ -2099,7 +2099,37 @@ function loadStudentTimeTable(cls) {
         container.innerHTML = html;
     });
 }
+function fetchPersonalStudentLogs(grNo) {
+    const logContainer = document.getElementById("personal-logs-list");
+    if (!logContainer) return;
 
+    logContainer.innerHTML = "<li>Loading logs...</li>";
+
+    // This fetches logs specifically for the logged-in student using their GR Number
+    firebase.database().ref("student_logs").orderByChild("grNo").equalTo(grNo)
+        .once("value", snap => {
+            const logs = snap.val();
+            if (!logs) {
+                logContainer.innerHTML = "<li>No recent activity found.</li>";
+                return;
+            }
+
+            let html = "";
+            // Convert object to array and sort by timestamp (newest first)
+            const logArray = Object.values(logs).reverse();
+            
+            logArray.forEach(log => {
+                html += `
+                    <li class="p-2 border-b text-sm">
+                        <span class="font-bold">${log.date || ''}:</span> ${log.message || log.type}
+                    </li>`;
+            });
+            logContainer.innerHTML = html;
+        }).catch(err => {
+            console.error("Error fetching logs:", err);
+            logContainer.innerHTML = "<li>Error loading logs.</li>";
+        });
+}
     
     
 
