@@ -374,48 +374,52 @@ if (section === 'home') {
     `;
 } else {
     // STUDENT home view: greeting + Daily Time Table card
-    content.innerHTML = `
-      <div class="space-y-4">
-        <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
-          <h2 class="text-2xl font-bold">Hello, ${name}</h2>
-          <p class="text-sm opacity-80 mt-1">Welcome to your Dashboard</p>
-        </div>
+} else {
+            // This is the STUDENT BLOCK
+            const name = localStorage.getItem('userName');
+            const mappedClass = localStorage.getItem('mappedClass');
 
-        <div onclick="openDailyTimeTable()"
-             class="mt-6 bg-gradient-to-br from-green-600 to-teal-700 p-5 rounded-2xl shadow-lg border-none transform active:scale-95 transition-all cursor-pointer">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-white text-xl font-black mt-1">Daily Time Table</h3>
-              <p class="text-green-200 text-sm font-medium mt-1 italic">${name}</p>
-            </div>
-            <div class="bg-white/20 p-3 rounded-xl">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-          </div>
-          <div class="mt-4 flex items-center text-xs text-green-100 font-bold">
-            <span>Tap to view today's classes</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-            </svg>
-          </div>
-        </div>
-<div onclick="openExamTimeTable()" class="bg-gradient-to-br from-red-600 to-orange-600 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer mt-4">
-  <div class="flex items-center justify-between text-white">
-    <div>
-      <p class="text-red-100 text-[10px] uppercase font-bold">Schedule</p>
-      <h3 class="text-xl font-black">Exam Time Table</h3>
-      <p class="text-red-200 text-xs mt-1">Your class: ${mappedClass}</p>
-    </div>
-    <div class="bg-white/20 p-3 rounded-xl">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-    </div>
-  </div>
-</div>
-      </div>
-    `;
-}
+            content.innerHTML = `
+              <div class="p-4 space-y-4">
+                
+                <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
+                  <h2 class="text-2xl font-bold">Hello, ${name}</h2>
+                  <p class="text-sm opacity-80">Welcome to your Dashboard</p>
+                </div>
+
+                <div onclick="openDailyTimeTable()" class="bg-gradient-to-br from-green-600 to-teal-700 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer">
+                  <div class="flex items-center justify-between text-white">
+                    <div>
+                      <p class="text-green-100 text-[10px] uppercase font-bold tracking-widest">Schedule</p>
+                      <h3 class="text-xl font-black">Daily Time Table</h3>
+                      <p class="text-green-200 text-xs mt-1">Class: ${mappedClass}</p>
+                    </div>
+                    <div class="bg-white/20 p-3 rounded-xl">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div onclick="openExamTimeTable()" class="bg-gradient-to-br from-red-600 to-orange-600 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer">
+                  <div class="flex items-center justify-between text-white">
+                    <div>
+                      <p class="text-red-100 text-[10px] uppercase font-bold tracking-widest">Assessments</p>
+                      <h3 class="text-xl font-black">Exam Time Table</h3>
+                      <p class="text-red-200 text-xs mt-1">Check your exam dates</p>
+                    </div>
+                    <div class="bg-white/20 p-3 rounded-xl">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            `;
+        }
 if (role === 'Teacher') {
         const publishedRef = firebase.database().ref('settings/teacher_timetable_published');
         publishedRef.on('value', (snap) => {
