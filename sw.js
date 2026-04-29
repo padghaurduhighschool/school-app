@@ -30,6 +30,18 @@ self.addEventListener('activate', (e) => {
 // Fetch
 self.addEventListener('fetch', (e) => {
   e.respondWith(
-    caches.match(e.request).then((res) => res || fetch(e.request))
+    caches.match(e.request).then((res) => {
+      return res || fetch(e.request).then((response) => {
+        return caches.open(CACHE_NAME).then((cache) => {
+          cache.put(e.request, response.clone());
+          return response;
+        });
+      });
+    }).catch(() => {
+      // fallback if offline
+      if (e.request.mode === 'navigate') {
+        return caches.match('index.html');
+      }
+    })
   );
 });
