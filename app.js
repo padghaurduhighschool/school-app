@@ -2574,25 +2574,31 @@ window.loadClassTimetable = async (className) => {
     const grid = document.getElementById('tt-display-grid');
     if (!grid) return;
 
-    // FIX: If the sheet says "2", this makes it "2". 
-    // If it says "Class 2", it removes "Class " and makes it "2".
-    let cleanClassName = String(className).replace("Class ", "").trim();
+    // STEP 1: FORCE CLEAN THE NAME
+    // This turns "Class 2" into "2", and " 2 " into "2"
+    let cleanClassName = String(className)
+        .replace(/class/i, "") // Removes "Class" or "class"
+        .trim();               // Removes extra spaces
 
     try {
-        // We use cleanClassName here to match your Firebase "2"
+        // STEP 2: FETCH FROM FIREBASE
+        // This will now look at: timetable/class/2
         const snap = await firebase.database().ref("timetable/class/" + cleanClassName).once('value');
         const data = snap.val();
 
         if (!data) {
-            grid.innerHTML = `<div class="p-10 text-center text-gray-400">No timetable found for Class ${cleanClassName}</div>`;
+            grid.innerHTML = `
+                <div class="p-10 text-center">
+                    <p class="text-gray-400 text-sm">No timetable found for</p>
+                    <p class="text-blue-600 font-bold text-lg">Class ${cleanClassName}</p>
+                </div>`;
             return;
         }
 
-        // 2. Define the Days and Periods
+        // STEP 3: GENERATE THE VIEW-ONLY TABLE
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const periods = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
-        // 3. Build the table layout
         let html = '<div class="overflow-x-auto"><table class="w-full text-left border-collapse">';
         
         // Table Header (Days)
@@ -2611,7 +2617,7 @@ window.loadClassTimetable = async (className) => {
                 <td class="p-2 text-[10px] font-bold bg-blue-50 text-blue-600 border text-center">${p}</td>`;
             
             days.forEach(d => {
-                // This line matches your image: data[Day][Period]
+                // Matches your database structure: data[Day][Period]
                 const subject = (data[d] && data[d][p]) ? data[d][p] : '-';
                 html += `<td class="p-2 text-[11px] font-medium text-gray-700 border">${subject}</td>`;
             });
@@ -2623,7 +2629,7 @@ window.loadClassTimetable = async (className) => {
         grid.innerHTML = html;
 
     } catch (err) {
-        console.error("Timetable Error:", err);
+        console.error("Firebase Error:", err);
         grid.innerHTML = `<div class="p-10 text-center text-red-500 text-xs">Error: ${err.message}</div>`;
     }
 };
