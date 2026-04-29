@@ -342,7 +342,7 @@
         </div>
       </div>
     `;
-      }
+      
     } else if (role === 'Student') {
       const mappedClass = localStorage.getItem('mappedClass') || '';
       content.innerHTML = `
