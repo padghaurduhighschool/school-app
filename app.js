@@ -2072,11 +2072,10 @@ window.saveExam = () => {
 
     alert("Saved");
 };
+
+// Replace your current openTeacherTimeTable with this version
 window.openTeacherTimeTable = async () => {
     const content = document.getElementById('content');
-
-    // Example teacher list (replace with CSV fetch)
-    const teachers = ["Sir A","Sir B","Madam C"];
 
     const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
@@ -2087,21 +2086,15 @@ window.openTeacherTimeTable = async () => {
         <div class="bg-white p-4 rounded-xl shadow">
             <h2 class="font-bold mb-3">Teacher Time Table</h2>
 
-            <select id="teacher-select" class="w-full p-2 border rounded mb-3">
+            <!-- Use 'teacherSelect' so loadTeacherDropdown() can populate it -->
+            <select id="teacherSelect" class="w-full p-2 border rounded mb-3">
                 <option value="">Select Teacher</option>
-    `;
+            </select>
 
-    teachers.forEach(t=>{
-        html += `<option>${t}</option>`;
-    });
-
-    html += `</select>
-
-    <table class="w-full text-xs border border-collapse">
-        <tr class="bg-gray-100">
-            <th class="border p-2">Sr.</th>`;
-
-    days.forEach(d=> html+= `<th class="border p-2">${d}</th>`);
+            <table class="w-full text-xs border border-collapse">
+                <tr class="bg-gray-100">
+                    <th class="border p-2">Sr.</th>`;
+    days.forEach(d => html+= `<th class="border p-2">${d}</th>`);
     html += `</tr>`;
 
     for(let i=1;i<=8;i++){
@@ -2123,9 +2116,20 @@ window.openTeacherTimeTable = async () => {
     </div></div>`;
 
     content.innerHTML = html;
-};    
+
+    // Populate teachers from CSV
+    if (typeof loadTeacherDropdown === 'function') {
+        loadTeacherDropdown(); // this will fill #teacherSelect and attach onchange to loadTeacherDataForEdit
+    } else {
+        console.warn("loadTeacherDropdown is not available.");
+    }
+};
+
+    
+// Ensure saveTeacher reads the same select id that loadTeacherDropdown populates
 window.saveTeacher = () => {
-    const teacher = document.getElementById("teacher-select").value;
+    const teacherEl = document.getElementById("teacherSelect") || document.getElementById("teacher-select");
+    const teacher = teacherEl ? teacherEl.value : "";
     if(!teacher) return alert("Select teacher");
 
     const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -2134,13 +2138,14 @@ window.saveTeacher = () => {
     for(let i=1;i<=8;i++){
         data[i]={};
         days.forEach(d=>{
-            data[i][d] = document.getElementById(`t-${i}-${d}`).value || "";
+            const input = document.getElementById(`t-${i}-${d}`);
+            data[i][d] = input ? input.value : "";
         });
     }
 
-    firebase.database().ref("timetable/teacher/"+teacher).set(data);
-
-    alert("Saved");
+    firebase.database().ref("timetable/teacher/"+teacher).set(data)
+    .then(() => alert("Saved"))
+    .catch(err => alert("Error: " + err.message));
 };
 
 document.addEventListener("change", async function(e) {
@@ -2361,7 +2366,41 @@ function updatePublishButtonUI() {
                              : "px-4 py-2 rounded-lg font-bold text-xs text-white bg-green-500";
     });
 }
+// Add this helper so selecting a teacher fills the inputs for edit
+window.loadTeacherDataForEdit = async (teacherName) => {
+    if (!teacherName) return;
 
+    // fetch existing timetable for that teacher from Firebase
+    try {
+        const snap = await firebase.database().ref("timetable/teacher/" + teacherName).once('value');
+        const data = snap.val();
+
+        // clear first
+        const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        for (let i=1;i<=8;i++){
+            days.forEach(d => {
+                const el = document.getElementById(`t-${i}-${d}`);
+                if (el) el.value = "";
+            });
+        }
+
+        if (!data) return;
+
+        // fill inputs if data found
+        Object.keys(data).forEach(period => {
+            const p = parseInt(period, 10);
+            if (!p) return;
+            days.forEach(d => {
+                const cell = document.getElementById(`t-${p}-${d}`);
+                if (cell && data[period] && data[period][d] !== undefined) {
+                    cell.value = data[period][d] || "";
+                }
+            });
+        });
+    } catch (err) {
+        console.error("Error loading teacher timetable:", err);
+    }
+};
 
     
     
