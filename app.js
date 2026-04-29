@@ -210,6 +210,21 @@ if (role === 'Teacher') {
                 document.getElementById('content').insertAdjacentHTML('beforeend', timetableCard);
             }
         });
+<div onclick="openExamTimeTable()" class="bg-gradient-to-br from-red-600 to-orange-600 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer mt-4">
+  <div class="flex items-center justify-between text-white">
+    <div>
+      <p class="text-red-100 text-[10px] uppercase font-bold">Assessments</p>
+      <h3 class="text-xl font-black">Exam Time Table</h3>
+      <p class="text-red-200 text-xs mt-1">View all class schedules</p>
+    </div>
+    <div class="bg-white/20 p-3 rounded-xl">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+    </div>
+  </div>
+</div>
+
+    
+    
     }
     
 if (section === 'home') {
@@ -386,6 +401,18 @@ if (section === 'home') {
             </svg>
           </div>
         </div>
+<div onclick="openExamTimeTable()" class="bg-gradient-to-br from-red-600 to-orange-600 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer mt-4">
+  <div class="flex items-center justify-between text-white">
+    <div>
+      <p class="text-red-100 text-[10px] uppercase font-bold">Schedule</p>
+      <h3 class="text-xl font-black">Exam Time Table</h3>
+      <p class="text-red-200 text-xs mt-1">Your class: ${mappedClass}</p>
+    </div>
+    <div class="bg-white/20 p-3 rounded-xl">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+    </div>
+  </div>
+</div>
       </div>
     `;
 }
@@ -2169,76 +2196,7 @@ window.saveDaily = () => {
     });
 };
 
-window.openExamTimeTable = () => {
-    const content = document.getElementById('content');
 
-    let html = `
-    <div class="space-y-4">
-        <button onclick="loadSection('home')" class="text-blue-600 font-bold">← Back</button>
-
-        <div class="bg-white p-4 rounded-xl shadow">
-            <h2 class="font-bold mb-3">Exam Time Table</h2>
-
-<select id="class-select" class="w-full p-2 border rounded mb-3">
-    <option value="">Select Class</option>
-    ${getClassOptions()}
-</select>
-
-            <table class="w-full text-xs border border-collapse">
-                <tr class="bg-gray-100">
-                    <th class="border p-2">Date</th>
-                    <th class="border p-2">Day</th>
-                    <th class="border p-2">Time</th>
-                    <th class="border p-2">Subject</th>
-                </tr>
-    `;
-
-    for(let i=1;i<=12;i++){
-        html += `
-        <tr>
-            <td class="border p-1"><input id="ex-date-${i}" class="w-full"></td>
-            <td class="border p-1"><input id="ex-day-${i}" class="w-full"></td>
-            <td class="border p-1"><input id="ex-time-${i}" class="w-full"></td>
-            <td class="border p-1"><input id="ex-sub-${i}" class="w-full"></td>
-        </tr>`;
-    }
-
-    html += `
-            </table>
-
-            <textarea id="exam-note" placeholder="Note..." 
-                class="w-full mt-3 p-2 border rounded text-sm"></textarea>
-
-            <button onclick="saveExam()" class="mt-3 w-full bg-blue-600 text-white p-2 rounded">
-                Save
-            </button>
-        </div>
-    </div>`;
-
-    content.innerHTML = html;
-};
-window.saveExam = () => {
-    const cls = document.getElementById("exam-class").value;
-    if(!cls) return alert("Select class");
-
-    let rows = [];
-
-    for(let i=1;i<=12;i++){
-        rows.push({
-            date: document.getElementById(`ex-date-${i}`).value,
-            day: document.getElementById(`ex-day-${i}`).value,
-            time: document.getElementById(`ex-time-${i}`).value,
-            subject: document.getElementById(`ex-sub-${i}`).value
-        });
-    }
-
-    firebase.database().ref("timetable/exam/"+cls).set({
-        rows,
-        note: document.getElementById("exam-note").value
-    });
-
-    alert("Saved");
-};
 
 // Replace your current openTeacherTimeTable with this version
 window.openTeacherTimeTable = async () => {
@@ -2662,6 +2620,101 @@ window.saveClassTimetable = async () => {
         alert("Error saving: " + err.message);
     }
 };
+window.openExamTimeTable = () => {
+    const content = document.getElementById('content');
+    const role = localStorage.getItem('userRole');
+    const mappedClass = localStorage.getItem('mappedClass');
+    const isAdmin = ['Admin', 'Super Admin', 'Supervisor', 'Clerk'].includes(role);
+    const isStudent = (role === 'Student');
+
+    content.innerHTML = `
+        <div class="space-y-4 pb-20">
+            <div class="flex items-center justify-between mb-4">
+                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/></svg></button>
+                <h2 class="text-xl font-bold">Exam Time Table</h2>
+                ${isAdmin ? `<button onclick="saveExamTimetable()" class="bg-red-600 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-md active:scale-95">SAVE</button>` : '<div></div>'}
+            </div>
+
+            <div class="${isStudent ? 'hidden' : 'block'} bg-white p-4 rounded-xl border">
+                <select id="exam-class-select" onchange="loadExamTimetable(this.value)" class="w-full p-3 bg-gray-50 rounded-lg font-bold">
+                    <option value="">-- Select Class --</option>
+                    ${schoolClasses.map(c => `<option value="${c}">${c}</option>`).join('')}
+                </select>
+            </div>
+
+            <div id="exam-display-grid" class="bg-white rounded-2xl shadow-sm border overflow-hidden min-h-[200px]">
+                <p class="text-center py-10 text-gray-400 italic text-sm">Please select a class...</p>
+            </div>
+        </div>
+    `;
+
+    if (isStudent && mappedClass) {
+        loadExamTimetable(mappedClass);
+    }
+};
+window.loadExamTimetable = async (className) => {
+    const grid = document.getElementById('exam-display-grid');
+    const role = localStorage.getItem('userRole');
+    const isAdmin = ['Admin', 'Super Admin', 'Supervisor', 'Clerk'].includes(role);
+    
+    if (!className) return;
+    grid.innerHTML = '<p class="text-center py-10">Loading...</p>';
+
+    try {
+        const snap = await firebase.database().ref("exam_timetable/" + className).once('value');
+        const data = snap.val() || {};
+
+        // Exams usually have Date, Day, Subject
+        let html = `<table class="w-full text-left border-collapse">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="p-3 border text-[10px] uppercase text-gray-500">Date/Day</th>
+                    <th class="p-3 border text-[10px] uppercase text-gray-500">Subject</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        // We create 10 rows for the exam schedule
+        for (let i = 1; i <= 10; i++) {
+            const rowData = data[i] || { date: "", sub: "" };
+            html += `<tr>
+                <td class="p-2 border">
+                    ${isAdmin ? `<input type="text" id="ex-date-${i}" value="${rowData.date}" class="w-full p-1 text-xs border-none bg-gray-50 rounded" placeholder="e.g. 10 May">` : `<span class="text-xs font-bold text-gray-700">${rowData.date || '-'}</span>`}
+                </td>
+                <td class="p-2 border">
+                    ${isAdmin ? `<input type="text" id="ex-sub-${i}" value="${rowData.sub}" class="w-full p-1 text-xs border-none bg-blue-50 rounded" placeholder="Subject">` : `<span class="text-xs font-medium text-blue-600">${rowData.sub || '-'}</span>`}
+                </td>
+            </tr>`;
+        }
+
+        html += `</tbody></table>`;
+        grid.innerHTML = html;
+    } catch (err) {
+        grid.innerHTML = `<p class="p-5 text-red-500 text-xs">Error: ${err.message}</p>`;
+    }
+};
+window.saveExamTimetable = async () => {
+    const className = document.getElementById('exam-class-select').value;
+    if (!className) return alert("Select a class first!");
+
+    const examData = {};
+    for (let i = 1; i <= 10; i++) {
+        examData[i] = {
+            date: document.getElementById(`ex-date-${i}`).value.trim(),
+            sub: document.getElementById(`ex-sub-${i}`).value.trim()
+        };
+    }
+
+    try {
+        await firebase.database().ref("exam_timetable/" + className).set(examData);
+        alert("Exam Timetable saved for Class " + className);
+    } catch (err) {
+        alert("Error: " + err.message);
+    }
+};
+
+
+
     
     
     
