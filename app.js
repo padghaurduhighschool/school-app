@@ -420,9 +420,19 @@ if (section === 'teacher_timetable_admin') {
     
 if (section === 'attendance') {
     const role = localStorage.getItem('userRole');
-const filtered = timetableData.filter(t => 
-    normalizeClass(t.class) === normalizeClass(mappedClass)
-);    const name = localStorage.getItem('userName');
+    // Build safe class options string to avoid nested template literals
+    const mappedClass = localStorage.getItem('mappedClass') || '';
+    let extraClassOptions = '';
+    if (role !== 'Teacher') {
+        extraClassOptions += `<option value="Jr KG">Class Jr KG</option>`;
+        extraClassOptions += `<option value="Sr KG">Class Sr KG</option>`;
+        extraClassOptions += ${JSON.stringify([1,2,3,4,5,6,7,8,9,10])}.map(n => `<option value="${n}">${n}</option>`).join('');
+    }
+
+    // If you use timetableData/mappedClass later, ensure they exist; if not, define safely:
+    // const filtered = (timetableData || []).filter(t => normalizeClass(t.class) === normalizeClass(mappedClass));
+
+    const name = localStorage.getItem('userName');
     const now = new Date();
     const day = now.getDay();
     const dateKey = now.toISOString().split('T')[0];
@@ -475,11 +485,11 @@ const filtered = timetableData.filter(t =>
                 Shift: 07:20 AM to ${closingLabel}
             </div>
             <div class="grid grid-cols-2 gap-1">
-                <button onclick="markAttendance('IN')" ${hasCheckedIn || isTooEarly ? 'disabled' : ''} 
+                <button id="btn-in" onclick="markAttendance('IN')" ${hasCheckedIn || isTooEarly ? 'disabled' : ''} 
                     class="p-4 rounded-xl font-bold text-sm ${hasCheckedIn || isTooEarly ? 'bg-gray-200 text-gray-400' : 'bg-green-500 text-white shadow-md'}">
                     ${isTooEarly ? 'Too Early' : (hasCheckedIn ? 'IN ✅' : 'Check IN')}
                 </button>
-                <button onclick="markAttendance('OUT')" ${!hasCheckedIn ? 'disabled' : ''} 
+                <button id="btn-out" onclick="markAttendance('OUT')" ${!hasCheckedIn ? 'disabled' : ''} 
                     class="p-4 rounded-xl font-bold text-sm ${!hasCheckedIn ? 'bg-gray-200 text-gray-400' : 'bg-red-500 text-white shadow-md'}">
                     Check OUT
                 </button>
@@ -487,32 +497,24 @@ const filtered = timetableData.filter(t =>
             </div>
         `;
 
-        // Student Marking Interface for Staff
-// Updated Student Marking Interface for both Admin and Teacher
-document.getElementById('student-interface').innerHTML = `
-    <div class="bg-blue-600 p-4 rounded-2xl text-white shadow-lg">
-        <p class="text-[10px] opacity-80 font-bold uppercase">Mark Attendance For:</p>
-        <div class="flex gap-2 mt-2">
-            <select id="target-class" class="flex-1 bg-blue-700 border-none rounded-lg text-sm p-2 focus:ring-0 text-white" 
-                ${role === 'Teacher' ? 'disabled' : ''}>
-                
-                <option value="${mappedClass}">Class ${mappedClass}</option>
-                
-                ${role !== 'Teacher' ? `
-                    <option value="Jr KG">Class Jr KG</option>
-                    <option value="Sr KG">Class Sr KG</option>
-                    ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option value="${n}">${n}</option>`).join('')}                ` : ''}
-            </select>
-            
-            <button onclick="loadAttendanceSheet()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-sm active:scale-95 transition-all">
-                Open List
-            </button>
-        </div>
-    </div>
-    <div id="attendance-sheet-container" class="mt-4"></div>
-`;
+        // Student Marking Interface for Staff (avoid nested backticks)
+        document.getElementById('student-interface').innerHTML = `
+            <div class="bg-blue-600 p-4 rounded-2xl text-white shadow-lg">
+                <p class="text-[10px] opacity-80 font-bold uppercase">Mark Attendance For:</p>
+                <div class="flex gap-2 mt-2">
+                    <select id="target-class" class="flex-1 bg-blue-700 border-none rounded-lg text-sm p-2 focus:ring-0 text-white" ${role === 'Teacher' ? 'disabled' : ''}>
+                        <option value="${mappedClass}">Class ${mappedClass}</option>
+                        ${role !== 'Teacher' ? extraClassOptions : ''}
+                    </select>
+                    
+                    <button onclick="loadAttendanceSheet()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-sm active:scale-95 transition-all">
+                        Open List
+                    </button>
+                </div>
+            </div>
+            <div id="attendance-sheet-container" class="mt-4"></div>
+        `;
     } 
-    
     // 4. Logic for Students (View Only)
     else {
         document.getElementById('student-interface').innerHTML = `
