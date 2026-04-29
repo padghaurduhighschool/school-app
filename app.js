@@ -2064,6 +2064,43 @@ document.addEventListener("change", async function(e) {
         }
     }
 });    
+function loadStudentTimeTable(cls) {
+    const container = document.getElementById("student-timetable");
+
+    firebase.database().ref("timetable/daily/" + cls).once("value", snap => {
+        const data = snap.val();
+
+        if (!data || !data.published) {
+            container.innerHTML = "<p>No timetable published</p>";
+            return;
+        }
+
+        const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+        let html = `<table class="w-full text-xs border border-collapse">`;
+
+        html += `<tr><th>Sr.</th>`;
+        days.forEach(d => html += `<th>${d}</th>`);
+        html += `</tr>`;
+
+        Object.keys(data.data).forEach(period => {
+            html += `<tr><td>${period}</td>`;
+            days.forEach(d => {
+                html += `<td>${data.data[period][d] || ""}</td>`;
+            });
+            html += `</tr>`;
+        });
+
+        html += `</table>`;
+
+        if (data.note) {
+            html += `<div class="mt-3 text-sm text-gray-600">${data.note}</div>`;
+        }
+
+        container.innerHTML = html;
+    });
+}
+
     
     
 
