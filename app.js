@@ -342,8 +342,37 @@ if (section === 'home') {
       </div>
     `;
 } else {
-    // keep existing other-role behavior
-    content.innerHTML = `<div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg"><h2 class="text-2xl font-bold">Hello, ${name}</h2></div>`;
+    // STUDENT home view: greeting + Daily Time Table card
+    content.innerHTML = `
+      <div class="space-y-4">
+        <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
+          <h2 class="text-2xl font-bold">Hello, ${name}</h2>
+          <p class="text-sm opacity-80 mt-1">Welcome to your Dashboard</p>
+        </div>
+
+        <div onclick="openDailyTimeTable()"
+             class="mt-6 bg-gradient-to-br from-green-600 to-teal-700 p-5 rounded-2xl shadow-lg border-none transform active:scale-95 transition-all cursor-pointer">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-green-100 text-[10px] uppercase tracking-widest font-bold">Your Schedule</p>
+              <h3 class="text-white text-xl font-black mt-1">Daily Time Table</h3>
+              <p class="text-green-200 text-sm font-medium mt-1 italic">${name}</p>
+            </div>
+            <div class="bg-white/20 p-3 rounded-xl">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 flex items-center text-xs text-green-100 font-bold">
+            <span>Tap to view today's classes</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    `;
 }
 if (role === 'Teacher') {
         const publishedRef = firebase.database().ref('settings/teacher_timetable_published');
