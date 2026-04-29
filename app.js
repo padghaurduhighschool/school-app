@@ -2574,9 +2574,19 @@ window.loadClassTimetable = async (className) => {
     const grid = document.getElementById('tt-display-grid');
     if (!grid) return;
 
+    // Helper function to fetch data from Firebase
+    const getData = async (path) => {
+        const snap = await firebase.database().ref(path).once('value');
+        return snap.val();
+    };
+
     try {
-        const snap = await firebase.database().ref("timetable/class/" + className).once('value');
-        const data = snap.val();
+        // Try multiple path formats to be safe
+        let data = await getData("timetable/class/" + className);
+        
+        if (!data && !className.includes("Class")) {
+            data = await getData("timetable/class/Class " + className);
+        }
 
         if (!data) {
             grid.innerHTML = `<div class="p-10 text-center text-gray-400">No timetable found for Class ${className}</div>`;
@@ -2586,19 +2596,24 @@ window.loadClassTimetable = async (className) => {
         let html = '<div class="divide-y divide-gray-100">';
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         
+        // Loop through periods 1 to 8
         for (let i = 1; i <= 8; i++) {
             html += `
-                <div class="p-4 flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <span class="bg-blue-50 text-blue-600 font-bold w-8 h-8 rounded-lg flex items-center justify-center text-xs">P${i}</span>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-                            ${days.map(d => `
-                                <div class="text-[10px]">
-                                    <span class="text-gray-400 font-medium">${d.substring(0,3)}:</span>
-                                    <span class="text-gray-700 font-bold">${data[i] && data[i][d] ? data[i][d] : '-'}</span>
+                <div class="p-4">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <span class="bg-blue-600 text-white font-bold w-10 h-6 rounded flex items-center justify-center text-[10px]">P${i}</span>
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Period ${i}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        ${days.map(d => {
+                            const subject = (data[i] && data[i][d]) ? data[i][d] : '-';
+                            return `
+                                <div class="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                    <p class="text-[8px] text-gray-400 font-bold uppercase">${d}</p>
+                                    <p class="text-xs font-bold text-gray-700">${subject}</p>
                                 </div>
-                            `).join('')}
-                        </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>`;
         }
@@ -2606,7 +2621,7 @@ window.loadClassTimetable = async (className) => {
         grid.innerHTML = html;
     } catch (err) {
         console.error(err);
-        grid.innerHTML = `<div class="p-10 text-center text-red-500">Error loading timetable.</div>`;
+        grid.innerHTML = `<div class="p-10 text-center text-red-500">Error loading data.</div>`;
     }
 };
     
