@@ -2733,47 +2733,68 @@ window.saveExamTimetable = async () => {
     }
 };
 window.showFeesChart = async () => {
-    // 1. Show a loading state/new screen
-    const mainContainer = document.getElementById('main-content'); // Adjust ID based on your app
-    mainContainer.innerHTML = `<div class="p-5 text-center">Loading Fees Structure...</div>`;
+    // 1. Target the existing content container used in your app
+    const content = document.getElementById('content'); 
+    if (!content) return;
+
+    // Show loading state
+    content.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-10">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+            <p class="mt-4 text-gray-600 font-medium">Loading Fees Chart...</p>
+        </div>
+    `;
 
     try {
+        const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=936130121&single=true&output=csv";
         const response = await fetch(FEES_CSV_URL);
         const data = await response.text();
-        const rows = data.split('\n').map(row => row.split(','));
+        
+        // Simple CSV parser that handles quotes/commas
+        const rows = data.split('\n').map(row => {
+            const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            return matches ? matches.map(m => m.replace(/^"|"$/g, '')) : row.split(',');
+        });
 
-        // 2. Build the Table UI
         let html = `
-            <div class="p-4">
-                <div class="flex items-center mb-4">
-                    <button onclick="goBack()" class="mr-2 text-blue-600">← Back</button>
-                    <h2 class="text-lg font-bold">School Fees Structure</h2>
+            <div class="bg-white min-h-screen">
+                <div class="sticky top-0 bg-white border-b p-4 flex items-center z-10">
+                    <button onclick="loadSection('more')" class="p-2 -ml-2 mr-2 text-blue-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <h2 class="text-lg font-bold text-gray-800">Fees Structure 2026-27</h2>
                 </div>
-                <div class="overflow-x-auto bg-white rounded-lg shadow">
-                    <table class="w-full text-left border-collapse">
+                
+                <div class="p-2 overflow-x-auto">
+                    <table class="w-full border-collapse bg-white text-xs">
                         <thead>
-                            <tr class="bg-blue-600 text-white">
-                                ${rows[0].map(col => `<th class="p-3 text-xs uppercase">${col}</th>`).join('')}
+                            <tr class="bg-gray-100">
+                                ${rows[0].map(col => `<th class="border p-2 text-left font-bold text-gray-700">${col}</th>`).join('')}
                             </tr>
                         </thead>
                         <tbody>
         `;
 
-        // 3. Add data rows
         for (let i = 1; i < rows.length; i++) {
-            if (rows[i].length < 2) continue; // Skip empty rows
+            if (rows[i].length < 2) continue;
             html += `
-                <tr class="border-b hover:bg-gray-50">
-                    ${rows[i].map(cell => `<td class="p-3 text-sm">${cell}</td>`).join('')}
+                <tr class="even:bg-gray-50">
+                    ${rows[i].map(cell => `<td class="border p-2 text-gray-600">${cell}</td>`).join('')}
                 </tr>
             `;
         }
 
         html += `</tbody></table></div></div>`;
-        mainContainer.innerHTML = html;
+        content.innerHTML = html;
 
     } catch (err) {
-        mainContainer.innerHTML = `<p class="p-5 text-red-500">Error loading fees: ${err.message}</p>`;
+        content.innerHTML = `
+            <div class="p-10 text-center">
+                <p class="text-red-500 mb-4">Failed to load data.</p>
+                <button onclick="loadSection('more')" class="bg-blue-600 text-white px-4 py-2 rounded-lg">Go Back</button>
+            </div>
+        `;
+        console.error(err);
     }
 };
 
