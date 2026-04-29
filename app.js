@@ -2574,54 +2574,53 @@ window.loadClassTimetable = async (className) => {
     const grid = document.getElementById('tt-display-grid');
     if (!grid) return;
 
-    // Helper function to fetch data from Firebase
-    const getData = async (path) => {
-        const snap = await firebase.database().ref(path).once('value');
-        return snap.val();
-    };
-
     try {
-        // Try multiple path formats to be safe
-        let data = await getData("timetable/class/" + className);
-        
-        if (!data && !className.includes("Class")) {
-            data = await getData("timetable/class/Class " + className);
-        }
+        // 1. Get the data from Firebase
+        const snap = await firebase.database().ref("timetable/class/" + className).once('value');
+        const data = snap.val();
 
         if (!data) {
             grid.innerHTML = `<div class="p-10 text-center text-gray-400">No timetable found for Class ${className}</div>`;
             return;
         }
 
-        let html = '<div class="divide-y divide-gray-100">';
+        // 2. Define the Days and Periods
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const periods = ["1", "2", "3", "4", "5", "6", "7", "8"];
+
+        // 3. Build the table layout
+        let html = '<div class="overflow-x-auto"><table class="w-full text-left border-collapse">';
         
-        // Loop through periods 1 to 8
-        for (let i = 1; i <= 8; i++) {
-            html += `
-                <div class="p-4">
-                    <div class="flex items-center space-x-3 mb-2">
-                        <span class="bg-blue-600 text-white font-bold w-10 h-6 rounded flex items-center justify-center text-[10px]">P${i}</span>
-                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Period ${i}</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        ${days.map(d => {
-                            const subject = (data[i] && data[i][d]) ? data[i][d] : '-';
-                            return `
-                                <div class="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                    <p class="text-[8px] text-gray-400 font-bold uppercase">${d}</p>
-                                    <p class="text-xs font-bold text-gray-700">${subject}</p>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>`;
-        }
-        html += '</div>';
+        // Table Header (Days)
+        html += `
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="p-2 text-[10px] font-bold text-gray-500 border">PRD</th>
+                    ${days.map(d => `<th class="p-2 text-[10px] font-bold text-gray-500 border">${d.substring(0,3)}</th>`).join('')}
+                </tr>
+            </thead>
+            <tbody>`;
+
+        // Table Rows (Periods)
+        periods.forEach(p => {
+            html += `<tr>
+                <td class="p-2 text-[10px] font-bold bg-blue-50 text-blue-600 border text-center">${p}</td>`;
+            
+            days.forEach(d => {
+                // This line matches your image: data[Day][Period]
+                const subject = (data[d] && data[d][p]) ? data[d][p] : '-';
+                html += `<td class="p-2 text-[11px] font-medium text-gray-700 border">${subject}</td>`;
+            });
+            
+            html += `</tr>`;
+        });
+
+        html += '</tbody></table></div>';
         grid.innerHTML = html;
+
     } catch (err) {
-        console.error(err);
-        grid.innerHTML = `<div class="p-10 text-center text-red-500">Error loading data.</div>`;
+        console.error("Timetable Error:", err);
+        grid.innerHTML = `<div class="p-10 text-center text-red-500 text-xs">Error: ${err.message}</div>`;
     }
 };
     
