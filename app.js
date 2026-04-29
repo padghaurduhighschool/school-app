@@ -3,6 +3,7 @@
 // 1. CONFIGURATION & STATE
 const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
 const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv"; 
+const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=936130121&single=true&output=csv";
 const OFFICE_LAT = 19.3709; 
 const OFFICE_LON = 73.1757; 
 
@@ -581,25 +582,34 @@ document.getElementById('student-interface').innerHTML = `
     }
 }
     
-    else if (section === 'more') {
-        content.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-                <div class="border-b pb-4">
-                    <p class="text-sm text-gray-500 font-medium">STAFF DETAILS</p>
-                    <p class="font-bold text-lg text-blue-600">${name} (${role})</p>
-                </div>
-                <div id="install-button-container" class="${deferredPrompt ? '' : 'hidden'}">
-                    <button onclick="triggerInstall()" class="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold flex items-center justify-between shadow-md">
-                        <span>📲 Install App on Phone</span>
-                        <span class="text-xs bg-white text-blue-600 px-2 py-1 rounded">INSTALL</span>
-                    </button>
-                </div>
-                <button onclick="handleLogout()" class="w-full bg-red-50 text-red-600 p-5 rounded-2xl font-bold flex items-center justify-center border border-red-100 shadow-sm active:bg-red-100">
-                    <span class="mr-2">🚪</span> Logout from System
+else if (section === 'more') {
+    content.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-sm p-4 space-y-4">
+            <div class="border-b pb-4">
+                <p class="text-sm text-gray-500 font-medium">STAFF DETAILS</p>
+                <p class="font-bold text-lg text-blue-600">${name} (${role})</p>
+            </div>
+
+            <div class="p-0 grid grid-cols-2 gap-4">
+                <button onclick="showFeesChart()" class="flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all">
+                    <span class="text-2xl mb-2">💰</span>
+                    <span class="text-sm font-bold text-blue-700">Fees Chart</span>
                 </button>
             </div>
-        `;
-    }
+
+            <div id="install-button-container" class="${deferredPrompt ? '' : 'hidden'}">
+                <button onclick="triggerInstall()" class="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold flex items-center justify-between shadow-md">
+                    <span>📲 Install App on Phone</span>
+                    <span class="text-xs bg-white text-blue-600 px-2 py-1 rounded">INSTALL</span>
+                </button>
+            </div>
+
+            <button onclick="handleLogout()" class="w-full bg-red-50 text-red-600 p-5 rounded-2xl font-bold flex items-center justify-center border border-red-100 shadow-sm active:bg-red-100">
+                <span class="mr-2">🚪</span> Logout from System
+            </button>
+        </div>
+    `;
+}
 
 
 if (section === 'students') {
@@ -2722,7 +2732,50 @@ window.saveExamTimetable = async () => {
         alert("Error while saving: " + err.message);
     }
 };
+window.showFeesChart = async () => {
+    // 1. Show a loading state/new screen
+    const mainContainer = document.getElementById('main-content'); // Adjust ID based on your app
+    mainContainer.innerHTML = `<div class="p-5 text-center">Loading Fees Structure...</div>`;
 
+    try {
+        const response = await fetch(FEES_CSV_URL);
+        const data = await response.text();
+        const rows = data.split('\n').map(row => row.split(','));
+
+        // 2. Build the Table UI
+        let html = `
+            <div class="p-4">
+                <div class="flex items-center mb-4">
+                    <button onclick="goBack()" class="mr-2 text-blue-600">← Back</button>
+                    <h2 class="text-lg font-bold">School Fees Structure</h2>
+                </div>
+                <div class="overflow-x-auto bg-white rounded-lg shadow">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-blue-600 text-white">
+                                ${rows[0].map(col => `<th class="p-3 text-xs uppercase">${col}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+
+        // 3. Add data rows
+        for (let i = 1; i < rows.length; i++) {
+            if (rows[i].length < 2) continue; // Skip empty rows
+            html += `
+                <tr class="border-b hover:bg-gray-50">
+                    ${rows[i].map(cell => `<td class="p-3 text-sm">${cell}</td>`).join('')}
+                </tr>
+            `;
+        }
+
+        html += `</tbody></table></div></div>`;
+        mainContainer.innerHTML = html;
+
+    } catch (err) {
+        mainContainer.innerHTML = `<p class="p-5 text-red-500">Error loading fees: ${err.message}</p>`;
+    }
+};
 
     
     
