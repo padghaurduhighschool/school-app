@@ -2574,13 +2574,17 @@ window.loadClassTimetable = async (className) => {
     const grid = document.getElementById('tt-display-grid');
     if (!grid) return;
 
+    // FIX: If the sheet says "2", this makes it "2". 
+    // If it says "Class 2", it removes "Class " and makes it "2".
+    let cleanClassName = String(className).replace("Class ", "").trim();
+
     try {
-        // 1. Get the data from Firebase
-        const snap = await firebase.database().ref("timetable/class/" + className).once('value');
+        // We use cleanClassName here to match your Firebase "2"
+        const snap = await firebase.database().ref("timetable/class/" + cleanClassName).once('value');
         const data = snap.val();
 
         if (!data) {
-            grid.innerHTML = `<div class="p-10 text-center text-gray-400">No timetable found for Class ${className}</div>`;
+            grid.innerHTML = `<div class="p-10 text-center text-gray-400">No timetable found for Class ${cleanClassName}</div>`;
             return;
         }
 
