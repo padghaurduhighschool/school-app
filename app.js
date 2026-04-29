@@ -2255,24 +2255,39 @@ function loadTimetableForStudent(classFromSheet) {
     }
   });
 }
-window.loadTeacherDropdown = async () => {
+
+    window.loadTeacherDropdown = async () => {
     try {
         const res = await fetch(TEACHER_SHEET_CSV);
         const text = await res.text();
-        const rows = text.split('\n').filter(r => r.trim()).slice(1);
+        
+        // Split rows and filter empty ones
+        const rows = text.split(/\r?\n/).filter(r => r.trim());
+        if (rows.length < 2) return;
+
+        // Parse headers from the first row to find the "Name" column
+        const headers = rows[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/"/g, '').trim().toLowerCase());
+        const nameIndex = headers.findIndex(h => h.includes("name"));
+        
+        // If "name" column isn't found, default to index 2 (Column C)
+        const targetIndex = nameIndex !== -1 ? nameIndex : 2;
+
         const select = document.getElementById('teacherSelect');
         
-        const teacherNames = rows.map(row => {
+        // Process data rows
+        const teacherNames = rows.slice(1).map(row => {
             const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            return cols[2]?.replace(/"/g, '').trim(); // Full Name (Col C)
-        });
+            return cols[targetIndex]?.replace(/"/g, '').trim(); 
+        }).filter(name => name && name !== ""); // Remove empty names
 
+        // Populate dropdown
         select.innerHTML = '<option value="">Select Teacher</option>' + 
             teacherNames.map(name => `<option value="${name}">${name}</option>`).join('');
             
         select.onchange = () => loadTeacherDataForEdit(select.value);
     } catch (e) {
-        alert("Error loading teacher CSV");
+        console.error(e);
+        alert("Error loading teacher names from CSV");
     }
 };
 
