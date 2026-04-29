@@ -272,7 +272,18 @@ if (section === 'home') {
         <div id="home-stud-bar-absent" class="bg-red-400 h-full transition-all duration-500" style="width: 0%"></div>
     </div>
 </div>
+// ... inside the Admin view grid ...
+    <div onclick="openTeacherTimeTable()" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 cursor-pointer">
+        <p class="text-gray-500 text-[10px] uppercase font-bold">Teachers View</p>
+        <p class="text-xl font-bold text-blue-600">Teacher Time Table</p>
+    </div>
 
+    <div onclick="showFeesDashboard()" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-green-500 cursor-pointer">
+        <p class="text-gray-500 text-[10px] uppercase font-bold">Accounts & Payments</p>
+        <p class="text-xl font-bold text-green-600">Fees Dashboard</p>
+    </div>
 
 <div class="grid grid-cols-1 gap-3">
 
@@ -336,6 +347,21 @@ if (section === 'home') {
             </div>
           </div>
         </div>
+
+<div onclick="showFeesDashboard()" class="bg-gradient-to-br from-green-600 to-teal-700 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer mt-4">
+  <div class="flex items-center justify-between text-white">
+    <div>
+      <p class="text-green-100 text-[10px] uppercase font-bold">Accounts</p>
+      <h3 class="text-xl font-black">Fees & Dues</h3>
+      <p class="text-green-200 text-xs mt-1">View your class payments</p>
+    </div>
+    <div class="bg-white/20 p-3 rounded-xl">
+      <span class="text-2xl">💳</span>
+    </div>
+  </div>
+</div>
+
+        
 <div onclick="openExamTimeTable()" class="bg-gradient-to-br from-red-600 to-orange-600 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer mt-4">
   <div class="flex items-center justify-between text-white">
     <div>
@@ -348,6 +374,22 @@ if (section === 'home') {
     </div>
   </div>
 </div>
+
+// ... inside the Student view block ...
+<div onclick="showFeesDashboard()" class="bg-gradient-to-br from-indigo-600 to-blue-700 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer">
+  <div class="flex items-center justify-between text-white">
+    <div>
+      <p class="text-indigo-100 text-[10px] uppercase font-bold tracking-widest">Payments</p>
+      <h3 class="text-xl font-black">My Fees</h3>
+      <p class="text-indigo-200 text-xs mt-1">Receipts & Balance</p>
+    </div>
+    <div class="bg-white/20 p-3 rounded-xl">
+      <span class="text-2xl">💳</span>
+    </div>
+  </div>
+</div>
+
+
         <div onclick="loadSection('view_teacher_timetable')"
              class="mt-6 bg-gradient-to-br from-purple-600 to-indigo-700 p-5 rounded-2xl shadow-lg border-none transform active:scale-95 transition-all cursor-pointer">
           <div class="flex items-center justify-between">
