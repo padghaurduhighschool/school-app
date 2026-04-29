@@ -1,187 +1,188 @@
 {
 
-// 1. CONFIGURATION & STATE
-const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
-const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv"; 
-const OFFICE_LAT = 19.3709; 
-const OFFICE_LON = 73.1757; 
+  // 1. CONFIGURATION & STATE
+  const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
+  const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv";
+  const OFFICE_LAT = 19.3709;
+  const OFFICE_LON = 73.1757;
 
-const schoolClasses = [
-    "Jr KG", "Sr KG", 
-    "1", "2", "3", "4", 
+  const schoolClasses = [
+    "Jr KG", "Sr KG",
+    "1", "2", "3", "4",
     "5", "6", "7", "8", "9", "10"
-];
-function normalizeClass(cls) {
+  ];
+
+  function normalizeClass(cls) {
     return String(cls)
-        .toLowerCase()
-        .replace("class", "")
-        .replace(/\s+/g, "")
-        .trim();
-}
-const getClassOptions = () => {
+      .toLowerCase()
+      .replace("class", "")
+      .replace(/\s+/g, "")
+      .trim();
+  }
+  const getClassOptions = () => {
     // This displays "Class 1" to the user but keeps the value as "1" for your CSV mapping
     return schoolClasses.map(cls => {
-        const displayName = isNaN(cls) ? cls : `Class ${cls}`;
-        return `<option value="${cls}">${displayName}</option>`;
+      const displayName = isNaN(cls) ? cls : `Class ${cls}`;
+      return `<option value="${cls}">${displayName}</option>`;
     }).join('');
-};
-    
-let deferredPrompt;
+  };
 
-let selectedStudentGR = null;
+  let deferredPrompt;
 
-const formatTime12 = (date) => {
-    return date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit', 
-        hour12: true 
+  let selectedStudentGR = null;
+
+  const formatTime12 = (date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
     });
-};
-    
-// 2. STARTUP LOGIC (Splash vs Dashboard)
-window.onload = () => {
+  };
+
+  // 2. STARTUP LOGIC (Splash vs Dashboard)
+  window.onload = () => {
     const today = new Date();
     const dateKey = today.toISOString().split('T')[0];
     const isSunday = today.getDay() === 0; // 0 is Sunday
-    
+
     // Reset daily status
     if (localStorage.getItem('lastActivityDate') !== dateKey) {
-        localStorage.setItem('hasCheckedInToday', 'false');
-        localStorage.setItem('lastActivityDate', dateKey);
+      localStorage.setItem('hasCheckedInToday', 'false');
+      localStorage.setItem('lastActivityDate', dateKey);
     }
 
     // Save Sunday status to use in loadSection
     localStorage.setItem('isSunday', isSunday);
 
     setTimeout(() => {
-        document.getElementById('splash-screen').classList.add('hidden');
-        if (localStorage.getItem('userRole')) {
-            document.getElementById('main-app').classList.remove('hidden');
-            loadSection('home');
-        } else {
-            document.getElementById('login-screen').classList.remove('hidden');
-        }
+      document.getElementById('splash-screen').classList.add('hidden');
+      if (localStorage.getItem('userRole')) {
+        document.getElementById('main-app').classList.remove('hidden');
+        loadSection('home');
+      } else {
+        document.getElementById('login-screen').classList.remove('hidden');
+      }
     }, 2000);
-};
+  };
 
-// 3. PWA INSTALLATION EVENT
-window.addEventListener('beforeinstallprompt', (e) => {
+  // 3. PWA INSTALLATION EVENT
+  window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     const installBtn = document.getElementById('install-button-container');
     if (installBtn) installBtn.classList.remove('hidden');
-});
+  });
 
-// 4. LOGIN LOGIC
-window.handleLogin = async function() {
+  // 4. LOGIN LOGIC
+  window.handleLogin = async function() {
     const phone = document.getElementById('phone').value.trim();
     const code = document.getElementById('code').value.trim();
 
     try {
-        // 🔹 1. Check TEACHER sheet
-        const teacherRes = await fetch(TEACHER_SHEET_CSV);
-        const teacherText = await teacherRes.text();
-        const teacherRows = teacherText.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+      // 🔹 1. Check TEACHER sheet
+      const teacherRes = await fetch(TEACHER_SHEET_CSV);
+      const teacherText = await teacherRes.text();
+      const teacherRows = teacherText.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
 
-        let user = teacherRows.find(row => 
-            row[0]?.trim() === phone && 
-            row[1]?.trim() === code
-        );
+      let user = teacherRows.find(row =>
+        row[0]?.trim() === phone &&
+        row[1]?.trim() === code
+      );
 
-        if (user) {
-            // ✅ STAFF LOGIN
-            localStorage.setItem('userRole', user[3].trim());
-            localStorage.setItem('userName', user[2].trim());
-            localStorage.setItem('mappedClass', user[5] ? user[5].trim() : "");
+      if (user) {
+        // ✅ STAFF LOGIN
+        localStorage.setItem('userRole', user[3].trim());
+        localStorage.setItem('userName', user[2].trim());
+        localStorage.setItem('mappedClass', user[5] ? user[5].trim() : "");
 
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
-            loadSection('home');
-            return;
-        }
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        loadSection('home');
+        return;
+      }
 
-        // 🔹 2. Check STUDENT sheet
-const studentRes = await fetch(STUDENT_SHEET_CSV);
-const studentText = await studentRes.text();
+      // 🔹 2. Check STUDENT sheet
+      const studentRes = await fetch(STUDENT_SHEET_CSV);
+      const studentText = await studentRes.text();
 
-// ✅ SAFE parsing (no syntax issues)
-const rows = studentText.split('\n').map(function(r) {
-    return r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-});
+      // ✅ SAFE parsing (no syntax issues)
+      const rows = studentText.split('\n').map(function(r) {
+        return r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+      });
 
-function clean(v) {
-    return v ? v.replace(/"/g, '').trim() : "";
-}
+      function clean(v) {
+        return v ? v.replace(/"/g, '').trim() : "";
+      }
 
-// ✅ headers
-const headers = rows[0].map(clean);
+      // ✅ headers
+      const headers = rows[0].map(clean);
 
-// ✅ map headers
-const headerMap = {};
-headers.forEach(function(h, i) {
-    headerMap[h.toLowerCase()] = i;
-});
+      // ✅ map headers
+      const headerMap = {};
+      headers.forEach(function(h, i) {
+        headerMap[h.toLowerCase()] = i;
+      });
 
-// ✅ helper
-function get(row, key) {
-    const index = headerMap[key.toLowerCase()];
-    return index !== undefined ? clean(row[index]) : "";
-}
+      // ✅ helper
+      function get(row, key) {
+        const index = headerMap[key.toLowerCase()];
+        return index !== undefined ? clean(row[index]) : "";
+      }
 
-// ✅ build students
-const students = rows.slice(1).map(function(r) {
-    return {
-        gr: get(r, "gr.") || get(r, "gr"),
-        name: get(r, "full name"),
-        class: get(r, "class"),
-        phone: get(r, "contact no."),
-        code: get(r, "code")
-    };
-});
-console.log(students.slice(0,5));
-// ✅ match
-let student = students.find(function(s) {
-    return String(s.phone).trim() === phone &&
-           String(s.code).trim() === code;
-});
-        if (student) {
-            // ✅ STUDENT LOGIN
-            localStorage.setItem('userRole', 'Student');
-            localStorage.setItem('userName', student.name);
-            localStorage.setItem('mappedClass', student.class);
-            localStorage.setItem('userGR', student.gr);
+      // ✅ build students
+      const students = rows.slice(1).map(function(r) {
+        return {
+          gr: get(r, "gr.") || get(r, "gr"),
+          name: get(r, "full name"),
+          class: get(r, "class"),
+          phone: get(r, "contact no."),
+          code: get(r, "code")
+        };
+      });
+      console.log(students.slice(0, 5));
+      // ✅ match
+      let student = students.find(function(s) {
+        return String(s.phone).trim() === phone &&
+          String(s.code).trim() === code;
+      });
+      if (student) {
+        // ✅ STUDENT LOGIN
+        localStorage.setItem('userRole', 'Student');
+        localStorage.setItem('userName', student.name);
+        localStorage.setItem('mappedClass', student.class);
+        localStorage.setItem('userGR', student.gr);
 
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
-            loadSection('home');
-            return;
-        }
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        loadSection('home');
+        return;
+      }
 
-        // ❌ Not found
-        alert("Invalid credentials. Please check phone or GR No.");
+      // ❌ Not found
+      alert("Invalid credentials. Please check phone or GR No.");
 
     } catch (error) {
-        console.error(error);
-        alert("Login failed. Check internet or CSV access.");
+      console.error(error);
+      alert("Login failed. Check internet or CSV access.");
     }
-};
+  };
 
-// 5. DASHBOARD NAVIGATION
-window.loadSection = (section) => {
+  // 5. DASHBOARD NAVIGATION
+  window.loadSection = (section) => {
     const content = document.getElementById('content');
     const role = localStorage.getItem('userRole');
     const name = localStorage.getItem('userName');
     document.getElementById('user-role-title').innerText = `${role} Dashboard`;
 
-if (role === 'Teacher') {
-        const publishedRef = firebase.database().ref('settings/teacher_timetable_published');
-        
-        publishedRef.on('value', (snap) => {
-            const isPublished = snap.val();
-            
-            // Only show the card if the Admin has clicked "Publish"
-            if (isPublished) {
-                const timetableCard = `
+    if (role === 'Teacher') {
+      const publishedRef = firebase.database().ref('settings/teacher_timetable_published');
+
+      publishedRef.on('value', (snap) => {
+        const isPublished = snap.val();
+
+        // Only show the card if the Admin has clicked "Publish"
+        if (isPublished) {
+          const timetableCard = `
                     <div onclick="loadSection('view_teacher_timetable')" 
                          class="mt-6 bg-gradient-to-br from-purple-600 to-indigo-700 p-5 rounded-2xl shadow-lg border-none transform active:scale-95 transition-all cursor-pointer">
                         <div class="flex items-center justify-between">
@@ -205,15 +206,15 @@ if (role === 'Teacher') {
                         </div>
                     </div>
                 `;
-                
-                // Append the card to your main content area
-                document.getElementById('content').insertAdjacentHTML('beforeend', timetableCard);
-            }
-        });
+
+          // Append the card to your main content area
+          document.getElementById('content').insertAdjacentHTML('beforeend', timetableCard);
+        }
+      });
     }
-    
-if (section === 'home') {
-    if (["Supervisor", "Clerk", "Super Admin", "Admin"].includes(role)) {
+
+    if (section === 'home') {
+      if (["Supervisor", "Clerk", "Super Admin", "Admin"].includes(role)) {
         content.innerHTML = `
             <div class="space-y-4">
                 <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
@@ -309,9 +310,9 @@ if (section === 'home') {
             </div>
         `;
         updateHomeSummary();
-} else if (role === 'Teacher') {
-    // Teacher home view: greeting + Teacher Time Table card
-    content.innerHTML = `
+      } else if (role === 'Teacher') {
+        // Teacher home view: greeting + Teacher Time Table card
+        content.innerHTML = `
       <div class="space-y-4">
         <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
           <h2 class="text-2xl font-bold">Hello, ${name}</h2>
@@ -341,9 +342,10 @@ if (section === 'home') {
         </div>
       </div>
     `;
-} } else if (role === 'Student') {
-    const mappedClass = localStorage.getItem('mappedClass') || '';
-    content.innerHTML = `
+      }
+    } else if (role === 'Student') {
+      const mappedClass = localStorage.getItem('mappedClass') || '';
+      content.innerHTML = `
       <div class="space-y-4">
         <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
           <h2 class="text-2xl font-bold">Hello, ${name}</h2>
@@ -358,32 +360,32 @@ if (section === 'home') {
         </div>
       </div>
     `;
-} else {
-    content.innerHTML = `<div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg"><h2 class="text-2xl font-bold">Hello, ${name}</h2></div>`;
-}
-if (role === 'Teacher') {
-        const publishedRef = firebase.database().ref('settings/teacher_timetable_published');
-        publishedRef.on('value', (snap) => {
-            const isPublished = snap.val();
-            if (isPublished) {
-                const ttCard = `
+    } else {
+      content.innerHTML = `<div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg"><h2 class="text-2xl font-bold">Hello, ${name}</h2></div>`;
+    }
+    if (role === 'Teacher') {
+      const publishedRef = firebase.database().ref('settings/teacher_timetable_published');
+      publishedRef.on('value', (snap) => {
+        const isPublished = snap.val();
+        if (isPublished) {
+          const ttCard = `
                     <div onclick="loadSection('view_teacher_timetable')" 
                          class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-purple-500 cursor-pointer mt-3">
                         <p class="text-gray-500 text-[10px] uppercase font-bold">Personal Schedule</p>
                         <p class="text-xl font-bold text-purple-600">Teacher Time Table</p>
                     </div>`;
-                document.getElementById('content').insertAdjacentHTML('beforeend', ttCard);
-            }
-        });
+          document.getElementById('content').insertAdjacentHTML('beforeend', ttCard);
+        }
+      });
     }
 
     // Add Entry Point for Admins in the existing grid
     if (["Supervisor", "Clerk", "Super Admin", "Admin"].includes(role)) {
-        // Find the "Teachers View" card and ensure it points to the admin entry section
-        // (This replaces or adds to your existing openTeacherTimeTable call)
+      // Find the "Teachers View" card and ensure it points to the admin entry section
+      // (This replaces or adds to your existing openTeacherTimeTable call)
     }
-if (section === 'teacher_timetable_admin') {
-    content.innerHTML = `
+    if (section === 'teacher_timetable_admin') {
+      content.innerHTML = `
         <div class="space-y-4">
             <div class="bg-white p-4 rounded-2xl shadow-sm">
                 <h2 class="text-lg font-bold mb-3">Manage Teacher Timetable</h2>
@@ -409,24 +411,26 @@ if (section === 'teacher_timetable_admin') {
             </div>
         </div>
     `;
-    loadTeacherDropdown();
-    updatePublishButtonUI();
-}
+      loadTeacherDropdown();
+      updatePublishButtonUI();
+    }
 
 
 
-    
-}
-    
-if (section === 'attendance') {
+
+  }
+
+  if (section === 'attendance') {
     const role = localStorage.getItem('userRole');
     // Build safe class options string to avoid nested template literals
     const mappedClass = localStorage.getItem('mappedClass') || '';
     let extraClassOptions = '';
     if (role !== 'Teacher') {
-        extraClassOptions += `<option value="Jr KG">Class Jr KG</option>`;
-        extraClassOptions += `<option value="Sr KG">Class Sr KG</option>`;
-        extraClassOptions += ${JSON.stringify([1,2,3,4,5,6,7,8,9,10])}.map(n => `<option value="${n}">${n}</option>`).join('');
+      extraClassOptions += `<option value="Jr KG">Class Jr KG</option>`;
+      extraClassOptions += `<option value="Sr KG">Class Sr KG</option>`;
+      extraClassOptions += $ {
+        JSON.stringify([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+      }.map(n => `<option value="${n}">${n}</option>`).join('');
     }
 
     // If you use timetableData/mappedClass later, ensure they exist; if not, define safely:
@@ -440,12 +444,12 @@ if (section === 'attendance') {
 
     // 1. Common Sunday Check
     if (isSunday) {
-        content.innerHTML = `<div class="p-10 text-center bg-white rounded-2xl shadow-sm">
+      content.innerHTML = `<div class="p-10 text-center bg-white rounded-2xl shadow-sm">
             <p class="text-4xl mb-4">🏠</p>
             <p class="font-bold text-lg">Today is Sunday</p>
             <p class="text-gray-500">School is closed.</p>
         </div>`;
-        return;
+      return;
     }
 
     // 2. Prepare Container
@@ -473,14 +477,14 @@ if (section === 'attendance') {
 
     // 3. Logic for Staff Controls (Teachers, Supervisor, Admin)
     if (role !== 'Student') {
-        const time = now.getHours() * 100 + now.getMinutes();
-        const hasCheckedIn = localStorage.getItem('hasCheckedInToday') === 'true';
-        
-        const isTooEarly = time < 710;
-        const isShortDay = (day === 5);
-        const closingLabel = isShortDay ? "10:45 AM" : "01:00 PM";
+      const time = now.getHours() * 100 + now.getMinutes();
+      const hasCheckedIn = localStorage.getItem('hasCheckedInToday') === 'true';
 
-        document.getElementById('staff-controls').innerHTML = `
+      const isTooEarly = time < 710;
+      const isShortDay = (day === 5);
+      const closingLabel = isShortDay ? "10:45 AM" : "01:00 PM";
+
+      document.getElementById('staff-controls').innerHTML = `
             <div class="bg-gray-100 p-3 rounded-lg text-center text-[10px] font-bold text-gray-600 mb-3">
                 Shift: 07:20 AM to ${closingLabel}
             </div>
@@ -497,8 +501,8 @@ if (section === 'attendance') {
             </div>
         `;
 
-        // Student Marking Interface for Staff (avoid nested backticks)
-        document.getElementById('student-interface').innerHTML = `
+      // Student Marking Interface for Staff (avoid nested backticks)
+      document.getElementById('student-interface').innerHTML = `
             <div class="bg-blue-600 p-4 rounded-2xl text-white shadow-lg">
                 <p class="text-[10px] opacity-80 font-bold uppercase">Mark Attendance For:</p>
                 <div class="flex gap-2 mt-2">
@@ -514,10 +518,10 @@ if (section === 'attendance') {
             </div>
             <div id="attendance-sheet-container" class="mt-4"></div>
         `;
-    } 
+    }
     // 4. Logic for Students (View Only)
     else {
-        document.getElementById('student-interface').innerHTML = `
+      document.getElementById('student-interface').innerHTML = `
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <p class="text-sm font-bold text-gray-700">My Attendance History</p>
                 <div id="personal-logs" class="mt-3 space-y-2 text-xs">
@@ -525,12 +529,10 @@ if (section === 'attendance') {
                 </div>
             </div>
         `;
-        fetchPersonalStudentLogs(name);
+      fetchPersonalStudentLogs(name);
     }
-}
-    
-    else if (section === 'more') {
-        content.innerHTML = `
+  } else if (section === 'more') {
+    content.innerHTML = `
             <div class="bg-white rounded-2xl shadow-sm p-4 space-y-4">
                 <div class="border-b pb-4">
                     <p class="text-sm text-gray-500 font-medium">STAFF DETAILS</p>
@@ -547,10 +549,10 @@ if (section === 'attendance') {
                 </button>
             </div>
         `;
-    }
+  }
 
 
-if (section === 'students') {
+  if (section === 'students') {
     content.innerHTML = `
         <div class="space-y-4">
             <div class="bg-white p-4 rounded-2xl shadow-sm sticky top-0 z-10">
@@ -586,11 +588,11 @@ if (section === 'students') {
         </div>
     `;
     fetchStudentData();
-}
+  }
 
-// Add this inside window.loadSection = (section) => { ... }
+  // Add this inside window.loadSection = (section) => { ... }
 
-if (section === 'staff_logs_detail') {
+  if (section === 'staff_logs_detail') {
     content.innerHTML = `
         <div class="space-y-4">
             <div class="flex items-center justify-between mb-2">
@@ -623,9 +625,9 @@ if (section === 'staff_logs_detail') {
         </div>
     `;
     fetchFullStaffLogs();
-}
+  }
 
-if (section === 'student_attendance_summary') {
+  if (section === 'student_attendance_summary') {
     content.innerHTML = `
         <div class="space-y-4">
             <div class="flex items-center justify-between mb-2">
@@ -641,12 +643,12 @@ if (section === 'student_attendance_summary') {
         </div>
     `;
     fetchClassAttendanceStatus();
-}
+  }
 
-if (section === 'homework') {
+  if (section === 'homework') {
     const role = localStorage.getItem('userRole');
     const mappedClass = localStorage.getItem('mappedClass');
-    
+
     content.innerHTML = `
         <div class="space-y-4">
             <h2 class="text-lg font-bold text-gray-800">Class Homework</h2>
@@ -676,13 +678,13 @@ if (section === 'homework') {
         </div>
     `;
     fetchHomework();
-}
+  }
 
-    if (section === 'notices') {
+  if (section === 'notices') {
     const role = localStorage.getItem('userRole');
     const userName = localStorage.getItem('userName');
     const userClass = localStorage.getItem('mappedClass');
-    
+
     content.innerHTML = `
         <div class="space-y-4">
             <h2 class="text-lg font-bold text-gray-800">School Notices</h2>
@@ -728,10 +730,10 @@ if (section === 'homework') {
         </div>
     `;
     fetchNotices();
-}
-// --- replace existing view_teacher_timetable block with this ---
-// Replace existing view_teacher_timetable with this:
-if (section === 'view_teacher_timetable') {
+  }
+  // --- replace existing view_teacher_timetable block with this ---
+  // Replace existing view_teacher_timetable with this:
+  if (section === 'view_teacher_timetable') {
     const teacherName = (localStorage.getItem('userName') || '').trim();
     content.innerHTML = `
         <div class="space-y-4">
@@ -757,121 +759,130 @@ if (section === 'view_teacher_timetable') {
 
     // Helper to try to find a matching node inside an object using several strategies
     function findKeyForName(allObj, targetName) {
-        const normTarget = normalize(targetName);
-        // direct key
-        if (allObj[targetName]) return targetName;
-        // sanitized key
-        const sKey = sanitizeKey(targetName);
-        if (allObj[sKey]) return sKey;
-        // normalized displayName inside nodes or normalized key
-        const keys = Object.keys(allObj || {});
-        for (const k of keys) {
-            const node = allObj[k];
-            // node.displayName match
-            if (node && node.displayName && normalize(node.displayName) === normTarget) return k;
-            // normalized key match
-            if (normalize(k) === normTarget) return k;
-            // fallback substring heuristics
-            if (k.toLowerCase().includes(targetName.toLowerCase()) || targetName.toLowerCase().includes(k.toLowerCase())) return k;
-        }
-        return null;
+      const normTarget = normalize(targetName);
+      // direct key
+      if (allObj[targetName]) return targetName;
+      // sanitized key
+      const sKey = sanitizeKey(targetName);
+      if (allObj[sKey]) return sKey;
+      // normalized displayName inside nodes or normalized key
+      const keys = Object.keys(allObj || {});
+      for (const k of keys) {
+        const node = allObj[k];
+        // node.displayName match
+        if (node && node.displayName && normalize(node.displayName) === normTarget) return k;
+        // normalized key match
+        if (normalize(k) === normTarget) return k;
+        // fallback substring heuristics
+        if (k.toLowerCase().includes(targetName.toLowerCase()) || targetName.toLowerCase().includes(k.toLowerCase())) return k;
+      }
+      return null;
     }
 
     // Load both parents and attempt to match
-    Promise.all(parentsToCheck.map(p => firebase.database().ref(p).once('value').then(s => ({parent: p, val: s.val()})).catch(e => ({parent: p, error: e}))))
-    .then(results => {
+    Promise.all(parentsToCheck.map(p => firebase.database().ref(p).once('value').then(s => ({
+        parent: p,
+        val: s.val()
+      })).catch(e => ({
+        parent: p,
+        error: e
+      }))))
+      .then(results => {
         // show what parents exist and keys for debug
         debug.innerHTML = results.map(r => {
-            if (r.error) return `${r.parent}: ERROR (${r.error.message})`;
-            const keys = r.val ? Object.keys(r.val).slice(0,50).join(', ') : '(empty)';
-            return `${r.parent}: keys=${keys}`;
+          if (r.error) return `${r.parent}: ERROR (${r.error.message})`;
+          const keys = r.val ? Object.keys(r.val).slice(0, 50).join(', ') : '(empty)';
+          return `${r.parent}: keys=${keys}`;
         }).join(' | ');
 
         // Try to find and render from the first parent that matches
         for (const r of results) {
-            if (r.error || !r.val) continue;
-            const foundKey = findKeyForName(r.val, teacherName);
-            if (foundKey) {
-                debug.innerHTML += `<br>Matched in ${r.parent} as key="${foundKey}"`;
-                renderTimetable(r.val[foundKey]);
-                return;
-            }
+          if (r.error || !r.val) continue;
+          const foundKey = findKeyForName(r.val, teacherName);
+          if (foundKey) {
+            debug.innerHTML += `<br>Matched in ${r.parent} as key="${foundKey}"`;
+            renderTimetable(r.val[foundKey]);
+            return;
+          }
         }
 
         // If not found in exact parents, try cross-parent normalized search (look across both)
         const combined = results.reduce((acc, r) => (r.val ? Object.assign(acc, r.val) : acc), {});
         const foundAny = findKeyForName(combined, teacherName);
         if (foundAny) {
-            debug.innerHTML += `<br>Matched in combined keys as "${foundAny}"`;
-            // find which parent contains it and render
-            for (const r of results) {
-                if (r.val && r.val[foundAny]) { renderTimetable(r.val[foundAny]); return; }
+          debug.innerHTML += `<br>Matched in combined keys as "${foundAny}"`;
+          // find which parent contains it and render
+          for (const r of results) {
+            if (r.val && r.val[foundAny]) {
+              renderTimetable(r.val[foundAny]);
+              return;
             }
+          }
         }
 
         // nothing found
         display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
-    })
-    .catch(err => {
+      })
+      .catch(err => {
         console.error('Error loading timetable parents:', err);
         display.innerHTML = `<p class="text-center py-10 text-red-500">Failed to load timetable.</p>`;
         debug.innerText = 'Error: ' + err.message;
-    });
+      });
 
     function renderTimetable(node) {
-        if (!node) {
-            display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
-            return;
-        }
-
-        // If new format { displayName, schedule: {day: text} }
-        if (node.schedule && typeof node.schedule === 'object') {
-            display.innerHTML = Object.entries(node.schedule).map(([day, schedule]) => `
-                <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
-                    <p class="font-bold text-blue-600 text-xs uppercase mb-1">${day}</p>
-                    <p class="text-sm text-gray-700 whitespace-pre-line">${schedule || 'No classes scheduled'}</p>
-                </div>
-            `).join('');
-            return;
-        }
-
-        // If node is day -> string
-        if (Object.values(node).every(v => typeof v === 'string')) {
-            display.innerHTML = Object.entries(node).map(([day, schedule]) => `
-                <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
-                    <p class="font-bold text-blue-600 text-xs uppercase mb-1">${day}</p>
-                    <p class="text-sm text-gray-700 whitespace-pre-line">${schedule || 'No classes scheduled'}</p>
-                </div>
-            `).join('');
-            return;
-        }
-
-        // If node is period -> {day: text}
-        const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-        const periods = Object.keys(node).sort((a,b) => Number(a) - Number(b));
-        if (periods.length && node[periods[0]] && typeof node[periods[0]] === 'object') {
-            let html = `<div class="overflow-x-auto bg-white p-3 rounded-xl shadow-sm"><table class="w-full text-xs border border-collapse"><tr><th class="p-2 border">Period</th>`;
-            days.forEach(d => html += `<th class="p-2 border">${d}</th>`);
-            html += `</tr>`;
-            periods.forEach(p => {
-                html += `<tr><td class="p-2 border font-bold text-center">${p}</td>`;
-                days.forEach(d => {
-                    const cell = (node[p] && node[p][d]) ? node[p][d] : '';
-                    html += `<td class="p-2 border text-sm">${cell}</td>`;
-                });
-                html += `</tr>`;
-            });
-            html += `</table></div>`;
-            display.innerHTML = html;
-            return;
-        }
-
-        // fallback
+      if (!node) {
         display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
-    }
-}
+        return;
+      }
 
-if (section === 'student_time_table') {
+      // If new format { displayName, schedule: {day: text} }
+      if (node.schedule && typeof node.schedule === 'object') {
+        display.innerHTML = Object.entries(node.schedule).map(([day, schedule]) => `
+                <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
+                    <p class="font-bold text-blue-600 text-xs uppercase mb-1">${day}</p>
+                    <p class="text-sm text-gray-700 whitespace-pre-line">${schedule || 'No classes scheduled'}</p>
+                </div>
+            `).join('');
+        return;
+      }
+
+      // If node is day -> string
+      if (Object.values(node).every(v => typeof v === 'string')) {
+        display.innerHTML = Object.entries(node).map(([day, schedule]) => `
+                <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
+                    <p class="font-bold text-blue-600 text-xs uppercase mb-1">${day}</p>
+                    <p class="text-sm text-gray-700 whitespace-pre-line">${schedule || 'No classes scheduled'}</p>
+                </div>
+            `).join('');
+        return;
+      }
+
+      // If node is period -> {day: text}
+      const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const periods = Object.keys(node).sort((a, b) => Number(a) - Number(b));
+      if (periods.length && node[periods[0]] && typeof node[periods[0]] === 'object') {
+        let html = `<div class="overflow-x-auto bg-white p-3 rounded-xl shadow-sm"><table class="w-full text-xs border border-collapse"><tr><th class="p-2 border">Period</th>`;
+        days.forEach(d => html += `<th class="p-2 border">${d}</th>`);
+        html += `</tr>`;
+        periods.forEach(p => {
+          html += `<tr><td class="p-2 border font-bold text-center">${p}</td>`;
+          days.forEach(d => {
+            const cell = (node[p] && node[p][d]) ? node[p][d] : '';
+            html += `<td class="p-2 border text-sm">${cell}</td>`;
+          });
+          html += `</tr>`;
+        });
+        html += `</table></div>`;
+        display.innerHTML = html;
+        return;
+      }
+
+      // fallback
+      display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
+    }
+  }
+
+  if (section === 'student_time_table') {
     const mappedClass = localStorage.getItem('mappedClass') || '';
     content.innerHTML = `
         <div class="space-y-4">
@@ -885,153 +896,153 @@ if (section === 'student_time_table') {
 
     const container = document.getElementById('student-timetable');
     if (!mappedClass) {
-        container.innerHTML = `<p class="text-center py-10 text-gray-400">No class assigned to your account.</p>`;
-        return;
+      container.innerHTML = `<p class="text-center py-10 text-gray-400">No class assigned to your account.</p>`;
+      return;
     }
 
     // loadStudentTimeTable is already defined elsewhere in app.js and expects the class string
     loadStudentTimeTable(mappedClass);
+  }
+
+
+
+
 }
-
-
-
-
-
-
-    
-    
-}    
 // 6. ATTENDANCE & GEOLOCATION
 window.markAttendance = async (type) => {
-    // 1. Reference the buttons instead of a statusDiv
-    const btnIn = document.getElementById('btn-in');
-    const btnOut = document.getElementById('btn-out');
-    
-    const now = new Date();
-    const timeNum = now.getHours() * 100 + now.getMinutes();
-    
-    // Visual feedback on the button itself
-    const originalText = type === 'IN' ? 'Check IN' : 'Check OUT';
-    if (type === 'IN' && btnIn) btnIn.innerText = "📍 Locating...";
-    if (type === 'OUT' && btnOut) btnOut.innerText = "📍 Locating...";
+  // 1. Reference the buttons instead of a statusDiv
+  const btnIn = document.getElementById('btn-in');
+  const btnOut = document.getElementById('btn-out');
 
-    let statusPrefix = "";
-    if (type === 'IN' && timeNum > 720) {
-        statusPrefix = "[LATE] ";
-    }
+  const now = new Date();
+  const timeNum = now.getHours() * 100 + now.getMinutes();
 
-    navigator.geolocation.getCurrentPosition((position) => {
-        const distance = calculateDistance(position.coords.latitude, position.coords.longitude, OFFICE_LAT, OFFICE_LON);
-        let msg = `You are ${Math.round(distance)}m from the office.`;
-        
-        const proceed = (distance > 10) ? confirm(msg + "\n\nYou are outside the 10m range. Mark anyway?") : true;
+  // Visual feedback on the button itself
+  const originalText = type === 'IN' ? 'Check IN' : 'Check OUT';
+  if (type === 'IN' && btnIn) btnIn.innerText = "📍 Locating...";
+  if (type === 'OUT' && btnOut) btnOut.innerText = "📍 Locating...";
 
-        if (proceed) {
-            saveToDatabase(statusPrefix + type, distance);
-            
-            if (type === 'IN') {
-                localStorage.setItem('hasCheckedInToday', 'true');
-                if (btnIn) {
-                    btnIn.disabled = true;
-                    btnIn.innerText = 'IN ✅';
-                    btnIn.className = "py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-400";
-                }
-                const feedback = document.getElementById('attendance-feedback');
+  let statusPrefix = "";
+  if (type === 'IN' && timeNum > 720) {
+    statusPrefix = "[LATE] ";
+  }
+
+  navigator.geolocation.getCurrentPosition((position) => {
+    const distance = calculateDistance(position.coords.latitude, position.coords.longitude, OFFICE_LAT, OFFICE_LON);
+    let msg = `You are ${Math.round(distance)}m from the office.`;
+
+    const proceed = (distance > 10) ? confirm(msg + "\n\nYou are outside the 10m range. Mark anyway?") : true;
+
+    if (proceed) {
+      saveToDatabase(statusPrefix + type, distance);
+
+      if (type === 'IN') {
+        localStorage.setItem('hasCheckedInToday', 'true');
+        if (btnIn) {
+          btnIn.disabled = true;
+          btnIn.innerText = 'IN ✅';
+          btnIn.className = "py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-400";
+        }
+        const feedback = document.getElementById('attendance-feedback');
         if (feedback) {
-            feedback.innerHTML = `
+          feedback.innerHTML = `
                 <p class="text-[10px] text-gray-500 font-medium">
                     Checked in at <span class="text-blue-600">${timeStr}</span> 
                     at <span class="text-blue-600">${Math.round(distance)}m</span> from office.
                 </p>
             `;
         }
-                if (btnOut) {
-                    btnOut.disabled = false;
-                    btnOut.className = "py-3 rounded-xl font-bold text-sm bg-red-500 text-white shadow-md active:scale-95";
-                }
-            } else {
-                localStorage.setItem('hasCheckedInToday', 'false');
-                alert("Check OUT successful!");
-                location.reload(); 
-            }
-        } else {
-            // Reset button text if they cancel the confirm box
-            if (type === 'IN' && btnIn) btnIn.innerText = 'Check IN';
-            if (type === 'OUT' && btnOut) btnOut.innerText = 'Check OUT';
+        if (btnOut) {
+          btnOut.disabled = false;
+          btnOut.className = "py-3 rounded-xl font-bold text-sm bg-red-500 text-white shadow-md active:scale-95";
         }
-    }, () => {
-        alert("Location Access Denied. Please enable GPS.");
-        if (type === 'IN' && btnIn) btnIn.innerText = 'Check IN';
-        if (type === 'OUT' && btnOut) btnOut.innerText = 'Check OUT';
-    }, { enableHighAccuracy: true });
+      } else {
+        localStorage.setItem('hasCheckedInToday', 'false');
+        alert("Check OUT successful!");
+        location.reload();
+      }
+    } else {
+      // Reset button text if they cancel the confirm box
+      if (type === 'IN' && btnIn) btnIn.innerText = 'Check IN';
+      if (type === 'OUT' && btnOut) btnOut.innerText = 'Check OUT';
+    }
+  }, () => {
+    alert("Location Access Denied. Please enable GPS.");
+    if (type === 'IN' && btnIn) btnIn.innerText = 'Check IN';
+    if (type === 'OUT' && btnOut) btnOut.innerText = 'Check OUT';
+  }, {
+    enableHighAccuracy: true
+  });
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; 
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2)**2;
-    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+  const R = 6371e3;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
 window.saveToDatabase = (type, dist) => {
-    const name = localStorage.getItem('userName');
-    const role = localStorage.getItem('userRole');
-    const dateKey = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+  const name = localStorage.getItem('userName');
+  const role = localStorage.getItem('userRole');
+  const dateKey = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
-    // Create a path: attendance/2024-05-20
-    const attendanceRef = firebase.database().ref('attendance/' + dateKey);
+  // Create a path: attendance/2024-05-20
+  const attendanceRef = firebase.database().ref('attendance/' + dateKey);
 
-    attendanceRef.push({
-        name: name,
-        role: role,
-        type: type,
-        distance: Math.round(dist) + "m",
-        time: new Date().toLocaleTimeString(),
-        timestamp: firebase.database.ServerValue.TIMESTAMP
+  attendanceRef.push({
+      name: name,
+      role: role,
+      type: type,
+      distance: Math.round(dist) + "m",
+      time: new Date().toLocaleTimeString(),
+      timestamp: firebase.database.ServerValue.TIMESTAMP
     })
-.then(() => {
-    if (type === 'IN') localStorage.setItem('hasCheckedInToday', 'true');
-    else if (type === 'OUT') localStorage.setItem('hasCheckedInToday', 'false');
-    
-    // Stay on the attendance tab to see the button change
-    loadSection('attendance');
-    alert(`Success: ${type} logged!`);
-})
+    .then(() => {
+      if (type === 'IN') localStorage.setItem('hasCheckedInToday', 'true');
+      else if (type === 'OUT') localStorage.setItem('hasCheckedInToday', 'false');
+
+      // Stay on the attendance tab to see the button change
+      loadSection('attendance');
+      alert(`Success: ${type} logged!`);
+    })
     .catch((error) => {
-        alert("Database Error: " + error.message);
+      alert("Database Error: " + error.message);
     });
 };
 
 window.triggerInstall = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-        deferredPrompt = null;
-        document.getElementById('install-button-container').classList.add('hidden');
-    }
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const {
+    outcome
+  } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    deferredPrompt = null;
+    document.getElementById('install-button-container').classList.add('hidden');
+  }
 }
 
 window.fetchAttendanceLogs = () => {
-    const dateKey = new Date().toISOString().split('T')[0];
-    const listDiv = document.getElementById('attendance-list');
-    const totalCount = document.getElementById('total-logs');
-    const outsideCount = document.getElementById('outside-logs');
+  const dateKey = new Date().toISOString().split('T')[0];
+  const listDiv = document.getElementById('attendance-list');
+  const totalCount = document.getElementById('total-logs');
+  const outsideCount = document.getElementById('outside-logs');
 
-    // Listen to today's attendance folder
-    firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) {
-            listDiv.innerHTML = `<div class="bg-white p-6 rounded-xl text-center text-gray-500">No attendance marked yet today.</div>`;
-            return;
-        }
+  // Listen to today's attendance folder
+  firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      listDiv.innerHTML = `<div class="bg-white p-6 rounded-xl text-center text-gray-500">No attendance marked yet today.</div>`;
+      return;
+    }
 
-        let html = '';
-        let total = 0;
-        let outside = 0;
+    let html = '';
+    let total = 0;
+    let outside = 0;
 
-        let tableHtml = `
+    let tableHtml = `
     <table class="w-full bg-white rounded-lg overflow-hidden shadow-sm text-sm">
         <thead class="bg-gray-50 border-b">
             <tr>
@@ -1042,236 +1053,241 @@ window.fetchAttendanceLogs = () => {
             </tr>
         </thead>
         <tbody>`;
-        
-        // Convert object to array and reverse to see newest first
-        const logs = Object.values(data).reverse();
 
-logs.forEach(log => {
-    tableHtml += `
+    // Convert object to array and reverse to see newest first
+    const logs = Object.values(data).reverse();
+
+    logs.forEach(log => {
+      tableHtml += `
         <tr class="border-b">
             <td class="p-3 font-bold">${log.name}</td>
             <td class="p-3">${log.type}</td>
             <td class="p-3">${log.time}</td>
             <td class="p-3 text-xs">${log.distance}</td>
         </tr>`;
-});
-tableHtml += `</tbody></table>`;
-        
-
-        listDiv.innerHTML = html;
-        listDiv.innerHTML = tableHtml;
-        totalCount.innerText = total;
-        outsideCount.innerText = outside;
     });
+    tableHtml += `</tbody></table>`;
+
+
+    listDiv.innerHTML = html;
+    listDiv.innerHTML = tableHtml;
+    totalCount.innerText = total;
+    outsideCount.innerText = outside;
+  });
 };
 
 window.downloadReport = () => {
-    const dateKey = new Date().toISOString().split('T')[0];
-    
-    // Fetch data from Firebase one last time to ensure we have everything
-    firebase.database().ref('attendance/' + dateKey).once('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) {
-            alert("No data available to download for today.");
-            return;
-        }
+  const dateKey = new Date().toISOString().split('T')[0];
 
-        // 1. Create CSV Header
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Name,Type,Time,Distance,Role\n";
+  // Fetch data from Firebase one last time to ensure we have everything
+  firebase.database().ref('attendance/' + dateKey).once('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      alert("No data available to download for today.");
+      return;
+    }
 
-        // 2. Add Rows
-        Object.values(data).forEach(log => {
-            const row = `"${log.name}","${log.type}","${log.time}","${log.distance}","${log.role}"`;
-            csvContent += row + "\n";
-        });
+    // 1. Create CSV Header
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Name,Type,Time,Distance,Role\n";
 
-        // 3. Create a hidden link and trigger the download
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Attendance_Report_${dateKey}.csv`);
-        document.body.appendChild(link);
-
-        link.click(); // This starts the download
-        document.body.removeChild(link);
+    // 2. Add Rows
+    Object.values(data).forEach(log => {
+      const row = `"${log.name}","${log.type}","${log.time}","${log.distance}","${log.role}"`;
+      csvContent += row + "\n";
     });
+
+    // 3. Create a hidden link and trigger the download
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Attendance_Report_${dateKey}.csv`);
+    document.body.appendChild(link);
+
+    link.click(); // This starts the download
+    document.body.removeChild(link);
+  });
 };
 
 window.downloadMonthlyReport = () => {
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear();
-    const daysInMonth = new Date(year, month, 0).getDate();
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+  const daysInMonth = new Date(year, month, 0).getDate();
 
-    firebase.database().ref('attendance').once('value', (snapshot) => {
-        const allData = snapshot.val();
-        if (!allData) return alert("No data found.");
+  firebase.database().ref('attendance').once('value', (snapshot) => {
+    const allData = snapshot.val();
+    if (!allData) return alert("No data found.");
 
-        const report = {}; 
+    const report = {};
 
-        Object.keys(allData).forEach(dateStr => {
-            if (dateStr.startsWith(`${year}-${month.toString().padStart(2, '0')}`)) {
-                const day = parseInt(dateStr.split('-')[2]);
-                const logs = Object.values(allData[dateStr]);
+    Object.keys(allData).forEach(dateStr => {
+      if (dateStr.startsWith(`${year}-${month.toString().padStart(2, '0')}`)) {
+        const day = parseInt(dateStr.split('-')[2]);
+        const logs = Object.values(allData[dateStr]);
 
-                logs.forEach(log => {
-                    if (!report[log.name]) report[log.name] = { days: {}, totalMinutes: 0 };
-                    
-                    // Store the raw timestamp for calculation and the formatted time for the CSV
-                    report[log.name].days[`${day}_${log.type}`] = log.time;
-                    report[log.name].days[`${day}_${log.type}_raw`] = log.timestamp;
-                });
-            }
+        logs.forEach(log => {
+          if (!report[log.name]) report[log.name] = {
+            days: {},
+            totalMinutes: 0
+          };
+
+          // Store the raw timestamp for calculation and the formatted time for the CSV
+          report[log.name].days[`${day}_${log.type}`] = log.time;
+          report[log.name].days[`${day}_${log.type}_raw`] = log.timestamp;
         });
-
-        // 1. Create CSV Header
-        let csvContent = "data:text/csv;charset=utf-8,Staff Name";
-        for (let i = 1; i <= daysInMonth; i++) {
-            csvContent += `,${i} IN,${i} OUT`;
-        }
-        csvContent += ",TOTAL WORKING HOURS\n";
-
-        // 2. Process Rows & Calculate Durations
-        Object.keys(report).forEach(staffName => {
-            let row = `"${staffName}"`;
-            let staffTotalMin = 0;
-
-            for (let i = 1; i <= daysInMonth; i++) {
-                const checkInTime = report[staffName].days[`${i}_IN`] || "-";
-                const checkOutTime = report[staffName].days[`${i}_OUT`] || "-";
-                
-                row += `,${checkInTime},${checkOutTime}`;
-
-                // Calculate duration if both IN and OUT exist for the day
-                const rawIn = report[staffName].days[`${i}_IN_raw`];
-                const rawOut = report[staffName].days[`${i}_OUT_raw`];
-
-                if (rawIn && rawOut && rawOut > rawIn) {
-                    const diffMs = rawOut - rawIn;
-                    staffTotalMin += Math.floor(diffMs / 60000);
-                }
-            }
-
-            // Convert total minutes to "X hrs Y mins"
-            const finalHrs = Math.floor(staffTotalMin / 60);
-            const finalMins = staffTotalMin % 60;
-            row += `,"${finalHrs} hrs ${finalMins} mins"`;
-            
-            csvContent += row + "\n";
-        });
-
-        // 3. Download Trigger
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Monthly_Report_${month}_${year}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      }
     });
+
+    // 1. Create CSV Header
+    let csvContent = "data:text/csv;charset=utf-8,Staff Name";
+    for (let i = 1; i <= daysInMonth; i++) {
+      csvContent += `,${i} IN,${i} OUT`;
+    }
+    csvContent += ",TOTAL WORKING HOURS\n";
+
+    // 2. Process Rows & Calculate Durations
+    Object.keys(report).forEach(staffName => {
+      let row = `"${staffName}"`;
+      let staffTotalMin = 0;
+
+      for (let i = 1; i <= daysInMonth; i++) {
+        const checkInTime = report[staffName].days[`${i}_IN`] || "-";
+        const checkOutTime = report[staffName].days[`${i}_OUT`] || "-";
+
+        row += `,${checkInTime},${checkOutTime}`;
+
+        // Calculate duration if both IN and OUT exist for the day
+        const rawIn = report[staffName].days[`${i}_IN_raw`];
+        const rawOut = report[staffName].days[`${i}_OUT_raw`];
+
+        if (rawIn && rawOut && rawOut > rawIn) {
+          const diffMs = rawOut - rawIn;
+          staffTotalMin += Math.floor(diffMs / 60000);
+        }
+      }
+
+      // Convert total minutes to "X hrs Y mins"
+      const finalHrs = Math.floor(staffTotalMin / 60);
+      const finalMins = staffTotalMin % 60;
+      row += `,"${finalHrs} hrs ${finalMins} mins"`;
+
+      csvContent += row + "\n";
+    });
+
+    // 3. Download Trigger
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Monthly_Report_${month}_${year}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
 };
 
 window.updateHomeSummary = async () => {
-    const dateKey = new Date().toISOString().split('T')[0];
-    
-    // 1. Fetch Totals from CSVs
-    const [staffRes, studRes] = await Promise.all([
-        fetch(TEACHER_SHEET_CSV),
-        fetch(STUDENT_SHEET_CSV)
-    ]);
-    
-    const totalStaffCount = (await staffRes.text()).split('\n').filter(r => r.trim()).length - 1;
-    const totalStudentCount = (await studRes.text()).split('\n').filter(r => r.trim()).length - 1;
+  const dateKey = new Date().toISOString().split('T')[0];
 
-    document.getElementById('home-staff-total').innerText = totalStaffCount;
-    document.getElementById('home-stud-total').innerText = totalStudentCount;
+  // 1. Fetch Totals from CSVs
+  const [staffRes, studRes] = await Promise.all([
+    fetch(TEACHER_SHEET_CSV),
+    fetch(STUDENT_SHEET_CSV)
+  ]);
 
-    // 2. Staff Logic (Unchanged but ensuring it targets merged card)
-    firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
-        const data = snapshot.val();
-        let pStaff = 0;
-        if (data) {
-            const names = new Set();
-            Object.values(data).forEach(log => { if(log.type.includes('IN')) names.add(log.name); });
-            pStaff = names.size;
+  const totalStaffCount = (await staffRes.text()).split('\n').filter(r => r.trim()).length - 1;
+  const totalStudentCount = (await studRes.text()).split('\n').filter(r => r.trim()).length - 1;
+
+  document.getElementById('home-staff-total').innerText = totalStaffCount;
+  document.getElementById('home-stud-total').innerText = totalStudentCount;
+
+  // 2. Staff Logic (Unchanged but ensuring it targets merged card)
+  firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
+    const data = snapshot.val();
+    let pStaff = 0;
+    if (data) {
+      const names = new Set();
+      Object.values(data).forEach(log => {
+        if (log.type.includes('IN')) names.add(log.name);
+      });
+      pStaff = names.size;
+    }
+    document.getElementById('home-staff-present').innerText = pStaff;
+    document.getElementById('home-staff-absent').innerText = Math.max(0, totalStaffCount - pStaff);
+    document.getElementById('home-staff-bar').style.width = (pStaff / totalStaffCount * 100) + "%";
+  });
+
+  // 3. Updated Student Logic for "Unchecked"
+  firebase.database().ref('student_attendance/' + dateKey).on('value', (snapshot) => {
+    const classesData = snapshot.val();
+    let sPresent = 0;
+    let sAbsent = 0;
+    let totalMarked = 0;
+
+    if (classesData) {
+      Object.values(classesData).forEach(classObj => {
+        if (classObj.records) {
+          Object.values(classObj.records).forEach(record => {
+            totalMarked++; // Count every student that has been "saved"
+            if (record.status === 'Present') sPresent++;
+            else if (record.status === 'Absent') sAbsent++;
+          });
         }
-        document.getElementById('home-staff-present').innerText = pStaff;
-        document.getElementById('home-staff-absent').innerText = Math.max(0, totalStaffCount - pStaff);
-        document.getElementById('home-staff-bar').style.width = (pStaff / totalStaffCount * 100) + "%";
-    });
+      });
+    }
 
-    // 3. Updated Student Logic for "Unchecked"
-    firebase.database().ref('student_attendance/' + dateKey).on('value', (snapshot) => {
-        const classesData = snapshot.val();
-        let sPresent = 0;
-        let sAbsent = 0;
-        let totalMarked = 0;
+    const sUnchecked = Math.max(0, totalStudentCount - totalMarked);
 
-        if (classesData) {
-            Object.values(classesData).forEach(classObj => {
-                if (classObj.records) {
-                    Object.values(classObj.records).forEach(record => {
-                        totalMarked++; // Count every student that has been "saved"
-                        if (record.status === 'Present') sPresent++;
-                        else if (record.status === 'Absent') sAbsent++;
-                    });
-                }
-            });
-        }
+    // Update Text
+    document.getElementById('home-stud-present').innerText = sPresent;
+    document.getElementById('home-stud-absent').innerText = sAbsent;
+    document.getElementById('home-stud-unchecked').innerText = sUnchecked;
 
-        const sUnchecked = Math.max(0, totalStudentCount - totalMarked);
-
-        // Update Text
-        document.getElementById('home-stud-present').innerText = sPresent;
-        document.getElementById('home-stud-absent').innerText = sAbsent;
-        document.getElementById('home-stud-unchecked').innerText = sUnchecked;
-
-        // Update Multi-color Progress Bar
-        const pWidth = (sPresent / totalStudentCount) * 100;
-        const aWidth = (sAbsent / totalStudentCount) * 100;
-        document.getElementById('home-stud-bar-present').style.width = pWidth + "%";
-        document.getElementById('home-stud-bar-absent').style.width = aWidth + "%";
-    });
+    // Update Multi-color Progress Bar
+    const pWidth = (sPresent / totalStudentCount) * 100;
+    const aWidth = (sAbsent / totalStudentCount) * 100;
+    document.getElementById('home-stud-bar-present').style.width = pWidth + "%";
+    document.getElementById('home-stud-bar-absent').style.width = aWidth + "%";
+  });
 };
 
 let allStudents = []; // Global variable to store the list for filtering
 
 window.fetchStudentData = async () => {
-    try {
-        const response = await fetch(STUDENT_SHEET_CSV);
-        const text = await response.text();
-        // Split by lines and remove empty rows
-        const rows = text.split('\n').filter(row => row.trim() !== '').slice(1); 
+  try {
+    const response = await fetch(STUDENT_SHEET_CSV);
+    const text = await response.text();
+    // Split by lines and remove empty rows
+    const rows = text.split('\n').filter(row => row.trim() !== '').slice(1);
 
-        allStudents = rows.map(row => {
-            const cols = row.split(',');
-            return {
-                id: cols[2]?.trim(),    // GR No (Column C)
-                name: cols[7]?.trim(),  // Full Name (Column H)
-                class: cols[1]?.trim(), // Class (Column B)
-                roll: cols[3]?.trim(),   // Roll No (Column D)
-                contact: cols[15]?.trim()  // Contact No (Col N) data is not in column 15 but bcoz its CSV it counts commas of Col M
-            };
-        });
+    allStudents = rows.map(row => {
+      const cols = row.split(',');
+      return {
+        id: cols[2]?.trim(), // GR No (Column C)
+        name: cols[7]?.trim(), // Full Name (Column H)
+        class: cols[1]?.trim(), // Class (Column B)
+        roll: cols[3]?.trim(), // Roll No (Column D)
+        contact: cols[15]?.trim() // Contact No (Col N) data is not in column 15 but bcoz its CSV it counts commas of Col M
+      };
+    });
 
-        renderStudentList(allStudents);
-    } catch (error) {
-        console.error("Error loading student data:", error);
-        document.getElementById('student-list-container').innerHTML = 
-            `<p class="text-red-500 text-center">Failed to load student data. Check CSV publishing settings.</p>`;
-    }
+    renderStudentList(allStudents);
+  } catch (error) {
+    console.error("Error loading student data:", error);
+    document.getElementById('student-list-container').innerHTML =
+      `<p class="text-red-500 text-center">Failed to load student data. Check CSV publishing settings.</p>`;
+  }
 };
 
 window.renderStudentList = (students) => {
-    const container = document.getElementById('student-list-container');
-    
-    if (students.length === 0) {
-        container.innerHTML = `<p class="text-center py-10 text-gray-400">No students found.</p>`;
-        return;
-    }
+  const container = document.getElementById('student-list-container');
 
-    container.innerHTML = students.map(s => `
+  if (students.length === 0) {
+    container.innerHTML = `<p class="text-center py-10 text-gray-400">No students found.</p>`;
+    return;
+  }
+
+  container.innerHTML = students.map(s => `
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50 flex justify-between items-center">
             <div>
                 <p class="font-bold text-gray-800">${s.name}</p>
@@ -1295,23 +1311,26 @@ window.renderStudentList = (students) => {
 };
 
 window.filterStudents = () => {
-    const term = document.getElementById('studentSearch').value.toLowerCase();
-    const filtered = allStudents.filter(s => s.name.toLowerCase().includes(term) || s.id.includes(term));
-    renderStudentList(filtered);
+  const term = document.getElementById('studentSearch').value.toLowerCase();
+  const filtered = allStudents.filter(s => s.name.toLowerCase().includes(term) || s.id.includes(term));
+  renderStudentList(filtered);
 };
 
 window.handleLogout = () => {
-    if (confirm("Sign out?")) { localStorage.clear(); location.reload(); }
+  if (confirm("Sign out?")) {
+    localStorage.clear();
+    location.reload();
+  }
 };
 
 window.renderStudentList = (students) => {
-    const container = document.getElementById('student-list-container');
-    if (students.length === 0) {
-        container.innerHTML = `<p class="text-center py-10 text-gray-400">No students found.</p>`;
-        return;
-    }
+  const container = document.getElementById('student-list-container');
+  if (students.length === 0) {
+    container.innerHTML = `<p class="text-center py-10 text-gray-400">No students found.</p>`;
+    return;
+  }
 
-    container.innerHTML = students.map(s => `
+  container.innerHTML = students.map(s => `
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50 flex justify-between items-center">
             <div>
                 <p class="font-bold text-gray-800">${s.name}</p>
@@ -1325,67 +1344,67 @@ window.renderStudentList = (students) => {
 };
 
 window.filterStudents = () => {
-    const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
-    const classVal = document.getElementById('classFilter').value;
+  const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+  const classVal = document.getElementById('classFilter').value;
 
-    const filtered = allStudents.filter(s => {
-        const matchesSearch = s.name.toLowerCase().includes(searchTerm) || s.id.includes(searchTerm);
-        const matchesClass = (classVal === "All" || s.class === classVal);
-        return matchesSearch && matchesClass;
-    });
+  const filtered = allStudents.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(searchTerm) || s.id.includes(searchTerm);
+    const matchesClass = (classVal === "All" || s.class === classVal);
+    return matchesSearch && matchesClass;
+  });
 
-    renderStudentList(filtered);
+  renderStudentList(filtered);
 };
-    
+
 window.handleLogout = () => {
-    if (confirm("Sign out of the system?")) {
-        localStorage.clear();
-        location.reload();
-    }
+  if (confirm("Sign out of the system?")) {
+    localStorage.clear();
+    location.reload();
+  }
 }
 
 // 7. STUDENT ATTENDANCE MARKING LOGIC
 window.loadAttendanceSheet = async () => {
-    const classVal = document.getElementById('target-class').value;
-    const container = document.getElementById('attendance-sheet-container');
-    const dateKey = new Date().toISOString().split('T')[0];
-    
-    if (!classVal || classVal === "") {
-        alert("Please select a class first");
-        return;
+  const classVal = document.getElementById('target-class').value;
+  const container = document.getElementById('attendance-sheet-container');
+  const dateKey = new Date().toISOString().split('T')[0];
+
+  if (!classVal || classVal === "") {
+    alert("Please select a class first");
+    return;
+  }
+
+  container.innerHTML = `<p class="text-center py-5 text-gray-400 italic text-sm">Loading data for Class ${classVal}...</p>`;
+
+  try {
+    // 1. Fetch current saved attendance from Firebase
+    const snapshot = await firebase.database().ref(`student_attendance/${dateKey}/${classVal}/records`).once('value');
+    const existingRecords = snapshot.val() || {};
+
+    // 2. Fetch student list from CSV 
+    const response = await fetch(STUDENT_SHEET_CSV);
+    const text = await response.text();
+    const rows = text.split('\n').filter(row => row.trim() !== '').slice(1);
+
+    const normalize = (val) => val ? val.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim() : "";
+    const targetClassNormalized = normalize(classVal);
+
+    const classStudents = rows.map(row => {
+      const cols = row.split(',');
+      return {
+        id: cols[2]?.replace(/^"|"$/g, '').trim(), // GR No (strips quotes)
+        name: cols[7]?.replace(/^"|"$/g, '').trim(), // Name
+        class: cols[1]?.replace(/^"|"$/g, '').trim() // Class
+      };
+    }).filter(s => normalize(s.class) === targetClassNormalized);
+
+    if (classStudents.length === 0) {
+      container.innerHTML = `<p class="text-center py-5 text-red-500 text-sm">No students found for "${classVal}".<br><span class="text-[10px] text-gray-400">Tip: Check if CSV uses "Jr KG" vs "Jr. KG"</span></p>`;
+      return;
     }
 
-    container.innerHTML = `<p class="text-center py-5 text-gray-400 italic text-sm">Loading data for Class ${classVal}...</p>`;
-
-    try {
-        // 1. Fetch current saved attendance from Firebase
-        const snapshot = await firebase.database().ref(`student_attendance/${dateKey}/${classVal}/records`).once('value');
-        const existingRecords = snapshot.val() || {};
-
-        // 2. Fetch student list from CSV 
-        const response = await fetch(STUDENT_SHEET_CSV);
-        const text = await response.text();
-        const rows = text.split('\n').filter(row => row.trim() !== '').slice(1);
-
-        const normalize = (val) => val ? val.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim() : "";
-        const targetClassNormalized = normalize(classVal);
-
-        const classStudents = rows.map(row => {
-            const cols = row.split(',');
-            return {
-                id: cols[2]?.replace(/^"|"$/g, '').trim(),    // GR No (strips quotes)
-                name: cols[7]?.replace(/^"|"$/g, '').trim(),  // Name
-                class: cols[1]?.replace(/^"|"$/g, '').trim()  // Class
-            };
-        }).filter(s => normalize(s.class) === targetClassNormalized);
-
-        if (classStudents.length === 0) {
-            container.innerHTML = `<p class="text-center py-5 text-red-500 text-sm">No students found for "${classVal}".<br><span class="text-[10px] text-gray-400">Tip: Check if CSV uses "Jr KG" vs "Jr. KG"</span></p>`;
-            return;
-        }
-
-        // 3. Render the list
-        let html = `
+    // 3. Render the list
+    let html = `
             <div class="bg-white rounded-2xl shadow-inner border border-gray-100 overflow-hidden">
                 <div class="p-3 bg-gray-50 border-b flex justify-between items-center">
                     <span class="text-xs font-bold text-gray-500 uppercase">Student Name</span>
@@ -1394,17 +1413,17 @@ window.loadAttendanceSheet = async () => {
                 <div class="max-h-80 overflow-y-auto">
         `;
 
-        classStudents.forEach((s, index) => {
-            const studentKey = (s.id && s.id.trim() !== "") ? s.id : `UNKNOWN_${index}`;
-            
-            // Check if there is existing data for this student today
-            // If no data exists yet, default to 'checked' (Present)
-            let isChecked = true; 
-            if (existingRecords[studentKey]) {
-                isChecked = existingRecords[studentKey].status === 'Present';
-            }
+    classStudents.forEach((s, index) => {
+      const studentKey = (s.id && s.id.trim() !== "") ? s.id : `UNKNOWN_${index}`;
 
-            html += `
+      // Check if there is existing data for this student today
+      // If no data exists yet, default to 'checked' (Present)
+      let isChecked = true;
+      if (existingRecords[studentKey]) {
+        isChecked = existingRecords[studentKey].status === 'Present';
+      }
+
+      html += `
                 <div class="flex justify-between items-center p-4 border-b border-gray-50">
                     <div>
                         <p class="text-sm font-bold text-gray-800">${s.name}</p>
@@ -1414,9 +1433,9 @@ window.loadAttendanceSheet = async () => {
                         class="attendance-checkbox w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 </div>
             `;
-        });
+    });
 
-        html += `
+    html += `
                 </div>
                 <div class="p-4 bg-gray-50">
                     <button onclick="submitStudentAttendance('${classVal}')" 
@@ -1427,41 +1446,41 @@ window.loadAttendanceSheet = async () => {
             </div>
         `;
 
-        container.innerHTML = html;
+    container.innerHTML = html;
 
-    } catch (error) {
-        console.error("Error loading attendance sheet:", error);
-        container.innerHTML = `<p class="text-red-500 text-sm p-4">Failed to load attendance list.</p>`;
-    }
+  } catch (error) {
+    console.error("Error loading attendance sheet:", error);
+    container.innerHTML = `<p class="text-red-500 text-sm p-4">Failed to load attendance list.</p>`;
+  }
 };
 
 window.submitStudentAttendance = (classID) => {
-    if (!navigator.onLine) {
-        alert("⚠️ No Internet! Please connect to the internet to submit attendance."); // 
-        return;
-    }
+  if (!navigator.onLine) {
+    alert("⚠️ No Internet! Please connect to the internet to submit attendance."); // 
+    return;
+  }
 
-    const dateKey = new Date().toISOString().split('T')[0];
-    const checkboxes = document.querySelectorAll('.attendance-checkbox');
-    const attendanceData = {};
-    const markedBy = localStorage.getItem('userName');
+  const dateKey = new Date().toISOString().split('T')[0];
+  const checkboxes = document.querySelectorAll('.attendance-checkbox');
+  const attendanceData = {};
+  const markedBy = localStorage.getItem('userName');
 
-    checkboxes.forEach(cb => {
-        attendanceData[cb.value] = {
-            name: cb.getAttribute('data-name'),
-            status: cb.checked ? 'Present' : 'Absent',
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        };
-    });
+  checkboxes.forEach(cb => {
+    attendanceData[cb.value] = {
+      name: cb.getAttribute('data-name'),
+      status: cb.checked ? 'Present' : 'Absent',
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+  });
 
-    // Save to Firebase [cite: 324]
-    firebase.database().ref(`student_attendance/${dateKey}/${classID}`).set({
-        markedBy: markedBy,
-        records: attendanceData
+  // Save to Firebase [cite: 324]
+  firebase.database().ref(`student_attendance/${dateKey}/${classID}`).set({
+      markedBy: markedBy,
+      records: attendanceData
     })
     .then(() => {
-        alert(`Attendance for Class ${classID} saved successfully!`);
-        document.getElementById('attendance-sheet-container').innerHTML = ''; // Clear sheet
+      alert(`Attendance for Class ${classID} saved successfully!`);
+      document.getElementById('attendance-sheet-container').innerHTML = ''; // Clear sheet
     })
     .catch(err => alert("Error saving: " + err.message));
 };
@@ -1469,49 +1488,49 @@ window.submitStudentAttendance = (classID) => {
 let currentDayLogs = []; // Global store for filtering
 
 window.fetchFullStaffLogs = () => {
-    const dateKey = new Date().toISOString().split('T')[0];
-    const container = document.getElementById('full-staff-log-container');
-    const countBadge = document.getElementById('log-count');
+  const dateKey = new Date().toISOString().split('T')[0];
+  const container = document.getElementById('full-staff-log-container');
+  const countBadge = document.getElementById('log-count');
 
-    firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) {
-            currentDayLogs = [];
-            if (container) container.innerHTML = `<div class="text-center py-10 text-gray-400">No logs today.</div>`;
-            return;
-        }
+  firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      currentDayLogs = [];
+      if (container) container.innerHTML = `<div class="text-center py-10 text-gray-400">No logs today.</div>`;
+      return;
+    }
 
-        // Convert to array and sort by latest activity
-        currentDayLogs = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
-        
-        if (countBadge) countBadge.innerText = `${currentDayLogs.length} Logs`;
-        renderStaffLogList(currentDayLogs);
-    });
+    // Convert to array and sort by latest activity
+    currentDayLogs = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
+
+    if (countBadge) countBadge.innerText = `${currentDayLogs.length} Logs`;
+    renderStaffLogList(currentDayLogs);
+  });
 };
 
 window.filterStaffLogs = () => {
-    const term = document.getElementById('staffLogSearch').value.toLowerCase();
-    const filtered = currentDayLogs.filter(log => 
-        log.name.toLowerCase().includes(term)
-    );
-    renderStaffLogList(filtered);
+  const term = document.getElementById('staffLogSearch').value.toLowerCase();
+  const filtered = currentDayLogs.filter(log =>
+    log.name.toLowerCase().includes(term)
+  );
+  renderStaffLogList(filtered);
 };
 
 window.renderStaffLogList = (logs) => {
-    const container = document.getElementById('full-staff-log-container');
-    if (!container) return;
+  const container = document.getElementById('full-staff-log-container');
+  if (!container) return;
 
-    if (logs.length === 0) {
-        container.innerHTML = `<p class="text-center py-10 text-gray-400 text-sm">No matching records found.</p>`;
-        return;
-    }
+  if (logs.length === 0) {
+    container.innerHTML = `<p class="text-center py-10 text-gray-400 text-sm">No matching records found.</p>`;
+    return;
+  }
 
-    container.innerHTML = logs.map(log => {
-        const isOut = log.type.includes('OUT');
-        const isLate = log.type.includes('[LATE]');
-        const distance = typeof log.distance === 'string' ? log.distance : Math.round(log.distance) + 'm';
-        
-        return `
+  container.innerHTML = logs.map(log => {
+    const isOut = log.type.includes('OUT');
+    const isLate = log.type.includes('[LATE]');
+    const distance = typeof log.distance === 'string' ? log.distance : Math.round(log.distance) + 'm';
+
+    return `
             <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full ${isOut ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'} flex items-center justify-center font-bold text-sm">
@@ -1533,24 +1552,24 @@ window.renderStaffLogList = (logs) => {
                 </div>
             </div>
         `;
-    }).join('');
+  }).join('');
 };
 
 window.fetchClassAttendanceStatus = () => {
-    const dateKey = new Date().toISOString().split('T')[0];
-    const container = document.getElementById('class-status-container');
-    
-    // Define all classes in your school
-    const allClasses = ["Jr KG", "Sr KG", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+  const dateKey = new Date().toISOString().split('T')[0];
+  const container = document.getElementById('class-status-container');
 
-    firebase.database().ref(`student_attendance/${dateKey}`).on('value', (snapshot) => {
-        const attendanceData = snapshot.val() || {};
-        
-        container.innerHTML = allClasses.map(className => {
-            const record = attendanceData[className];
-            const isMarked = !!record;
-            
-            return `
+  // Define all classes in your school
+  const allClasses = ["Jr KG", "Sr KG", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+
+  firebase.database().ref(`student_attendance/${dateKey}`).on('value', (snapshot) => {
+    const attendanceData = snapshot.val() || {};
+
+    container.innerHTML = allClasses.map(className => {
+      const record = attendanceData[className];
+      const isMarked = !!record;
+
+      return `
                 <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 rounded-xl ${isMarked ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'} flex flex-col items-center justify-center">
@@ -1571,67 +1590,70 @@ window.fetchClassAttendanceStatus = () => {
                     </button>
                 </div>
             `;
-        }).join('');
-    });
+    }).join('');
+  });
 };
 
 // Helper to jump directly to that class marking sheet
 window.loadAttendanceForClass = (className) => {
-    loadSection('attendance');
-    setTimeout(() => {
-        const selector = document.getElementById('target-class');
-        if (selector) {
-            selector.value = className;
-            loadAttendanceSheet();
-        }
-    }, 100);
+  loadSection('attendance');
+  setTimeout(() => {
+    const selector = document.getElementById('target-class');
+    if (selector) {
+      selector.value = className;
+      loadAttendanceSheet();
+    }
+  }, 100);
 };
 
 window.postHomework = () => {
-    const targetClass = document.getElementById('hw-target-class').value;
-    const subject = document.getElementById('hw-subject').value;
-    const desc = document.getElementById('hw-desc').value;
-    const sender = localStorage.getItem('userName');
+  const targetClass = document.getElementById('hw-target-class').value;
+  const subject = document.getElementById('hw-subject').value;
+  const desc = document.getElementById('hw-desc').value;
+  const sender = localStorage.getItem('userName');
 
-    if (!subject || !desc) return alert("Please fill in Subject and Details");
+  if (!subject || !desc) return alert("Please fill in Subject and Details");
 
-    const homeworkRef = firebase.database().ref('homework');
-    homeworkRef.push({
-        class: targetClass,
-        subject: subject,
-        description: desc,
-        sender: sender,
-        date: new Date().toLocaleDateString('en-GB'),
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        alert("Homework posted successfully!");
-        document.getElementById('hw-subject').value = '';
-        document.getElementById('hw-desc').value = '';
-    });
+  const homeworkRef = firebase.database().ref('homework');
+  homeworkRef.push({
+    class: targetClass,
+    subject: subject,
+    description: desc,
+    sender: sender,
+    date: new Date().toLocaleDateString('en-GB'),
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  }).then(() => {
+    alert("Homework posted successfully!");
+    document.getElementById('hw-subject').value = '';
+    document.getElementById('hw-desc').value = '';
+  });
 };
 
 window.fetchHomework = () => {
-    const role = localStorage.getItem('userRole');
-    const userClass = localStorage.getItem('mappedClass'); // For students/teachers
-    const container = document.getElementById('homework-list');
+  const role = localStorage.getItem('userRole');
+  const userClass = localStorage.getItem('mappedClass'); // For students/teachers
+  const container = document.getElementById('homework-list');
 
-    firebase.database().ref('homework').orderByChild('timestamp').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) {
-            container.innerHTML = `<p class="text-center py-10 text-gray-400">No homework posted yet.</p>`;
-            return;
-        }
+  firebase.database().ref('homework').orderByChild('timestamp').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      container.innerHTML = `<p class="text-center py-10 text-gray-400">No homework posted yet.</p>`;
+      return;
+    }
 
-        const hwArray = Object.keys(data).map(key => ({ id: key, ...data[key] })).reverse();
+    const hwArray = Object.keys(data).map(key => ({
+      id: key,
+      ...data[key]
+    })).reverse();
 
-        container.innerHTML = hwArray.map(hw => {
-            // Logic: Students only see homework for their specific class. 
-            // Admin/Staff see everything.
-            if (role === 'Student' && hw.class !== userClass) return '';
+    container.innerHTML = hwArray.map(hw => {
+      // Logic: Students only see homework for their specific class. 
+      // Admin/Staff see everything.
+      if (role === 'Student' && hw.class !== userClass) return '';
 
-            const canDelete = ["Super Admin", "Admin", "Supervisor", "Clerk"].includes(role);
+      const canDelete = ["Super Admin", "Admin", "Supervisor", "Clerk"].includes(role);
 
-            return `
+      return `
                 <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative">
                     <div class="flex justify-between items-start mb-2">
                         <span class="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">
@@ -1651,32 +1673,32 @@ window.fetchHomework = () => {
                     ` : ''}
                 </div>
             `;
-        }).join('');
-    });
+    }).join('');
+  });
 };
 
 window.deleteHomework = (id) => {
-    if (confirm("Are you sure you want to delete this homework?")) {
-        firebase.database().ref(`homework/${id}`).remove()
-            .then(() => alert("Deleted successfully"))
-            .catch(err => alert("Error: " + err.message));
-    }
+  if (confirm("Are you sure you want to delete this homework?")) {
+    firebase.database().ref(`homework/${id}`).remove()
+      .then(() => alert("Deleted successfully"))
+      .catch(err => alert("Error: " + err.message));
+  }
 };
 
 
 window.toggleNoticeFields = () => {
-    const type = document.getElementById('notice-target-type').value;
-    const container = document.getElementById('notice-target-details');
-    
-    if (type === 'class') {
-        container.innerHTML = `
+  const type = document.getElementById('notice-target-type').value;
+  const container = document.getElementById('notice-target-details');
+
+  if (type === 'class') {
+    container.innerHTML = `
             <select id="notice-target-value" class="w-full p-3 bg-gray-100 rounded-xl text-sm border-none mt-2">
                 <option value="Jr KG">Jr KG</option>
                 <option value="Sr KG">Sr KG</option>
                 ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}th Std</option>`).join('')}
             </select>`;
-    } else if (type === 'student') {
-        container.innerHTML = `
+  } else if (type === 'student') {
+    container.innerHTML = `
             <div class="relative mt-2">
 <input type="text" id="studentSearch" oninput="searchStudentNotice()" 
     placeholder="Search student name or GR No" 
@@ -1695,100 +1717,103 @@ window.toggleNoticeFields = () => {
             </div>
             <div id="selected-student-badge" class="mt-2 hidden"></div>
         `;
-    } else {
-        container.innerHTML = '';
-    }
+  } else {
+    container.innerHTML = '';
+  }
 };
-    
+
 
 window.postNotice = () => {
-    const type = document.getElementById('notice-target-type').value;
-    const targetValue = document.getElementById('notice-target-value')?.value || 'ALL';
-    const title = document.getElementById('notice-title').value;
+  const type = document.getElementById('notice-target-type').value;
+  const targetValue = document.getElementById('notice-target-value')?.value || 'ALL';
+  const title = document.getElementById('notice-title').value;
 
-    const bodyEN = document.getElementById('notice-body-en')?.value || "";
-    const bodyMR = document.getElementById('notice-body-mr')?.value || "";
-    const bodyUR = document.getElementById('notice-body-ur')?.value || "";
+  const bodyEN = document.getElementById('notice-body-en')?.value || "";
+  const bodyMR = document.getElementById('notice-body-mr')?.value || "";
+  const bodyUR = document.getElementById('notice-body-ur')?.value || "";
 
-    const sender = localStorage.getItem('userName');
+  const sender = localStorage.getItem('userName');
 
-    if (!title || (!bodyEN && !bodyMR && !bodyUR)) {
-        return alert("Please enter at least one language message");
-    }
+  if (!title || (!bodyEN && !bodyMR && !bodyUR)) {
+    return alert("Please enter at least one language message");
+  }
 
-    const noticeData = {
-        targetType: type,
-        targetValue: targetValue,
-        title: title,
-        message: {
-            en: bodyEN,
-            mr: bodyMR,
-            ur: bodyUR
-        },
-        sender: sender,
-        timestamp: firebase.database.ServerValue.TIMESTAMP,
-        date: new Date().toLocaleDateString('en-GB')
-    };
+  const noticeData = {
+    targetType: type,
+    targetValue: targetValue,
+    title: title,
+    message: {
+      en: bodyEN,
+      mr: bodyMR,
+      ur: bodyUR
+    },
+    sender: sender,
+    timestamp: firebase.database.ServerValue.TIMESTAMP,
+    date: new Date().toLocaleDateString('en-GB')
+  };
 
-    const isEdit = window.editingNoticeId || null;
+  const isEdit = window.editingNoticeId || null;
 
-    if (isEdit) {
-        firebase.database().ref('notices/' + isEdit).update(noticeData)
-            .then(() => {
-                alert("Notice updated!");
-                window.editingNoticeId = null;
-                loadSection('notices');
-            });
-    } else {
-        firebase.database().ref('notices').push(noticeData)
-            .then(() => {
-                alert("Notice sent!");
-                loadSection('notices');
-            });
-    }
+  if (isEdit) {
+    firebase.database().ref('notices/' + isEdit).update(noticeData)
+      .then(() => {
+        alert("Notice updated!");
+        window.editingNoticeId = null;
+        loadSection('notices');
+      });
+  } else {
+    firebase.database().ref('notices').push(noticeData)
+      .then(() => {
+        alert("Notice sent!");
+        loadSection('notices');
+      });
+  }
 };
-    
 
-    
+
+
 
 window.fetchNotices = () => {
-    const role = localStorage.getItem('userRole');
-    const userName = localStorage.getItem('userName'); // Used for individual student targeting
-    const userClass = localStorage.getItem('mappedClass');
-    const container = document.getElementById('notices-list');
+  const role = localStorage.getItem('userRole');
+  const userName = localStorage.getItem('userName'); // Used for individual student targeting
+  const userClass = localStorage.getItem('mappedClass');
+  const container = document.getElementById('notices-list');
 
-    // We fetch the student's GR No from their profile if they are a student
-    // For this example, we assume their 'userName' matches their name in records, 
-    // but usually, you'd store their GR No in localStorage at login.
-    const userGR = localStorage.getItem('userGR') || ""; 
+  // We fetch the student's GR No from their profile if they are a student
+  // For this example, we assume their 'userName' matches their name in records, 
+  // but usually, you'd store their GR No in localStorage at login.
+  const userGR = localStorage.getItem('userGR') || "";
 
-    firebase.database().ref('notices').orderByChild('timestamp').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) {
-            container.innerHTML = `<p class="text-center py-10 text-gray-400">No active notices.</p>`;
-            return;
-        }
+  firebase.database().ref('notices').orderByChild('timestamp').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      container.innerHTML = `<p class="text-center py-10 text-gray-400">No active notices.</p>`;
+      return;
+    }
 
-        const notices = Object.keys(data).map(key => ({ id: key, ...data[key] })).reverse();
+    const notices = Object.keys(data).map(key => ({
+      id: key,
+      ...data[key]
+    })).reverse();
 
-        container.innerHTML = notices.map(n => {
-            // Visibility Filter
-            let visible = false;
-            const currentUserName = localStorage.getItem('userName'); // The student's logged-in name
-            const userClass = localStorage.getItem('mappedClass');
-            if (["Admin", "Super Admin", "Supervisor", "Clerk"].includes(role)) {
-                visible = true; // Admins see everything
-            } else {
-                if (n.targetType === 'school') visible = true;
-                if (n.targetType === 'class' && n.targetValue === userClass) visible = true;
-                if (n.targetType === 'student' && n.targetValue === userGR) visible = true;
-            }
+    container.innerHTML = notices.map(n => {
+      // Visibility Filter
+      let visible = false;
+      const currentUserName = localStorage.getItem('userName'); // The student's logged-in name
+      const userClass = localStorage.getItem('mappedClass');
+      if (["Admin", "Super Admin", "Supervisor", "Clerk"].includes(role)) {
+        visible = true; // Admins see everything
+      } else {
+        if (n.targetType === 'school') visible = true;
+        if (n.targetType === 'class' && n.targetValue === userClass) visible = true;
+        if (n.targetType === 'student' && n.targetValue === userGR) visible = true;
+      }
 
-            if (!visible) return '';
+      if (!visible) return '';
 
-            const canManage = ["Admin", "Super Admin", "Supervisor", "Clerk"].includes(role);
+      const canManage = ["Admin", "Super Admin", "Supervisor", "Clerk"].includes(role);
 
-            return `
+      return `
                 <div class="bg-white p-5 rounded-2xl border-l-4 border-orange-500 shadow-sm relative">
                     <div class="flex justify-between items-start mb-1">
                         <span class="text-[9px] font-black text-orange-600 uppercase tracking-tighter">
@@ -1828,58 +1853,58 @@ ${canManage ? `
 ` : ''}
                 </div>
             `;
-        }).join('');
-    });
+    }).join('');
+  });
 };
 
 window.deleteNotice = (id) => {
-    if (confirm("Delete this notice for everyone?")) {
-        firebase.database().ref(`notices/${id}`).remove();
-    }
+  if (confirm("Delete this notice for everyone?")) {
+    firebase.database().ref(`notices/${id}`).remove();
+  }
 };
 
 window.searchStudentForNotice = () => {
-    const term = document.getElementById('student-search-input').value.toLowerCase();
-    const resultsDiv = document.getElementById('student-search-results');
-    
-    if (term.length < 2) {
-        resultsDiv.classList.add('hidden');
-        return;
-    }
+  const term = document.getElementById('student-search-input').value.toLowerCase();
+  const resultsDiv = document.getElementById('student-search-results');
 
-    // Filter students from your globally loaded student array
-    const matches = allStudents.filter(s => 
-        s.name.toLowerCase().includes(term) || s.grNo.toString().includes(term)
-    ).slice(0, 10); // Show top 10 matches
+  if (term.length < 2) {
+    resultsDiv.classList.add('hidden');
+    return;
+  }
 
-    if (matches.length > 0) {
-        resultsDiv.classList.remove('hidden');
-        resultsDiv.innerHTML = matches.map(s => `
+  // Filter students from your globally loaded student array
+  const matches = allStudents.filter(s =>
+    s.name.toLowerCase().includes(term) || s.grNo.toString().includes(term)
+  ).slice(0, 10); // Show top 10 matches
+
+  if (matches.length > 0) {
+    resultsDiv.classList.remove('hidden');
+    resultsDiv.innerHTML = matches.map(s => `
             <div onclick="selectStudentForNotice('${s.grNo}', '${s.name}', '${s.class}')" 
                 class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-none">
                 <p class="font-bold text-xs text-gray-800">${s.name}</p>
                 <p class="text-[10px] text-gray-400">GR: ${s.grNo} • Class: ${s.class}</p>
             </div>
         `).join('');
-    } else {
-        resultsDiv.innerHTML = `<p class="p-3 text-[10px] text-gray-400">No student found.</p>`;
-    }
+  } else {
+    resultsDiv.innerHTML = `<p class="p-3 text-[10px] text-gray-400">No student found.</p>`;
+  }
 };
 
 window.selectStudentForNotice = (grNo, name, className) => {
-    const input = document.getElementById('student-search-input');
-    const targetValue = document.getElementById('notice-target-value');
-    const resultsDiv = document.getElementById('student-search-results');
-    const badge = document.getElementById('selected-student-badge');
+  const input = document.getElementById('student-search-input');
+  const targetValue = document.getElementById('notice-target-value');
+  const resultsDiv = document.getElementById('student-search-results');
+  const badge = document.getElementById('selected-student-badge');
 
-    // Set values
-    targetValue.value = grNo; // Store the ID for Firebase
-    input.value = name;
-    resultsDiv.classList.add('hidden');
+  // Set values
+  targetValue.value = grNo; // Store the ID for Firebase
+  input.value = name;
+  resultsDiv.classList.add('hidden');
 
-    // Show selection badge
-    badge.classList.remove('hidden');
-    badge.innerHTML = `
+  // Show selection badge
+  badge.classList.remove('hidden');
+  badge.innerHTML = `
         <div class="inline-flex items-center bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[10px] font-bold">
             Target: ${name} (${className})
             <button onclick="clearStudentSelection()" class="ml-2 font-black">✕</button>
@@ -1888,9 +1913,9 @@ window.selectStudentForNotice = (grNo, name, className) => {
 };
 
 window.clearStudentSelection = () => {
-    document.getElementById('student-search-input').value = '';
-    document.getElementById('notice-target-value').value = '';
-    document.getElementById('selected-student-badge').classList.add('hidden');
+  document.getElementById('student-search-input').value = '';
+  document.getElementById('notice-target-value').value = '';
+  document.getElementById('selected-student-badge').classList.add('hidden');
 };
 
 
@@ -1899,131 +1924,131 @@ let students = [];
 
 // Example: if using Firestore
 async function loadStudents() {
-    const snapshot = await getDocs(collection(db, "students"));
-    students = snapshot.docs.map(doc => doc.data());
+  const snapshot = await getDocs(collection(db, "students"));
+  students = snapshot.docs.map(doc => doc.data());
 }
 
 window.searchStudentNotice = () => {
-    const input = document.getElementById("studentSearch");
-    const box = document.getElementById("suggestionsBox");
+  const input = document.getElementById("studentSearch");
+  const box = document.getElementById("suggestionsBox");
 
-    if (!input || !box) return;
+  if (!input || !box) return;
 
-    let value = input.value.toLowerCase();
-    box.innerHTML = "";
+  let value = input.value.toLowerCase();
+  box.innerHTML = "";
 
-    if (!value) {
-        box.classList.add("hidden");
-        return;
-    }
+  if (!value) {
+    box.classList.add("hidden");
+    return;
+  }
 
-    let filtered = allStudents.filter(s =>
-        (s.name && s.name.toLowerCase().includes(value)) ||
-        (s.id && s.id.toString().includes(value))
-    ).slice(0, 10); // limit results
+  let filtered = allStudents.filter(s =>
+    (s.name && s.name.toLowerCase().includes(value)) ||
+    (s.id && s.id.toString().includes(value))
+  ).slice(0, 10); // limit results
 
-    if (filtered.length === 0) {
-        box.innerHTML = `<div class="p-2 text-gray-400 text-xs">No student found</div>`;
-        box.classList.remove("hidden");
-        return;
-    }
+  if (filtered.length === 0) {
+    box.innerHTML = `<div class="p-2 text-gray-400 text-xs">No student found</div>`;
+    box.classList.remove("hidden");
+    return;
+  }
 
-    filtered.forEach(student => {
-        let div = document.createElement("div");
-        div.className = "p-2 hover:bg-blue-50 cursor-pointer text-sm";
-        div.innerHTML = `
+  filtered.forEach(student => {
+    let div = document.createElement("div");
+    div.className = "p-2 hover:bg-blue-50 cursor-pointer text-sm";
+    div.innerHTML = `
             <b>${student.name}</b><br>
             <span class="text-xs text-gray-500">GR: ${student.id} • Class: ${student.class}</span>
         `;
 
-        div.onclick = () => {
-            input.value = student.name;
-            document.getElementById("notice-target-value").value = student.id;
-            box.classList.add("hidden");
-        };
+    div.onclick = () => {
+      input.value = student.name;
+      document.getElementById("notice-target-value").value = student.id;
+      box.classList.add("hidden");
+    };
 
-        box.appendChild(div);
-    });
+    box.appendChild(div);
+  });
 
-    box.classList.remove("hidden");
+  box.classList.remove("hidden");
 };
 
 window.editNotice = (id) => {
-    firebase.database().ref('notices/' + id).once('value', (snapshot) => {
-        const n = snapshot.val();
-        if (!n) return;
+  firebase.database().ref('notices/' + id).once('value', (snapshot) => {
+    const n = snapshot.val();
+    if (!n) return;
 
-        // Switch to notice tab
-        loadSection('notices');
+    // Switch to notice tab
+    loadSection('notices');
 
-        setTimeout(() => {
-            // Fill fields
-            document.getElementById('notice-title').value = n.title || "";
+    setTimeout(() => {
+      // Fill fields
+      document.getElementById('notice-title').value = n.title || "";
 
-            document.getElementById('notice-body-en').value = n.message?.en || "";
-            document.getElementById('notice-body-mr').value = n.message?.mr || "";
-            document.getElementById('notice-body-ur').value = n.message?.ur || "";
+      document.getElementById('notice-body-en').value = n.message?.en || "";
+      document.getElementById('notice-body-mr').value = n.message?.mr || "";
+      document.getElementById('notice-body-ur').value = n.message?.ur || "";
 
-            document.getElementById('notice-target-type').value = n.targetType;
-            toggleNoticeFields();
+      document.getElementById('notice-target-type').value = n.targetType;
+      toggleNoticeFields();
 
-            setTimeout(() => {
-                if (n.targetType !== 'school') {
-                    document.getElementById('notice-target-value').value = n.targetValue;
-                }
-            }, 100);
+      setTimeout(() => {
+        if (n.targetType !== 'school') {
+          document.getElementById('notice-target-value').value = n.targetValue;
+        }
+      }, 100);
 
-            // Store edit ID
-            window.editingNoticeId = id;
+      // Store edit ID
+      window.editingNoticeId = id;
 
-            // Change button text
-            const btn = document.querySelector('#notices button[onclick="postNotice()"]');
-            if (btn) btn.innerText = "Update Notice";
-        }, 300);
-    });
+      // Change button text
+      const btn = document.querySelector('#notices button[onclick="postNotice()"]');
+      if (btn) btn.innerText = "Update Notice";
+    }, 300);
+  });
 };
 
 function getLang() {
-    return localStorage.getItem('noticeLang') || 'en';
+  return localStorage.getItem('noticeLang') || 'en';
 }
 
 function getMessageByLang(n) {
-    const lang = getLang();
-    return n.message?.[lang] || n.message?.en || "No content";
+  const lang = getLang();
+  return n.message?.[lang] || n.message?.en || "No content";
 }
 window.switchLang = (id, lang) => {
-    localStorage.setItem('noticeLang', lang);
+  localStorage.setItem('noticeLang', lang);
 
-    firebase.database().ref('notices/' + id).once('value', (snapshot) => {
-        const n = snapshot.val();
-        const msgDiv = document.getElementById(`msg-${id}`);
-        if (msgDiv) {
-            msgDiv.innerText = n.message?.[lang] || n.message?.en || "No content";
+  firebase.database().ref('notices/' + id).once('value', (snapshot) => {
+    const n = snapshot.val();
+    const msgDiv = document.getElementById(`msg-${id}`);
+    if (msgDiv) {
+      msgDiv.innerText = n.message?.[lang] || n.message?.en || "No content";
 
-            // update font class
-            msgDiv.className = `text-xs text-gray-600 leading-relaxed ${getLangClass()}`;
-        }
-    });
+      // update font class
+      msgDiv.className = `text-xs text-gray-600 leading-relaxed ${getLangClass()}`;
+    }
+  });
 
-    loadSection('notices');
+  loadSection('notices');
 };
 
-    function getLangClass() {
-    const lang = getLang();
-    if (lang === 'mr') return 'lang-mr';
-    if (lang === 'ur') return 'lang-ur';
-    return 'lang-en';
+function getLangClass() {
+  const lang = getLang();
+  if (lang === 'mr') return 'lang-mr';
+  if (lang === 'ur') return 'lang-ur';
+  return 'lang-en';
 }
 
 window.openTimeTableManager = (type) => {
-    const content = document.getElementById('content');
-    
-    // Determine the visibility checkbox label based on type
-    const visibilityLabel = (type === "Teacher Time Table") 
-        ? "Visible to Teachers" 
-        : "Visible to Students";
+  const content = document.getElementById('content');
 
-    content.innerHTML = `
+  // Determine the visibility checkbox label based on type
+  const visibilityLabel = (type === "Teacher Time Table") ?
+    "Visible to Teachers" :
+    "Visible to Students";
+
+  content.innerHTML = `
         <div class="space-y-4">
             <button onclick="loadSection('home')" class="text-blue-600 font-bold flex items-center">
                 ← Back to Dashboard
@@ -2052,66 +2077,66 @@ window.openTimeTableManager = (type) => {
         </div>
     `;
 
-    // Optionally: Pre-load existing data from Firebase if available
-    firebase.database().ref('settings/timetables/' + type.replace(/ /g, '_')).once('value', (snap) => {
-        const data = snap.val();
-        if(data) {
-            document.getElementById('csv-url-input').value = data.url || "";
-            document.getElementById('visibility-check').checked = data.visible || false;
-        }
-    });
+  // Optionally: Pre-load existing data from Firebase if available
+  firebase.database().ref('settings/timetables/' + type.replace(/ /g, '_')).once('value', (snap) => {
+    const data = snap.val();
+    if (data) {
+      document.getElementById('csv-url-input').value = data.url || "";
+      document.getElementById('visibility-check').checked = data.visible || false;
+    }
+  });
 };
 
 window.previewCSV = async (type) => {
-    const url = document.getElementById('csv-url-input').value;
-    const container = document.getElementById('preview-container');
-    
-    if(!url) return alert("Please paste a link first.");
-    
-    container.innerHTML = `<p class="text-center italic text-gray-500">Fetching preview...</p>`;
+  const url = document.getElementById('csv-url-input').value;
+  const container = document.getElementById('preview-container');
 
-    try {
-        const response = await fetch(url);
-        const text = await response.text();
-        const rows = text.split('\n').map(row => row.split(','));
-        
-        let tableHtml = `<table class="w-full bg-white text-xs border rounded-lg">`;
-        rows.forEach((row, index) => {
-            tableHtml += `<tr class="${index === 0 ? 'bg-gray-100 font-bold' : 'border-t'}">`;
-            row.forEach(cell => {
-                tableHtml += `<td class="p-2 border-r">${cell}</td>`;
-            });
-            tableHtml += `</tr>`;
-        });
-        tableHtml += `</table>`;
-        
-        container.innerHTML = tableHtml;
-    } catch (e) {
-        container.innerHTML = `<p class="text-red-500">Error: Could not fetch CSV. Ensure the sheet is "Published to Web" as CSV.</p>`;
-    }
+  if (!url) return alert("Please paste a link first.");
+
+  container.innerHTML = `<p class="text-center italic text-gray-500">Fetching preview...</p>`;
+
+  try {
+    const response = await fetch(url);
+    const text = await response.text();
+    const rows = text.split('\n').map(row => row.split(','));
+
+    let tableHtml = `<table class="w-full bg-white text-xs border rounded-lg">`;
+    rows.forEach((row, index) => {
+      tableHtml += `<tr class="${index === 0 ? 'bg-gray-100 font-bold' : 'border-t'}">`;
+      row.forEach(cell => {
+        tableHtml += `<td class="p-2 border-r">${cell}</td>`;
+      });
+      tableHtml += `</tr>`;
+    });
+    tableHtml += `</table>`;
+
+    container.innerHTML = tableHtml;
+  } catch (e) {
+    container.innerHTML = `<p class="text-red-500">Error: Could not fetch CSV. Ensure the sheet is "Published to Web" as CSV.</p>`;
+  }
 };
 
 window.saveTimeTableSettings = (type) => {
-    const url = document.getElementById('csv-url-input').value;
-    const isVisible = document.getElementById('visibility-check').checked;
-    const dbKey = type.replace(/ /g, '_');
+  const url = document.getElementById('csv-url-input').value;
+  const isVisible = document.getElementById('visibility-check').checked;
+  const dbKey = type.replace(/ /g, '_');
 
-    firebase.database().ref('settings/timetables/' + dbKey).set({
-        url: url,
-        visible: isVisible,
-        updatedBy: localStorage.getItem('userName'),
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        alert(`${type} updated successfully!`);
-    });
+  firebase.database().ref('settings/timetables/' + dbKey).set({
+    url: url,
+    visible: isVisible,
+    updatedBy: localStorage.getItem('userName'),
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  }).then(() => {
+    alert(`${type} updated successfully!`);
+  });
 };
 window.openDailyTimeTable = () => {
-    const content = document.getElementById('content');
+  const content = document.getElementById('content');
 
-    const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    const periods = 8;
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const periods = 8;
 
-    let html = `
+  let html = `
     <div class="space-y-4">
         <button onclick="loadSection('home')" class="text-blue-600 font-bold">← Back</button>
 
@@ -2134,23 +2159,23 @@ window.openDailyTimeTable = () => {
                     <th class="border p-2">Sr.</th>
     `;
 
-    days.forEach(d => html += `<th class="border p-2">${d}</th>`);
-    html += `</tr>`;
+  days.forEach(d => html += `<th class="border p-2">${d}</th>`);
+  html += `</tr>`;
 
-    for (let i=1;i<=periods;i++){
-        html += `<tr>
+  for (let i = 1; i <= periods; i++) {
+    html += `<tr>
             <td class="border p-2 text-center font-bold">${i}</td>`;
 
-        days.forEach(d=>{
-            html += `<td class="border p-1">
+    days.forEach(d => {
+      html += `<td class="border p-1">
                 <input id="d-${i}-${d}" class="w-full text-xs p-1" />
             </td>`;
-        });
+    });
 
-        html += `</tr>`;
-    }
+    html += `</tr>`;
+  }
 
-    html += `
+  html += `
             </table>
             </div>
 
@@ -2163,41 +2188,41 @@ window.openDailyTimeTable = () => {
         </div>
     </div>`;
 
-    content.innerHTML = html;
+  content.innerHTML = html;
 };
 
 window.saveDaily = () => {
-    const cls = document.getElementById("class-select").value;
-    if (!cls) return alert("Select class");
+  const cls = document.getElementById("class-select").value;
+  if (!cls) return alert("Select class");
 
-    const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    let data = {};
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  let data = {};
 
-    for (let i = 1; i <= 8; i++) {
-        data[i] = {};
-        days.forEach(d => {
-            data[i][d] = document.getElementById(`d-${i}-${d}`).value || "";
-        });
-    }
-
-    const note = document.getElementById("daily-note").value;
-    const published = document.getElementById("publish-toggle").checked;
-
-    firebase.database().ref("timetable/daily/" + cls).set({
-        data,
-        note,
-        published,
-        updatedBy: localStorage.getItem("userName"),
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        alert("Saved successfully!");
+  for (let i = 1; i <= 8; i++) {
+    data[i] = {};
+    days.forEach(d => {
+      data[i][d] = document.getElementById(`d-${i}-${d}`).value || "";
     });
+  }
+
+  const note = document.getElementById("daily-note").value;
+  const published = document.getElementById("publish-toggle").checked;
+
+  firebase.database().ref("timetable/daily/" + cls).set({
+    data,
+    note,
+    published,
+    updatedBy: localStorage.getItem("userName"),
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  }).then(() => {
+    alert("Saved successfully!");
+  });
 };
 
 window.openExamTimeTable = () => {
-    const content = document.getElementById('content');
+  const content = document.getElementById('content');
 
-    let html = `
+  let html = `
     <div class="space-y-4">
         <button onclick="loadSection('home')" class="text-blue-600 font-bold">← Back</button>
 
@@ -2218,17 +2243,17 @@ window.openExamTimeTable = () => {
                 </tr>
     `;
 
-    for(let i=1;i<=12;i++){
-        html += `
+  for (let i = 1; i <= 12; i++) {
+    html += `
         <tr>
             <td class="border p-1"><input id="ex-date-${i}" class="w-full"></td>
             <td class="border p-1"><input id="ex-day-${i}" class="w-full"></td>
             <td class="border p-1"><input id="ex-time-${i}" class="w-full"></td>
             <td class="border p-1"><input id="ex-sub-${i}" class="w-full"></td>
         </tr>`;
-    }
+  }
 
-    html += `
+  html += `
             </table>
 
             <textarea id="exam-note" placeholder="Note..." 
@@ -2240,38 +2265,38 @@ window.openExamTimeTable = () => {
         </div>
     </div>`;
 
-    content.innerHTML = html;
+  content.innerHTML = html;
 };
 window.saveExam = () => {
-    const cls = document.getElementById("exam-class").value;
-    if(!cls) return alert("Select class");
+  const cls = document.getElementById("exam-class").value;
+  if (!cls) return alert("Select class");
 
-    let rows = [];
+  let rows = [];
 
-    for(let i=1;i<=12;i++){
-        rows.push({
-            date: document.getElementById(`ex-date-${i}`).value,
-            day: document.getElementById(`ex-day-${i}`).value,
-            time: document.getElementById(`ex-time-${i}`).value,
-            subject: document.getElementById(`ex-sub-${i}`).value
-        });
-    }
-
-    firebase.database().ref("timetable/exam/"+cls).set({
-        rows,
-        note: document.getElementById("exam-note").value
+  for (let i = 1; i <= 12; i++) {
+    rows.push({
+      date: document.getElementById(`ex-date-${i}`).value,
+      day: document.getElementById(`ex-day-${i}`).value,
+      time: document.getElementById(`ex-time-${i}`).value,
+      subject: document.getElementById(`ex-sub-${i}`).value
     });
+  }
 
-    alert("Saved");
+  firebase.database().ref("timetable/exam/" + cls).set({
+    rows,
+    note: document.getElementById("exam-note").value
+  });
+
+  alert("Saved");
 };
 
 
 // Replace the current openTeacherTimeTable function with this:
 window.openTeacherTimeTable = async () => {
-    const content = document.getElementById('content');
-    const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const content = document.getElementById('content');
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-    let html = `
+  let html = `
     <div class="space-y-4">
       <button onclick="loadSection('home')" class="text-blue-600 font-bold">← Back</button>
       <div class="bg-white p-4 rounded-xl shadow">
@@ -2284,168 +2309,170 @@ window.openTeacherTimeTable = async () => {
 
         <table class="w-full text-xs border border-collapse">
           <tr class="bg-gray-100"><th class="border p-2">Sr.</th>`;
-    days.forEach(d => html += `<th class="border p-2">${d}</th>`);
+  days.forEach(d => html += `<th class="border p-2">${d}</th>`);
+  html += `</tr>`;
+  for (let i = 1; i <= 8; i++) {
+    html += `<tr><td class="border p-2">${i}</td>`;
+    days.forEach(d => {
+      html += `<td class="border p-1"><input id="t-${i}-${d}" class="w-full text-xs"></td>`;
+    });
     html += `</tr>`;
-    for (let i = 1; i <= 8; i++) {
-        html += `<tr><td class="border p-2">${i}</td>`;
-        days.forEach(d => {
-            html += `<td class="border p-1"><input id="t-${i}-${d}" class="w-full text-xs"></td>`;
-        });
-        html += `</tr>`;
-    }
-    html += `</table>
+  }
+  html += `</table>
         <button onclick="saveTeacher()" class="mt-3 w-full bg-blue-600 text-white p-2 rounded">Save</button>
       </div></div>`;
 
-    content.innerHTML = html;
+  content.innerHTML = html;
 
-    // Populate dropdown from CSV (your loadTeacherDropdown exists)
-    if (typeof loadTeacherDropdown === 'function') {
-        loadTeacherDropdown(); // populates #teacherSelect and sets onchange
-    } else {
-        console.warn("loadTeacherDropdown() not found");
-    }
+  // Populate dropdown from CSV (your loadTeacherDropdown exists)
+  if (typeof loadTeacherDropdown === 'function') {
+    loadTeacherDropdown(); // populates #teacherSelect and sets onchange
+  } else {
+    console.warn("loadTeacherDropdown() not found");
+  }
 };
-    
+
 // Ensure saveTeacher reads the same select id that loadTeacherDropdown populates
 // Replace/ensure saveTeacher reads #teacherSelect
 window.saveTeacher = () => {
-    const teacherEl = document.getElementById("teacherSelect") || document.getElementById("teacher-select");
-    const teacher = teacherEl ? teacherEl.value : "";
-    if (!teacher) return alert("Select teacher");
+  const teacherEl = document.getElementById("teacherSelect") || document.getElementById("teacher-select");
+  const teacher = teacherEl ? teacherEl.value : "";
+  if (!teacher) return alert("Select teacher");
 
-    const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    const data = {};
-    for (let i = 1; i <= 8; i++) {
-        data[i] = {};
-        days.forEach(d => {
-            const input = document.getElementById(`t-${i}-${d}`);
-            data[i][d] = input ? input.value : "";
-        });
-    }
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const data = {};
+  for (let i = 1; i <= 8; i++) {
+    data[i] = {};
+    days.forEach(d => {
+      const input = document.getElementById(`t-${i}-${d}`);
+      data[i][d] = input ? input.value : "";
+    });
+  }
 
-    firebase.database().ref("timetable/teacher/" + teacher).set(data)
+  firebase.database().ref("timetable/teacher/" + teacher).set(data)
     .then(() => alert("Saved"))
     .catch(err => alert("Error: " + err.message));
 };
 
 document.addEventListener("change", async function(e) {
-    if (e.target.id === "class-select") {
+  if (e.target.id === "class-select") {
 
-        const cls = e.target.value;
-        if (!cls) return;
+    const cls = e.target.value;
+    if (!cls) return;
 
-        const snap = await firebase.database()
-            .ref("timetable/daily/" + cls)
-            .once("value");
+    const snap = await firebase.database()
+      .ref("timetable/daily/" + cls)
+      .once("value");
 
-        const data = snap.val();
+    const data = snap.val();
 
-        // Reset first
-        const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-        for (let i = 1; i <= 8; i++) {
-            days.forEach(d => {
-                const cell = document.getElementById(`d-${i}-${d}`);
-                if (cell) cell.value = "";
-            });
-        }
-        document.getElementById("daily-note").value = "";
-        document.getElementById("publish-toggle").checked = false;
-
-        // If no data, stop here
-        if (!data) return;
-
-        // Fill timetable
-        if (data.data) {
-            Object.keys(data.data).forEach(period => {
-                Object.keys(data.data[period]).forEach(day => {
-                    const cell = document.getElementById(`d-${period}-${day}`);
-                    if (cell) cell.value = data.data[period][day];
-                });
-            });
-        }
-
-        // Fill note
-        if (data.note) {
-            document.getElementById("daily-note").value = data.note;
-        }
-
-        // Fill publish status
-        if (data.published) {
-            document.getElementById("publish-toggle").checked = true;
-        }
+    // Reset first
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    for (let i = 1; i <= 8; i++) {
+      days.forEach(d => {
+        const cell = document.getElementById(`d-${i}-${d}`);
+        if (cell) cell.value = "";
+      });
     }
-});    
-function loadStudentTimeTable(cls) {
-    const container = document.getElementById("student-timetable");
+    document.getElementById("daily-note").value = "";
+    document.getElementById("publish-toggle").checked = false;
 
-    firebase.database().ref("timetable/daily/" + cls).once("value", snap => {
-        const data = snap.val();
+    // If no data, stop here
+    if (!data) return;
 
-        if (!data || !data.published) {
-            container.innerHTML = "<p>No timetable published</p>";
-            return;
-        }
-
-        const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-
-        let html = `<table class="w-full text-xs border border-collapse">`;
-
-        html += `<tr><th>Sr.</th>`;
-        days.forEach(d => html += `<th>${d}</th>`);
-        html += `</tr>`;
-
-        Object.keys(data.data).forEach(period => {
-            html += `<tr><td>${period}</td>`;
-            days.forEach(d => {
-                html += `<td>${data.data[period][d] || ""}</td>`;
-            });
-            html += `</tr>`;
+    // Fill timetable
+    if (data.data) {
+      Object.keys(data.data).forEach(period => {
+        Object.keys(data.data[period]).forEach(day => {
+          const cell = document.getElementById(`d-${period}-${day}`);
+          if (cell) cell.value = data.data[period][day];
         });
+      });
+    }
 
-        html += `</table>`;
+    // Fill note
+    if (data.note) {
+      document.getElementById("daily-note").value = data.note;
+    }
 
-        if (data.note) {
-            html += `<div class="mt-3 text-sm text-gray-600">${data.note}</div>`;
-        }
+    // Fill publish status
+    if (data.published) {
+      document.getElementById("publish-toggle").checked = true;
+    }
+  }
+});
 
-        container.innerHTML = html;
+function loadStudentTimeTable(cls) {
+  const container = document.getElementById("student-timetable");
+
+  firebase.database().ref("timetable/daily/" + cls).once("value", snap => {
+    const data = snap.val();
+
+    if (!data || !data.published) {
+      container.innerHTML = "<p>No timetable published</p>";
+      return;
+    }
+
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+    let html = `<table class="w-full text-xs border border-collapse">`;
+
+    html += `<tr><th>Sr.</th>`;
+    days.forEach(d => html += `<th>${d}</th>`);
+    html += `</tr>`;
+
+    Object.keys(data.data).forEach(period => {
+      html += `<tr><td>${period}</td>`;
+      days.forEach(d => {
+        html += `<td>${data.data[period][d] || ""}</td>`;
+      });
+      html += `</tr>`;
     });
+
+    html += `</table>`;
+
+    if (data.note) {
+      html += `<div class="mt-3 text-sm text-gray-600">${data.note}</div>`;
+    }
+
+    container.innerHTML = html;
+  });
 }
+
 function fetchPersonalStudentLogs(grNo) {
-    const logContainer = document.getElementById("personal-logs-list");
-    if (!logContainer) return;
+  const logContainer = document.getElementById("personal-logs-list");
+  if (!logContainer) return;
 
-    logContainer.innerHTML = "<li>Loading logs...</li>";
+  logContainer.innerHTML = "<li>Loading logs...</li>";
 
-    // This fetches logs specifically for the logged-in student using their GR Number
-    firebase.database().ref("student_logs").orderByChild("grNo").equalTo(grNo)
-        .once("value", snap => {
-            const logs = snap.val();
-            if (!logs) {
-                logContainer.innerHTML = "<li>No recent activity found.</li>";
-                return;
-            }
+  // This fetches logs specifically for the logged-in student using their GR Number
+  firebase.database().ref("student_logs").orderByChild("grNo").equalTo(grNo)
+    .once("value", snap => {
+      const logs = snap.val();
+      if (!logs) {
+        logContainer.innerHTML = "<li>No recent activity found.</li>";
+        return;
+      }
 
-            let html = "";
-            // Convert object to array and sort by timestamp (newest first)
-            const logArray = Object.values(logs).reverse();
-            
-            logArray.forEach(log => {
-                html += `
+      let html = "";
+      // Convert object to array and sort by timestamp (newest first)
+      const logArray = Object.values(logs).reverse();
+
+      logArray.forEach(log => {
+        html += `
                     <li class="p-2 border-b text-sm">
                         <span class="font-bold">${log.date || ''}:</span> ${log.message || log.type}
                     </li>`;
-            });
-            logContainer.innerHTML = html;
-        }).catch(err => {
-            console.error("Error fetching logs:", err);
-            logContainer.innerHTML = "<li>Error loading logs.</li>";
-        });
+      });
+      logContainer.innerHTML = html;
+    }).catch(err => {
+      console.error("Error fetching logs:", err);
+      logContainer.innerHTML = "<li>Error loading logs.</li>";
+    });
 }
 // This function runs when the student clicks "Show Timetable"
 function getStudentTimetable(studentClass) {
-  
+
   // 1. Point to the right spot in Firebase
   // Make sure this matches exactly where your Admin login saves the data!
   var timetableRef = firebase.database().ref('Timetable/' + studentClass);
@@ -2463,6 +2490,7 @@ function getStudentTimetable(studentClass) {
     }
   });
 }
+
 function loadTimetableForStudent(classFromSheet) {
   // If classFromSheet is "1", this makes it "Class 1"
   var formattedClassName = "Class " + classFromSheet;
@@ -2481,132 +2509,127 @@ function loadTimetableForStudent(classFromSheet) {
   });
 }
 
-    window.loadTeacherDropdown = async () => {
-    try {
-        const res = await fetch(TEACHER_SHEET_CSV);
-        const text = await res.text();
-        
-        // Split rows and filter empty ones
-        const rows = text.split(/\r?\n/).filter(r => r.trim());
-        if (rows.length < 2) return;
+window.loadTeacherDropdown = async () => {
+  try {
+    const res = await fetch(TEACHER_SHEET_CSV);
+    const text = await res.text();
 
-        // Parse headers from the first row to find the "Name" column
-        const headers = rows[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/"/g, '').trim().toLowerCase());
-        const nameIndex = headers.findIndex(h => h.includes("name"));
-        
-        // If "name" column isn't found, default to index 2 (Column C)
-        const targetIndex = nameIndex !== -1 ? nameIndex : 2;
+    // Split rows and filter empty ones
+    const rows = text.split(/\r?\n/).filter(r => r.trim());
+    if (rows.length < 2) return;
 
-        const select = document.getElementById('teacherSelect');
-        
-        // Process data rows
-        const teacherNames = rows.slice(1).map(row => {
-            const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            return cols[targetIndex]?.replace(/"/g, '').trim(); 
-        }).filter(name => name && name !== ""); // Remove empty names
+    // Parse headers from the first row to find the "Name" column
+    const headers = rows[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/"/g, '').trim().toLowerCase());
+    const nameIndex = headers.findIndex(h => h.includes("name"));
 
-        // Populate dropdown
-        select.innerHTML = '<option value="">Select Teacher</option>' + 
-            teacherNames.map(name => `<option value="${name}">${name}</option>`).join('');
-            
-        select.onchange = () => loadTeacherDataForEdit(select.value);
-    } catch (e) {
-        console.error(e);
-        alert("Error loading teacher names from CSV");
-    }
+    // If "name" column isn't found, default to index 2 (Column C)
+    const targetIndex = nameIndex !== -1 ? nameIndex : 2;
+
+    const select = document.getElementById('teacherSelect');
+
+    // Process data rows
+    const teacherNames = rows.slice(1).map(row => {
+      const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+      return cols[targetIndex]?.replace(/"/g, '').trim();
+    }).filter(name => name && name !== ""); // Remove empty names
+
+    // Populate dropdown
+    select.innerHTML = '<option value="">Select Teacher</option>' +
+      teacherNames.map(name => `<option value="${name}">${name}</option>`).join('');
+
+    select.onchange = () => loadTeacherDataForEdit(select.value);
+  } catch (e) {
+    console.error(e);
+    alert("Error loading teacher names from CSV");
+  }
 };
 
 // Save teacher timetable under a sanitized key and store displayName
 window.saveTeacherTimetable = () => {
-    const teacher = (document.getElementById('teacherSelect')?.value || '').trim();
-    if (!teacher) return alert("Select a teacher first");
+  const teacher = (document.getElementById('teacherSelect')?.value || '').trim();
+  if (!teacher) return alert("Select a teacher first");
 
-    // Build the schedule object (Monday..Saturday => text)
-    const payload = {};
-    ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].forEach(day => {
-        payload[day] = document.getElementById(`tt-${day}`)?.value || "";
-    });
+  // Build the schedule object (Monday..Saturday => text)
+  const payload = {};
+  ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].forEach(day => {
+    payload[day] = document.getElementById(`tt-${day}`)?.value || "";
+  });
 
-    // Create a sanitized key: lowercase, replace spaces with underscore, remove unsafe chars
-    const sanitize = s => String(s || '').toLowerCase().trim().replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
-    const key = sanitize(teacher);
+  // Create a sanitized key: lowercase, replace spaces with underscore, remove unsafe chars
+  const sanitize = s => String(s || '').toLowerCase().trim().replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
+  const key = sanitize(teacher);
 
-    // Save both a displayName and the payload so reads can match by either
-    firebase.database().ref('teacher_timetables/' + key).set({
-        displayName: teacher,
-        schedule: payload,
-        updatedBy: localStorage.getItem('userName') || 'unknown',
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        alert("Timetable saved successfully!");
-    }).catch(e => alert("Error saving timetable: " + e.message));
+  // Save both a displayName and the payload so reads can match by either
+  firebase.database().ref('teacher_timetables/' + key).set({
+    displayName: teacher,
+    schedule: payload,
+    updatedBy: localStorage.getItem('userName') || 'unknown',
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  }).then(() => {
+    alert("Timetable saved successfully!");
+  }).catch(e => alert("Error saving timetable: " + e.message));
 };
 
 window.togglePublishTimetable = () => {
-    const ref = firebase.database().ref('settings/teacher_timetable_published');
-    ref.once('value', (snap) => {
-        const currentState = snap.val() || false;
-        ref.set(!currentState);
-    });
+  const ref = firebase.database().ref('settings/teacher_timetable_published');
+  ref.once('value', (snap) => {
+    const currentState = snap.val() || false;
+    ref.set(!currentState);
+  });
 };
 
 function updatePublishButtonUI() {
-    const btn = document.getElementById('publishBtn');
-    firebase.database().ref('settings/teacher_timetable_published').on('value', (snap) => {
-        const isPub = snap.val();
-        btn.innerText = isPub ? "UNPUBLISH" : "PUBLISH";
-        btn.className = isPub ? "px-4 py-2 rounded-lg font-bold text-xs text-white bg-red-500" 
-                             : "px-4 py-2 rounded-lg font-bold text-xs text-white bg-green-500";
-    });
+  const btn = document.getElementById('publishBtn');
+  firebase.database().ref('settings/teacher_timetable_published').on('value', (snap) => {
+    const isPub = snap.val();
+    btn.innerText = isPub ? "UNPUBLISH" : "PUBLISH";
+    btn.className = isPub ? "px-4 py-2 rounded-lg font-bold text-xs text-white bg-red-500" :
+      "px-4 py-2 rounded-lg font-bold text-xs text-white bg-green-500";
+  });
 }
 // Add this helper so selecting a teacher fills the inputs for edit
 // Add this helper so dropdown selection loads saved timetable
 window.loadTeacherDataForEdit = async (teacherName) => {
-    if (!teacherName) return;
-    try {
-        const snap = await firebase.database().ref("timetable/teacher/" + teacherName).once('value');
-        const data = snap.val();
+  if (!teacherName) return;
+  try {
+    const snap = await firebase.database().ref("timetable/teacher/" + teacherName).once('value');
+    const data = snap.val();
 
-        const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-        for (let i = 1; i <= 8; i++) {
-            days.forEach(d => {
-                const el = document.getElementById(`t-${i}-${d}`);
-                if (el) el.value = "";
-            });
-        }
-
-        if (!data) return;
-        // Fill period inputs if data uses period->day structure OR day->string structure
-        if (Object.values(data).every(v => typeof v === 'string')) {
-            // day -> schedule string
-            Object.keys(data).forEach(day => {
-                const schedule = data[day] || "";
-                // no per-period inputs for this format; optionally show in note or map to first column
-            });
-            // (If admin saves day->string, the view screen shows it; editing in table may require different format)
-            return;
-        }
-
-        // period -> {day: text}
-        Object.keys(data).forEach(period => {
-            const p = parseInt(period, 10);
-            if (!p) return;
-            days.forEach(d => {
-                const cell = document.getElementById(`t-${p}-${d}`);
-                if (cell) cell.value = (data[period] && data[period][d]) ? data[period][d] : "";
-            });
-        });
-    } catch (err) {
-        console.error("Error loading teacher timetable:", err);
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    for (let i = 1; i <= 8; i++) {
+      days.forEach(d => {
+        const el = document.getElementById(`t-${i}-${d}`);
+        if (el) el.value = "";
+      });
     }
+
+    if (!data) return;
+    // Fill period inputs if data uses period->day structure OR day->string structure
+    if (Object.values(data).every(v => typeof v === 'string')) {
+      // day -> schedule string
+      Object.keys(data).forEach(day => {
+        const schedule = data[day] || "";
+        // no per-period inputs for this format; optionally show in note or map to first column
+      });
+      // (If admin saves day->string, the view screen shows it; editing in table may require different format)
+      return;
+    }
+
+    // period -> {day: text}
+    Object.keys(data).forEach(period => {
+      const p = parseInt(period, 10);
+      if (!p) return;
+      days.forEach(d => {
+        const cell = document.getElementById(`t-${p}-${d}`);
+        if (cell) cell.value = (data[period] && data[period][d]) ? data[period][d] : "";
+      });
+    });
+  } catch (err) {
+    console.error("Error loading teacher timetable:", err);
+  }
 };
 
-    
-    
-
-    
 
 
-    
+
 }
-
