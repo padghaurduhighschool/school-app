@@ -2845,8 +2845,22 @@ window.showFeesDashboard = async () => {
         const studentData = await studentRes.text();
         const paymentData = await paymentRes.text();
 
-        const students = Array.from(d3.csvParse(studentData));
-        const payments = Array.from(d3.csvParse(paymentData));
+// Add this helper function at the top of app.js (or inside the showFeesDashboard)
+const parseCSV = (text) => {
+    const lines = text.split('\n').filter(l => l.trim() !== "");
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    return lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        return headers.reduce((obj, header, i) => {
+            obj[header] = values[i];
+            return obj;
+        }, {});
+    });
+};
+
+// Then use it like this inside your try/catch block:
+const students = parseCSV(studentData);
+const payments = parseCSV(paymentData);
 
         let html = `
             <div class="bg-gray-50 min-h-screen pb-20">
