@@ -3,8 +3,8 @@
 // 1. CONFIGURATION & STATE
 const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
 const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv"; 
-const OFFICE_LAT = 19.2435; 
-const OFFICE_LON = 73.1234; 
+const OFFICE_LAT = 19.3709; 
+const OFFICE_LON = 73.1757; 
 
 const schoolClasses = [
     "Jr KG", "Sr KG", 
