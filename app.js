@@ -213,23 +213,23 @@ if (section === 'home') {
 
 <div class="grid grid-cols-1 gap-3">
 
-    <!-- Daily Time Table -->
-    <div onclick="openTimeTableManager('Daily Time Table')" 
-        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-green-500 cursor-pointer active:scale-95 transition">
+    <!-- Daily -->
+    <div onclick="openDailyTimeTable()" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-green-500 cursor-pointer">
         <p class="text-gray-500 text-[10px] uppercase font-bold">Students View</p>
         <p class="text-xl font-bold text-green-600">Daily Time Table</p>
     </div>
 
-    <!-- Exam Time Table -->
-    <div onclick="openTimeTableManager('Exam Time Table')" 
-        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-orange-500 cursor-pointer active:scale-95 transition">
+    <!-- Exam -->
+    <div onclick="openExamTimeTable()" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-orange-500 cursor-pointer">
         <p class="text-gray-500 text-[10px] uppercase font-bold">Students View</p>
         <p class="text-xl font-bold text-orange-600">Exam Time Table</p>
     </div>
 
-    <!-- Teacher Time Table -->
-    <div onclick="openTimeTableManager('Teacher Time Table')" 
-        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 cursor-pointer active:scale-95 transition">
+    <!-- Teacher -->
+    <div onclick="openTeacherTimeTable()" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 cursor-pointer">
         <p class="text-gray-500 text-[10px] uppercase font-bold">Teachers View</p>
         <p class="text-xl font-bold text-blue-600">Teacher Time Table</p>
     </div>
