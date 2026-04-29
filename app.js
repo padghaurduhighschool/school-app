@@ -351,8 +351,7 @@ document.getElementById('student-interface').innerHTML = `
                 ${role !== 'Teacher' ? `
                     <option value="Jr KG">Class Jr KG</option>
                     <option value="Sr KG">Class Sr KG</option>
-                    ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option value="${n}">Class ${n}th Std</option>`).join('')}
-                ` : ''}
+                    ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option value="${n}">${n}</option>`).join('')}                ` : ''}
             </select>
             
             <button onclick="loadAttendanceSheet()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-sm active:scale-95 transition-all">
