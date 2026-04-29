@@ -2130,7 +2130,44 @@ function fetchPersonalStudentLogs(grNo) {
             logContainer.innerHTML = "<li>Error loading logs.</li>";
         });
 }
-    
+// This function runs when the student clicks "Show Timetable"
+function getStudentTimetable(studentClass) {
+  
+  // 1. Point to the right spot in Firebase
+  // Make sure this matches exactly where your Admin login saves the data!
+  var timetableRef = firebase.database().ref('Timetable/' + studentClass);
+
+  // 2. Ask Firebase for the data
+  timetableRef.on('value', function(snapshot) {
+    var timetableData = snapshot.val();
+
+    if (timetableData) {
+      // 3. If data exists, show it on the screen
+      renderTimetableUI(timetableData);
+    } else {
+      // 4. If no data, tell the user
+      alert("No timetable found for " + studentClass);
+    }
+  });
+}
+function loadTimetableForStudent(classFromSheet) {
+  // If classFromSheet is "1", this makes it "Class 1"
+  var formattedClassName = "Class " + classFromSheet;
+
+  // Now the app looks in the SAME place as the Admin! [cite: 1, 148]
+  var timetableRef = firebase.database().ref('Timetable/' + formattedClassName);
+
+  timetableRef.on('value', function(snapshot) {
+    var data = snapshot.val();
+    if (data) {
+      // Success! The data matches. [cite: 148]
+      showTimetableOnScreen(data);
+    } else {
+      console.log("Still can't find data for: " + formattedClassName);
+    }
+  });
+}
+
     
 
 
