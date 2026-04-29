@@ -341,8 +341,24 @@ if (section === 'home') {
         </div>
       </div>
     `;
+} } else if (role === 'Student') {
+    const mappedClass = localStorage.getItem('mappedClass') || '';
+    content.innerHTML = `
+      <div class="space-y-4">
+        <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
+          <h2 class="text-2xl font-bold">Hello, ${name}</h2>
+          <p class="text-sm opacity-80 mt-1">Class: ${mappedClass}</p>
+        </div>
+
+        <div onclick="loadSection('student_time_table')"
+             class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-green-500 cursor-pointer active:scale-95 transition-all">
+          <p class="text-gray-500 text-[10px] uppercase font-bold">Students View</p>
+          <p class="text-xl font-bold text-green-600">Daily Time Table</p>
+          <p class="text-sm text-gray-400 mt-2 italic">${mappedClass || 'No class assigned'}</p>
+        </div>
+      </div>
+    `;
 } else {
-    // keep existing other-role behavior
     content.innerHTML = `<div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg"><h2 class="text-2xl font-bold">Hello, ${name}</h2></div>`;
 }
 if (role === 'Teacher') {
@@ -853,6 +869,34 @@ if (section === 'view_teacher_timetable') {
     }
 }
 
+if (section === 'student_time_table') {
+    const mappedClass = localStorage.getItem('mappedClass') || '';
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center space-x-2">
+                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">←</button>
+                <h2 class="text-lg font-bold">Daily Time Table ${mappedClass ? ('- Class ' + mappedClass) : ''}</h2>
+            </div>
+            <div id="student-timetable" class="mt-3"></div>
+        </div>
+    `;
+
+    const container = document.getElementById('student-timetable');
+    if (!mappedClass) {
+        container.innerHTML = `<p class="text-center py-10 text-gray-400">No class assigned to your account.</p>`;
+        return;
+    }
+
+    // loadStudentTimeTable is already defined elsewhere in app.js and expects the class string
+    loadStudentTimeTable(mappedClass);
+}
+
+
+
+
+
+
+    
     
 }    
 // 6. ATTENDANCE & GEOLOCATION
