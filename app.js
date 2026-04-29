@@ -2192,77 +2192,66 @@ window.saveExam = () => {
     alert("Saved");
 };
 
-// Replace your current openTeacherTimeTable with this version
+
+// Replace the current openTeacherTimeTable function with this:
 window.openTeacherTimeTable = async () => {
     const content = document.getElementById('content');
-
     const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
     let html = `
     <div class="space-y-4">
-        <button onclick="loadSection('home')" class="text-blue-600 font-bold">← Back</button>
+      <button onclick="loadSection('home')" class="text-blue-600 font-bold">← Back</button>
+      <div class="bg-white p-4 rounded-xl shadow">
+        <h2 class="font-bold mb-3">Teacher Time Table</h2>
 
-        <div class="bg-white p-4 rounded-xl shadow">
-            <h2 class="font-bold mb-3">Teacher Time Table</h2>
+        <!-- dropdown that will be populated from CSV -->
+        <select id="teacherSelect" class="w-full p-2 border rounded mb-3">
+          <option value="">Select Teacher</option>
+        </select>
 
-            <!-- Use 'teacherSelect' so loadTeacherDropdown() can populate it -->
-            <select id="teacherSelect" class="w-full p-2 border rounded mb-3">
-                <option value="">Select Teacher</option>
-            </select>
-
-            <table class="w-full text-xs border border-collapse">
-                <tr class="bg-gray-100">
-                    <th class="border p-2">Sr.</th>`;
-    days.forEach(d => html+= `<th class="border p-2">${d}</th>`);
+        <table class="w-full text-xs border border-collapse">
+          <tr class="bg-gray-100"><th class="border p-2">Sr.</th>`;
+    days.forEach(d => html += `<th class="border p-2">${d}</th>`);
     html += `</tr>`;
-
-    for(let i=1;i<=8;i++){
+    for (let i = 1; i <= 8; i++) {
         html += `<tr><td class="border p-2">${i}</td>`;
-        days.forEach(d=>{
-            html += `<td class="border p-1">
-                <input id="t-${i}-${d}" class="w-full text-xs">
-            </td>`;
+        days.forEach(d => {
+            html += `<td class="border p-1"><input id="t-${i}-${d}" class="w-full text-xs"></td>`;
         });
         html += `</tr>`;
     }
-
-    html += `
-    </table>
-
-    <button onclick="saveTeacher()" class="mt-3 w-full bg-blue-600 text-white p-2 rounded">
-        Save
-    </button>
-    </div></div>`;
+    html += `</table>
+        <button onclick="saveTeacher()" class="mt-3 w-full bg-blue-600 text-white p-2 rounded">Save</button>
+      </div></div>`;
 
     content.innerHTML = html;
 
-    // Populate teachers from CSV
+    // Populate dropdown from CSV (your loadTeacherDropdown exists)
     if (typeof loadTeacherDropdown === 'function') {
-        loadTeacherDropdown(); // this will fill #teacherSelect and attach onchange to loadTeacherDataForEdit
+        loadTeacherDropdown(); // populates #teacherSelect and sets onchange
     } else {
-        console.warn("loadTeacherDropdown is not available.");
+        console.warn("loadTeacherDropdown() not found");
     }
 };
-
     
 // Ensure saveTeacher reads the same select id that loadTeacherDropdown populates
+// Replace/ensure saveTeacher reads #teacherSelect
 window.saveTeacher = () => {
     const teacherEl = document.getElementById("teacherSelect") || document.getElementById("teacher-select");
     const teacher = teacherEl ? teacherEl.value : "";
-    if(!teacher) return alert("Select teacher");
+    if (!teacher) return alert("Select teacher");
 
     const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    let data = {};
-
-    for(let i=1;i<=8;i++){
-        data[i]={};
-        days.forEach(d=>{
+    const data = {};
+    for (let i = 1; i <= 8; i++) {
+        data[i] = {};
+        days.forEach(d => {
             const input = document.getElementById(`t-${i}-${d}`);
             data[i][d] = input ? input.value : "";
         });
     }
 
-    firebase.database().ref("timetable/teacher/"+teacher).set(data)
+    firebase.database().ref("timetable/teacher/" + teacher).set(data)
     .then(() => alert("Saved"))
     .catch(err => alert("Error: " + err.message));
 };
@@ -2498,17 +2487,15 @@ function updatePublishButtonUI() {
     });
 }
 // Add this helper so selecting a teacher fills the inputs for edit
+// Add this helper so dropdown selection loads saved timetable
 window.loadTeacherDataForEdit = async (teacherName) => {
     if (!teacherName) return;
-
-    // fetch existing timetable for that teacher from Firebase
     try {
         const snap = await firebase.database().ref("timetable/teacher/" + teacherName).once('value');
         const data = snap.val();
 
-        // clear first
         const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-        for (let i=1;i<=8;i++){
+        for (let i = 1; i <= 8; i++) {
             days.forEach(d => {
                 const el = document.getElementById(`t-${i}-${d}`);
                 if (el) el.value = "";
@@ -2516,16 +2503,24 @@ window.loadTeacherDataForEdit = async (teacherName) => {
         }
 
         if (!data) return;
+        // Fill period inputs if data uses period->day structure OR day->string structure
+        if (Object.values(data).every(v => typeof v === 'string')) {
+            // day -> schedule string
+            Object.keys(data).forEach(day => {
+                const schedule = data[day] || "";
+                // no per-period inputs for this format; optionally show in note or map to first column
+            });
+            // (If admin saves day->string, the view screen shows it; editing in table may require different format)
+            return;
+        }
 
-        // fill inputs if data found
+        // period -> {day: text}
         Object.keys(data).forEach(period => {
             const p = parseInt(period, 10);
             if (!p) return;
             days.forEach(d => {
                 const cell = document.getElementById(`t-${p}-${d}`);
-                if (cell && data[period] && data[period][d] !== undefined) {
-                    cell.value = data[period][d] || "";
-                }
+                if (cell) cell.value = (data[period] && data[period][d]) ? data[period][d] : "";
             });
         });
     } catch (err) {
