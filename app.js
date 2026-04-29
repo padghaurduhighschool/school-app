@@ -11,7 +11,13 @@ const schoolClasses = [
     "1", "2", "3", "4", 
     "5", "6", "7", "8", "9", "10"
 ];
-
+function normalizeClass(cls) {
+    return String(cls)
+        .toLowerCase()
+        .replace("class", "")
+        .replace(/\s+/g, "")
+        .trim();
+}
 const getClassOptions = () => {
     // This displays "Class 1" to the user but keeps the value as "1" for your CSV mapping
     return schoolClasses.map(cls => {
@@ -271,8 +277,9 @@ if (section === 'home') {
     
 if (section === 'attendance') {
     const role = localStorage.getItem('userRole');
-    const mappedClass = localStorage.getItem('mappedClass');
-    const name = localStorage.getItem('userName');
+const filtered = timetableData.filter(t => 
+    normalizeClass(t.class) === normalizeClass(mappedClass)
+);    const name = localStorage.getItem('userName');
     const now = new Date();
     const day = now.getDay();
     const dateKey = now.toISOString().split('T')[0];
