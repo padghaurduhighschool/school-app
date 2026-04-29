@@ -727,48 +727,60 @@ if (section === 'view_teacher_timetable') {
     const display = document.getElementById('tt-display');
     display.innerHTML = `<p class="text-center py-10 text-gray-400">Loading timetable...</p>`;
 
-    // Helper to normalize keys for comparison
-    const normalize = (s) => String(s || '').toLowerCase().replace(/\s+/g, '').replace(/[^\w]/g, '');
+    const normalize = s => String(s || '').toLowerCase().replace(/\s+/g, '').replace(/[^\w]/g, '');
+    const sanitizeKey = s => String(s || '').toLowerCase().trim().replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
 
-    // Read all teacher timetables once and find the best match
-    firebase.database().ref('teacher_timetables').once('value', (snap) => {
-        const all = snap.val();
-        if (!all) {
+    firebase.database().ref('teacher_timetables').once('value')
+    .then(snap => {
+        const all = snap.val() || {};
+        if (!Object.keys(all).length) {
             display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
             return;
         }
 
-        // Try exact match first, then normalized match
+        // 1) Exact key match using displayed teacherName
         if (all[teacherName]) {
-            renderTimetable(all[teacherName], teacherName);
+            render(all[teacherName]);
             return;
         }
 
-        const normalizedTarget = normalize(teacherName);
-        const matchKey = Object.keys(all).find(k => normalize(k) === normalizedTarget);
+        // 2) Sanitized-key match (new saves)
+        const keyTry = sanitizeKey(teacherName);
+        if (all[keyTry]) { render(all[keyTry]); return; }
 
-        if (matchKey) {
-            renderTimetable(all[matchKey], matchKey);
+        // 3) Normalized displayName match inside stored objects
+        const normTarget = normalize(teacherName);
+        const foundKey = Object.keys(all).find(k => {
+            const node = all[k];
+            // if node has displayName saved, compare normalized displayName
+            if (node && node.displayName && normalize(node.displayName) === normTarget) return true;
+            // else if key normalized matches
+            if (normalize(k) === normTarget) return true;
+            // fallback: substring match either way
+            if (k.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(k.toLowerCase())) return true;
+            return false;
+        });
+
+        if (foundKey) {
+            render(all[foundKey]);
         } else {
-            // No match found
             display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
         }
-    }, (err) => {
+    })
+    .catch(err => {
         console.error('Error fetching timetables:', err);
         display.innerHTML = `<p class="text-center py-10 text-red-500">Failed to load timetable. Check network or permissions.</p>`;
     });
 
-    // Render helper (supports both map-of-days => string, or nested period structure)
-    function renderTimetable(data, keyNameForDebug) {
-        if (!data) {
+    function render(node) {
+        if (!node) {
             display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
             return;
         }
 
-        // If saved as an object of days => scheduleString (Admin saveTeacherTimetable uses this)
-        // e.g. { "Monday": "...", "Tuesday": "..." }
-        if (Object.values(data).every(v => typeof v === 'string')) {
-            display.innerHTML = Object.entries(data).map(([day, schedule]) => `
+        // If saved in new format { displayName, schedule: {day: text} }
+        if (node.schedule && typeof node.schedule === 'object') {
+            display.innerHTML = Object.entries(node.schedule).map(([day, schedule]) => `
                 <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
                     <p class="font-bold text-blue-600 text-xs uppercase mb-1">${day}</p>
                     <p class="text-sm text-gray-700 whitespace-pre-line">${schedule || 'No classes scheduled'}</p>
@@ -777,18 +789,28 @@ if (section === 'view_teacher_timetable') {
             return;
         }
 
-        // If saved as periods mapping data[period][day] = string (older/alternate format)
-        // Render it as a table
+        // If old format is day => text directly (no wrapper)
+        if (Object.values(node).every(v => typeof v === 'string')) {
+            display.innerHTML = Object.entries(node).map(([day, schedule]) => `
+                <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
+                    <p class="font-bold text-blue-600 text-xs uppercase mb-1">${day}</p>
+                    <p class="text-sm text-gray-700 whitespace-pre-line">${schedule || 'No classes scheduled'}</p>
+                </div>
+            `).join('');
+            return;
+        }
+
+        // If node is periods mapping {1: {Monday: ...}}
         const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-        const periods = Object.keys(data).sort((a,b) => Number(a) - Number(b));
-        if (periods.length) {
+        const periods = Object.keys(node).sort((a,b) => Number(a) - Number(b));
+        if (periods.length && node[periods[0]] && typeof node[periods[0]] === 'object') {
             let html = `<div class="overflow-x-auto bg-white p-3 rounded-xl shadow-sm"><table class="w-full text-xs border border-collapse"><tr><th class="p-2 border">Period</th>`;
             days.forEach(d => html += `<th class="p-2 border">${d}</th>`);
             html += `</tr>`;
             periods.forEach(p => {
                 html += `<tr><td class="p-2 border font-bold text-center">${p}</td>`;
                 days.forEach(d => {
-                    const cell = (data[p] && data[p][d]) ? data[p][d] : '';
+                    const cell = (node[p] && node[p][d]) ? node[p][d] : '';
                     html += `<td class="p-2 border text-sm">${cell}</td>`;
                 });
                 html += `</tr>`;
@@ -2432,18 +2454,30 @@ function loadTimetableForStudent(classFromSheet) {
     }
 };
 
+// Save teacher timetable under a sanitized key and store displayName
 window.saveTeacherTimetable = () => {
-    const teacher = document.getElementById('teacherSelect').value;
+    const teacher = (document.getElementById('teacherSelect')?.value || '').trim();
     if (!teacher) return alert("Select a teacher first");
 
-    const data = {};
-    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].forEach(day => {
-        data[day] = document.getElementById(`tt-${day}`).value;
+    // Build the schedule object (Monday..Saturday => text)
+    const payload = {};
+    ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].forEach(day => {
+        payload[day] = document.getElementById(`tt-${day}`)?.value || "";
     });
 
-    firebase.database().ref('teacher_timetables/' + teacher).set(data)
-        .then(() => alert("Timetable saved successfully!"))
-        .catch(e => alert("Error: " + e.message));
+    // Create a sanitized key: lowercase, replace spaces with underscore, remove unsafe chars
+    const sanitize = s => String(s || '').toLowerCase().trim().replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
+    const key = sanitize(teacher);
+
+    // Save both a displayName and the payload so reads can match by either
+    firebase.database().ref('teacher_timetables/' + key).set({
+        displayName: teacher,
+        schedule: payload,
+        updatedBy: localStorage.getItem('userName') || 'unknown',
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    }).then(() => {
+        alert("Timetable saved successfully!");
+    }).catch(e => alert("Error saving timetable: " + e.message));
 };
 
 window.togglePublishTimetable = () => {
