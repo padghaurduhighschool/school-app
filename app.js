@@ -318,6 +318,22 @@ if (section === 'home') {
           <p class="text-sm opacity-80 mt-1">Welcome to your Dashboard</p>
         </div>
 
+        <div onclick="openDailyTimeTable()"
+             class="bg-gradient-to-br from-purple-600 to-indigo-700 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-purple-100 text-[10px] uppercase tracking-widest font-bold">School Schedule</p>
+              <h3 class="text-white text-xl font-black mt-1">Daily Time Table</h3>
+              <p class="text-purple-200 text-xs mt-1">View all class schedules</p>
+            </div>
+            <div class="bg-white/20 p-3 rounded-xl">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        
         <div onclick="loadSection('view_teacher_timetable')"
              class="mt-6 bg-gradient-to-br from-purple-600 to-indigo-700 p-5 rounded-2xl shadow-lg border-none transform active:scale-95 transition-all cursor-pointer">
           <div class="flex items-center justify-between">
@@ -2091,52 +2107,38 @@ window.saveTimeTableSettings = (type) => {
 };
 window.openDailyTimeTable = () => {
     const content = document.getElementById('content');
-    const role = localStorage.getItem('userRole'); // Gets the person's role
-    const userName = localStorage.getItem('userName');
-    const mappedClass = localStorage.getItem('mappedClass'); // Used for students
+    const role = localStorage.getItem('userRole');
+    const mappedClass = localStorage.getItem('mappedClass');
 
-    // 1. Identify permissions
+    // Permissions logic
     const isAdmin = ['Admin', 'Super Admin', 'Supervisor', 'Clerk'].includes(role);
-    const isTeacher = (role === 'Teacher');
     const isStudent = (role === 'Student');
 
-    // 2. Setup the Screen Layout
     content.innerHTML = `
-        <div class="space-y-4 pb-20">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-3">
-                    <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-                    <h2 class="text-xl font-bold">Daily Time Table</h2>
-                </div>
-                ${isAdmin ? `
-                <button onclick="saveClassTimetable()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md active:scale-95">
-                    SAVE
-                </button>` : ''}
+        <div class="space-y-4 pb-10">
+            <div class="flex items-center justify-between">
+                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/></svg>
+                </button>
+                <h2 class="text-lg font-bold">Daily Time Table</h2>
+                ${isAdmin ? `<button onclick="saveClassTimetable()" class="bg-blue-600 text-white px-4 py-1 rounded-lg text-sm font-bold">SAVE</button>` : '<div></div>'}
             </div>
 
-            <div class="${isStudent ? 'hidden' : 'block'} bg-white p-4 rounded-xl shadow-sm border">
-                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">Select Class</label>
-                <select id="tt-class-select" onchange="loadClassTimetable(this.value)" class="w-full p-3 bg-gray-50 rounded-lg border-none font-bold text-gray-700 focus:ring-2 focus:ring-blue-500">
-                    <option value="">-- Choose Class --</option>
+            <div class="${isStudent ? 'hidden' : 'block'} bg-white p-3 rounded-xl border">
+                <select id="tt-class-select" onchange="loadClassTimetable(this.value)" class="w-full p-2 bg-gray-50 rounded font-bold text-sm">
+                    <option value="">-- Select Class --</option>
                     ${schoolClasses.map(c => `<option value="${c}">${c}</option>`).join('')}
                 </select>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
-                <div id="tt-display-grid">
-                    <p class="text-center py-10 text-gray-400 italic text-sm">Please select a class to view schedule</p>
-                </div>
+            <div id="tt-display-grid" class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <p class="p-10 text-center text-gray-400 text-xs italic">Select a class to view timetable</p>
             </div>
         </div>
     `;
 
-    // 3. Logic for Students: Auto-load their class only
+    // If it's a student, automatically load their class
     if (isStudent && mappedClass) {
-        document.getElementById('tt-class-select').value = mappedClass;
         loadClassTimetable(mappedClass);
     }
 };
