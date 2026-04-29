@@ -2785,7 +2785,123 @@ window.showFeesChart = async () => {
         content.innerHTML = `<div class="p-10 text-center text-red-500">Error: ${err.message}</div>`;
     }
 };
+window.showFeesDashboard = async () => {
+    const content = document.getElementById('content');
+    const role = localStorage.getItem('role');
+    const userName = localStorage.getItem('name');
+    const userClass = localStorage.getItem('class'); // Assuming class is stored for teachers/students
 
+    content.innerHTML = `<div class="p-10 text-center font-bold">Calculating Fees...</div>`;
+
+    try {
+        // Fetch both the Student Master List (for contact/total fees) and the Payment CSV
+        const [studentRes, paymentRes] = await Promise.all([
+            fetch(STUDENT_SHEET_CSV),
+            fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv")
+        ]);
+
+        const studentData = await studentRes.text();
+        const paymentData = await paymentRes.text();
+
+        const students = Array.from(d3.csvParse(studentData));
+        const payments = Array.from(d3.csvParse(paymentData));
+
+        let html = `
+            <div class="bg-gray-50 min-h-screen pb-20">
+                <div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between z-10">
+                    <div class="flex items-center">
+                        <button onclick="loadSection('home')" class="mr-3 text-blue-600">←</button>
+                        <h2 class="text-lg font-bold">Fees Dashboard</h2>
+                    </div>
+                </div>
+        `;
+
+        if (['Admin', 'Super Admin', 'Supervisor', 'Clerk', 'Teacher'].includes(role)) {
+            // STAFF VIEW: List with Paid/Balance
+            html += `
+                <div class="p-4 space-y-3">
+                    <input type="text" id="feeSearch" oninput="filterFeeList()" placeholder="Search Name or Class..." class="w-full p-3 rounded-xl border border-gray-200 text-sm">
+                    <div id="feeListContainer" class="space-y-3">
+            `;
+
+            students.forEach(student => {
+                // Filter for Teachers: only show their class
+                if (role === 'Teacher' && student.Class !== userClass) return;
+
+                const studentPayments = payments.filter(p => p.Name.trim() === student.Name.trim());
+                const totalPaid = studentPayments.reduce((sum, p) => sum + parseFloat(p.Amount || 0), 0);
+                const totalFees = parseFloat(student.TotalFees || 0); // Assuming TotalFees exists in Master Sheet
+                const balance = totalFees - totalPaid;
+
+                html += `
+                    <div class="fee-item bg-white p-4 rounded-2xl shadow-sm border-l-4 ${balance > 0 ? 'border-red-500' : 'border-green-500'}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-bold text-gray-800">${student.Name}</p>
+                                <p class="text-[11px] text-gray-500">Class: ${student.Class} | 📞 ${student.Contact || 'N/A'}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs font-bold text-green-600">Paid: ₹${totalPaid}</p>
+                                <p class="text-xs font-bold ${balance > 0 ? 'text-red-600' : 'text-gray-400'}">Bal: ₹${balance}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div></div>`;
+
+        } else if (role === 'Student') {
+            // STUDENT VIEW: Receipt History
+            const myPayments = payments.filter(p => p.Name.trim() === userName.trim());
+            const totalPaid = myPayments.reduce((sum, p) => sum + parseFloat(p.Amount || 0), 0);
+            
+            html += `
+                <div class="p-4">
+                    <div class="bg-blue-600 rounded-2xl p-6 text-white mb-6 shadow-lg">
+                        <p class="text-sm opacity-80 uppercase font-bold tracking-widest">Total Paid Amount</p>
+                        <h1 class="text-4xl font-black mt-1">₹${totalPaid}</h1>
+                    </div>
+
+                    <h3 class="font-bold text-gray-800 mb-3">Payment Receipts</h3>
+                    <div class="space-y-3">
+            `;
+
+            myPayments.forEach(p => {
+                html += `
+                    <div class="bg-white p-4 rounded-xl border border-gray-100 flex justify-between items-center">
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold">Receipt #${p.Receipt}</p>
+                            <p class="font-bold text-gray-700">${p.Date}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-black text-blue-600 text-lg">₹${p.Amount}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if(myPayments.length === 0) html += `<p class="text-center text-gray-400 py-10">No payments found.</p>`;
+            html += `</div></div>`;
+        }
+
+        html += `</div>`;
+        content.innerHTML = html;
+
+    } catch (err) {
+        content.innerHTML = `<p class="p-10 text-red-500">Error: ${err.message}</p>`;
+    }
+};
+
+// Simple search filter for the staff view
+window.filterFeeList = () => {
+    const q = document.getElementById('feeSearch').value.toLowerCase();
+    document.querySelectorAll('.fee-item').forEach(item => {
+        item.style.display = item.innerText.toLowerCase().includes(q) ? 'block' : 'none';
+    });
+};
+
+
+    
     
     
     
