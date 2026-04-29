@@ -711,8 +711,9 @@ if (section === 'homework') {
     `;
     fetchNotices();
 }
+// --- replace existing view_teacher_timetable block with this ---
 if (section === 'view_teacher_timetable') {
-    const teacherName = localStorage.getItem('userName');
+    const teacherName = (localStorage.getItem('userName') || '').trim();
     content.innerHTML = `
         <div class="space-y-4">
             <div class="flex items-center space-x-2">
@@ -722,22 +723,85 @@ if (section === 'view_teacher_timetable') {
             <div id="tt-display" class="grid gap-3"></div>
         </div>
     `;
-    
-    firebase.database().ref('teacher_timetables/' + teacherName).once('value', (snap) => {
-        const data = snap.val();
-        const display = document.getElementById('tt-display');
+
+    const display = document.getElementById('tt-display');
+    display.innerHTML = `<p class="text-center py-10 text-gray-400">Loading timetable...</p>`;
+
+    // Helper to normalize keys for comparison
+    const normalize = (s) => String(s || '').toLowerCase().replace(/\s+/g, '').replace(/[^\w]/g, '');
+
+    // Read all teacher timetables once and find the best match
+    firebase.database().ref('teacher_timetables').once('value', (snap) => {
+        const all = snap.val();
+        if (!all) {
+            display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
+            return;
+        }
+
+        // Try exact match first, then normalized match
+        if (all[teacherName]) {
+            renderTimetable(all[teacherName], teacherName);
+            return;
+        }
+
+        const normalizedTarget = normalize(teacherName);
+        const matchKey = Object.keys(all).find(k => normalize(k) === normalizedTarget);
+
+        if (matchKey) {
+            renderTimetable(all[matchKey], matchKey);
+        } else {
+            // No match found
+            display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
+        }
+    }, (err) => {
+        console.error('Error fetching timetables:', err);
+        display.innerHTML = `<p class="text-center py-10 text-red-500">Failed to load timetable. Check network or permissions.</p>`;
+    });
+
+    // Render helper (supports both map-of-days => string, or nested period structure)
+    function renderTimetable(data, keyNameForDebug) {
         if (!data) {
             display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
             return;
         }
-        display.innerHTML = Object.entries(data).map(([day, schedule]) => `
-            <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
-                <p class="font-bold text-blue-600 text-xs uppercase mb-1">${day}</p>
-                <p class="text-sm text-gray-700 whitespace-pre-line">${schedule || 'No classes scheduled'}</p>
-            </div>
-        `).join('');
-    });
-}    
+
+        // If saved as an object of days => scheduleString (Admin saveTeacherTimetable uses this)
+        // e.g. { "Monday": "...", "Tuesday": "..." }
+        if (Object.values(data).every(v => typeof v === 'string')) {
+            display.innerHTML = Object.entries(data).map(([day, schedule]) => `
+                <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
+                    <p class="font-bold text-blue-600 text-xs uppercase mb-1">${day}</p>
+                    <p class="text-sm text-gray-700 whitespace-pre-line">${schedule || 'No classes scheduled'}</p>
+                </div>
+            `).join('');
+            return;
+        }
+
+        // If saved as periods mapping data[period][day] = string (older/alternate format)
+        // Render it as a table
+        const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        const periods = Object.keys(data).sort((a,b) => Number(a) - Number(b));
+        if (periods.length) {
+            let html = `<div class="overflow-x-auto bg-white p-3 rounded-xl shadow-sm"><table class="w-full text-xs border border-collapse"><tr><th class="p-2 border">Period</th>`;
+            days.forEach(d => html += `<th class="p-2 border">${d}</th>`);
+            html += `</tr>`;
+            periods.forEach(p => {
+                html += `<tr><td class="p-2 border font-bold text-center">${p}</td>`;
+                days.forEach(d => {
+                    const cell = (data[p] && data[p][d]) ? data[p][d] : '';
+                    html += `<td class="p-2 border text-sm">${cell}</td>`;
+                });
+                html += `</tr>`;
+            });
+            html += `</table></div>`;
+            display.innerHTML = html;
+            return;
+        }
+
+        // Fallback
+        display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
+    }
+}
 
 
     
