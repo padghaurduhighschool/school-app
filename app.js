@@ -370,7 +370,6 @@ if (section === 'home') {
              class="mt-6 bg-gradient-to-br from-green-600 to-teal-700 p-5 rounded-2xl shadow-lg border-none transform active:scale-95 transition-all cursor-pointer">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-green-100 text-[10px] uppercase tracking-widest font-bold">Your Schedule</p>
               <h3 class="text-white text-xl font-black mt-1">Daily Time Table</h3>
               <p class="text-green-200 text-sm font-medium mt-1 italic">${name}</p>
             </div>
