@@ -210,6 +210,33 @@ if (section === 'home') {
     </div>
 </div>
 
+
+<div class="grid grid-cols-1 gap-3">
+
+    <!-- Daily Time Table -->
+    <div onclick="openTimeTableManager('Daily Time Table')" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-green-500 cursor-pointer active:scale-95 transition">
+        <p class="text-gray-500 text-[10px] uppercase font-bold">Students View</p>
+        <p class="text-xl font-bold text-green-600">Daily Time Table</p>
+    </div>
+
+    <!-- Exam Time Table -->
+    <div onclick="openTimeTableManager('Exam Time Table')" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-orange-500 cursor-pointer active:scale-95 transition">
+        <p class="text-gray-500 text-[10px] uppercase font-bold">Students View</p>
+        <p class="text-xl font-bold text-orange-600">Exam Time Table</p>
+    </div>
+
+    <!-- Teacher Time Table -->
+    <div onclick="openTimeTableManager('Teacher Time Table')" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 cursor-pointer active:scale-95 transition">
+        <p class="text-gray-500 text-[10px] uppercase font-bold">Teachers View</p>
+        <p class="text-xl font-bold text-blue-600">Teacher Time Table</p>
+    </div>
+
+</div>
+
+
                 
              <div onclick="loadSection('students')" class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 text-center">
                     <div class="flex items-center space-x-3">
@@ -1655,6 +1682,102 @@ window.switchLang = (id, lang) => {
     return 'lang-en';
 }
 
+window.openTimeTableManager = (type) => {
+    const content = document.getElementById('content');
+    
+    // Determine the visibility checkbox label based on type
+    const visibilityLabel = (type === "Teacher Time Table") 
+        ? "Visible to Teachers" 
+        : "Visible to Students";
+
+    content.innerHTML = `
+        <div class="space-y-4">
+            <button onclick="loadSection('home')" class="text-blue-600 font-bold flex items-center">
+                ← Back to Dashboard
+            </button>
+            
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-blue-50">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">${type} Settings</h2>
+                
+                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">CSV Google Sheet Link</label>
+                <input type="text" id="csv-url-input" placeholder="Paste published CSV link here..." 
+                    class="w-full p-3 bg-gray-50 rounded-xl text-sm border focus:ring-2 focus:ring-blue-500 mb-4">
+                
+                <div class="flex items-center mb-6">
+                    <input type="checkbox" id="visibility-check" class="w-5 h-5 text-blue-600 rounded">
+                    <label for="visibility-check" class="ml-2 text-sm font-medium text-gray-700">${visibilityLabel}</label>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="previewCSV('${type}')" class="flex-1 bg-gray-800 text-white p-3 rounded-xl font-bold">Preview</button>
+                    <button onclick="saveTimeTableSettings('${type}')" class="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold">Save & Publish</button>
+                </div>
+            </div>
+
+            <div id="preview-container" class="mt-4 overflow-x-auto">
+                </div>
+        </div>
+    `;
+
+    // Optionally: Pre-load existing data from Firebase if available
+    firebase.database().ref('settings/timetables/' + type.replace(/ /g, '_')).once('value', (snap) => {
+        const data = snap.val();
+        if(data) {
+            document.getElementById('csv-url-input').value = data.url || "";
+            document.getElementById('visibility-check').checked = data.visible || false;
+        }
+    });
+};
+
+window.previewCSV = async (type) => {
+    const url = document.getElementById('csv-url-input').value;
+    const container = document.getElementById('preview-container');
+    
+    if(!url) return alert("Please paste a link first.");
+    
+    container.innerHTML = `<p class="text-center italic text-gray-500">Fetching preview...</p>`;
+
+    try {
+        const response = await fetch(url);
+        const text = await response.text();
+        const rows = text.split('\n').map(row => row.split(','));
+        
+        let tableHtml = `<table class="w-full bg-white text-xs border rounded-lg">`;
+        rows.forEach((row, index) => {
+            tableHtml += `<tr class="${index === 0 ? 'bg-gray-100 font-bold' : 'border-t'}">`;
+            row.forEach(cell => {
+                tableHtml += `<td class="p-2 border-r">${cell}</td>`;
+            });
+            tableHtml += `</tr>`;
+        });
+        tableHtml += `</table>`;
+        
+        container.innerHTML = tableHtml;
+    } catch (e) {
+        container.innerHTML = `<p class="text-red-500">Error: Could not fetch CSV. Ensure the sheet is "Published to Web" as CSV.</p>`;
+    }
+};
+
+window.saveTimeTableSettings = (type) => {
+    const url = document.getElementById('csv-url-input').value;
+    const isVisible = document.getElementById('visibility-check').checked;
+    const dbKey = type.replace(/ /g, '_');
+
+    firebase.database().ref('settings/timetables/' + dbKey).set({
+        url: url,
+        visible: isVisible,
+        updatedBy: localStorage.getItem('userName'),
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    }).then(() => {
+        alert(`${type} updated successfully!`);
+    });
+};
+
+
+
+
+
+    
     
 
     
