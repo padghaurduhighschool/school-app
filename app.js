@@ -5,6 +5,21 @@ const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCt
 const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv"; 
 const OFFICE_LAT = 19.2435; 
 const OFFICE_LON = 73.1234; 
+
+const schoolClasses = [
+    "Jr KG", "Sr KG", 
+    "1", "2", "3", "4", 
+    "5", "6", "7", "8", "9", "10"
+];
+
+const getClassOptions = () => {
+    // This displays "Class 1" to the user but keeps the value as "1" for your CSV mapping
+    return schoolClasses.map(cls => {
+        const displayName = isNaN(cls) ? cls : `Class ${cls}`;
+        return `<option value="${cls}">${displayName}</option>`;
+    }).join('');
+};
+    
 let deferredPrompt;
 
 let selectedStudentGR = null;
@@ -1785,12 +1800,10 @@ window.openDailyTimeTable = () => {
         <div class="bg-white p-4 rounded-xl shadow">
             <h2 class="font-bold mb-3">Daily Time Table</h2>
 
-            <select id="class-select" class="w-full p-2 border rounded mb-3">
-                <option value="">Select Class</option>
-                <option>Class 1</option>
-                <option>Class 2</option>
-                <option>Class 3</option>
-            </select>
+<select id="class-select" class="w-full p-2 border rounded mb-3">
+    <option value="">Select Class</option>
+    ${getClassOptions()}
+</select>
 
             <div class="overflow-x-auto">
             <table class="w-full text-xs border border-collapse">
@@ -1863,11 +1876,10 @@ window.openExamTimeTable = () => {
         <div class="bg-white p-4 rounded-xl shadow">
             <h2 class="font-bold mb-3">Exam Time Table</h2>
 
-            <select id="exam-class" class="w-full p-2 border rounded mb-3">
-                <option value="">Select Class</option>
-                <option>Class 1</option>
-                <option>Class 2</option>
-            </select>
+<select id="class-select" class="w-full p-2 border rounded mb-3">
+    <option value="">Select Class</option>
+    ${getClassOptions()}
+</select>
 
             <table class="w-full text-xs border border-collapse">
                 <tr class="bg-gray-100">
