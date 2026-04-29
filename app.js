@@ -273,6 +273,61 @@ if (section === 'home') {
     } else {
         content.innerHTML = `<div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg"><h2 class="text-2xl font-bold">Hello, ${name}</h2></div>`;
     }
+if (role === 'Teacher') {
+        const publishedRef = firebase.database().ref('settings/teacher_timetable_published');
+        publishedRef.on('value', (snap) => {
+            const isPublished = snap.val();
+            if (isPublished) {
+                const ttCard = `
+                    <div onclick="loadSection('view_teacher_timetable')" 
+                         class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-purple-500 cursor-pointer mt-3">
+                        <p class="text-gray-500 text-[10px] uppercase font-bold">Personal Schedule</p>
+                        <p class="text-xl font-bold text-purple-600">Teacher Time Table</p>
+                    </div>`;
+                document.getElementById('content').insertAdjacentHTML('beforeend', ttCard);
+            }
+        });
+    }
+
+    // Add Entry Point for Admins in the existing grid
+    if (["Supervisor", "Clerk", "Super Admin", "Admin"].includes(role)) {
+        // Find the "Teachers View" card and ensure it points to the admin entry section
+        // (This replaces or adds to your existing openTeacherTimeTable call)
+    }
+if (section === 'teacher_timetable_admin') {
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm">
+                <h2 class="text-lg font-bold mb-3">Manage Teacher Timetable</h2>
+                <div class="flex gap-2 mb-4">
+                    <select id="teacherSelect" class="flex-1 p-3 bg-gray-100 rounded-xl text-sm border-none">
+                        <option value="">Loading Teachers...</option>
+                    </select>
+                    <button id="publishBtn" onclick="togglePublishTimetable()" class="px-4 py-2 rounded-lg font-bold text-xs text-white"></button>
+                </div>
+                
+                <div id="tt-entry-grid" class="space-y-3">
+                    ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => `
+                        <div class="p-3 bg-blue-50 rounded-xl">
+                            <p class="font-bold text-blue-800 text-xs mb-2">${day}</p>
+                            <textarea id="tt-${day}" placeholder="Enter schedule for ${day}..." 
+                                class="w-full p-2 text-sm rounded-lg border-none focus:ring-1 focus:ring-blue-400 h-20"></textarea>
+                        </div>
+                    `).join('')}
+                </div>
+                <button onclick="saveTeacherTimetable()" class="w-full mt-4 bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg">
+                    Save Timetable
+                </button>
+            </div>
+        </div>
+    `;
+    loadTeacherDropdown();
+    updatePublishButtonUI();
+}
+
+
+
+    
 }
     
 if (section === 'attendance') {
@@ -584,7 +639,33 @@ if (section === 'homework') {
     `;
     fetchNotices();
 }
+if (section === 'view_teacher_timetable') {
+    const teacherName = localStorage.getItem('userName');
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center space-x-2">
+                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">←</button>
+                <h2 class="text-lg font-bold">My Weekly Schedule</h2>
+            </div>
+            <div id="tt-display" class="grid gap-3"></div>
+        </div>
+    `;
     
+    firebase.database().ref('teacher_timetables/' + teacherName).once('value', (snap) => {
+        const data = snap.val();
+        const display = document.getElementById('tt-display');
+        if (!data) {
+            display.innerHTML = `<p class="text-center py-10 text-gray-400">No timetable assigned yet.</p>`;
+            return;
+        }
+        display.innerHTML = Object.entries(data).map(([day, schedule]) => `
+            <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
+                <p class="font-bold text-blue-600 text-xs uppercase mb-1">${day}</p>
+                <p class="text-sm text-gray-700 whitespace-pre-line">${schedule || 'No classes scheduled'}</p>
+            </div>
+        `).join('');
+    });
+}    
 
 
     
@@ -2174,36 +2255,58 @@ function loadTimetableForStudent(classFromSheet) {
     }
   });
 }
-async function loadTeachers() {
-    const res = await fetch(TEACHER_SHEET_CSV);
-    const text = await res.text();
+window.loadTeacherDropdown = async () => {
+    try {
+        const res = await fetch(TEACHER_SHEET_CSV);
+        const text = await res.text();
+        const rows = text.split('\n').filter(r => r.trim()).slice(1);
+        const select = document.getElementById('teacherSelect');
+        
+        const teacherNames = rows.map(row => {
+            const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            return cols[2]?.replace(/"/g, '').trim(); // Full Name (Col C)
+        });
 
-    const rows = text.split(/\r?\n/).filter(r => r.trim() !== "").map(r =>
-        r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
-    );
+        select.innerHTML = '<option value="">Select Teacher</option>' + 
+            teacherNames.map(name => `<option value="${name}">${name}</option>`).join('');
+            
+        select.onchange = () => loadTeacherDataForEdit(select.value);
+    } catch (e) {
+        alert("Error loading teacher CSV");
+    }
+};
 
-    const headers = rows[0];
-    const data = rows.slice(1);
+window.saveTeacherTimetable = () => {
+    const teacher = document.getElementById('teacherSelect').value;
+    if (!teacher) return alert("Select a teacher first");
 
-    const nameIndex = headers.findIndex(h => h.toLowerCase().includes("name"));
+    const data = {};
+    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].forEach(day => {
+        data[day] = document.getElementById(`tt-${day}`).value;
+    });
 
-    const select = document.getElementById("teacherSelect");
+    firebase.database().ref('teacher_timetables/' + teacher).set(data)
+        .then(() => alert("Timetable saved successfully!"))
+        .catch(e => alert("Error: " + e.message));
+};
 
-    data.forEach(row => {
-        const name = row[nameIndex]?.trim();
-        if (name) {
-            const option = document.createElement("option");
-            option.value = name;
-            option.textContent = name;
-            select.appendChild(option);
-        }
+window.togglePublishTimetable = () => {
+    const ref = firebase.database().ref('settings/teacher_timetable_published');
+    ref.once('value', (snap) => {
+        const currentState = snap.val() || false;
+        ref.set(!currentState);
+    });
+};
+
+function updatePublishButtonUI() {
+    const btn = document.getElementById('publishBtn');
+    firebase.database().ref('settings/teacher_timetable_published').on('value', (snap) => {
+        const isPub = snap.val();
+        btn.innerText = isPub ? "UNPUBLISH" : "PUBLISH";
+        btn.className = isPub ? "px-4 py-2 rounded-lg font-bold text-xs text-white bg-red-500" 
+                             : "px-4 py-2 rounded-lg font-bold text-xs text-white bg-green-500";
     });
 }
-
-
-    
-
-
 
 
     
