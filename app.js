@@ -1804,6 +1804,10 @@ window.openDailyTimeTable = () => {
     <option value="">Select Class</option>
     ${getClassOptions()}
 </select>
+<div class="flex items-center justify-between mb-3">
+    <span class="text-sm font-medium text-gray-700">Visible to Students</span>
+    <input type="checkbox" id="publish-toggle" class="w-5 h-5">
+</div>
 
             <div class="overflow-x-auto">
             <table class="w-full text-xs border border-collapse">
@@ -1846,24 +1850,30 @@ window.openDailyTimeTable = () => {
 
 window.saveDaily = () => {
     const cls = document.getElementById("class-select").value;
-    if(!cls) return alert("Select class");
+    if (!cls) return alert("Select class");
 
     const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
     let data = {};
 
-    for(let i=1;i<=8;i++){
+    for (let i = 1; i <= 8; i++) {
         data[i] = {};
-        days.forEach(d=>{
+        days.forEach(d => {
             data[i][d] = document.getElementById(`d-${i}-${d}`).value || "";
         });
     }
 
-    firebase.database().ref("timetable/daily/"+cls).set({
-        data,
-        note: document.getElementById("daily-note").value
-    });
+    const note = document.getElementById("daily-note").value;
+    const published = document.getElementById("publish-toggle").checked;
 
-    alert("Saved");
+    firebase.database().ref("timetable/daily/" + cls).set({
+        data,
+        note,
+        published,
+        updatedBy: localStorage.getItem("userName"),
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    }).then(() => {
+        alert("Saved successfully!");
+    });
 };
 
 window.openExamTimeTable = () => {
@@ -2007,6 +2017,54 @@ window.saveTeacher = () => {
     alert("Saved");
 };
 
+document.addEventListener("change", async function(e) {
+    if (e.target.id === "class-select") {
+
+        const cls = e.target.value;
+        if (!cls) return;
+
+        const snap = await firebase.database()
+            .ref("timetable/daily/" + cls)
+            .once("value");
+
+        const data = snap.val();
+
+        // Reset first
+        const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        for (let i = 1; i <= 8; i++) {
+            days.forEach(d => {
+                const cell = document.getElementById(`d-${i}-${d}`);
+                if (cell) cell.value = "";
+            });
+        }
+        document.getElementById("daily-note").value = "";
+        document.getElementById("publish-toggle").checked = false;
+
+        // If no data, stop here
+        if (!data) return;
+
+        // Fill timetable
+        if (data.data) {
+            Object.keys(data.data).forEach(period => {
+                Object.keys(data.data[period]).forEach(day => {
+                    const cell = document.getElementById(`d-${period}-${day}`);
+                    if (cell) cell.value = data.data[period][day];
+                });
+            });
+        }
+
+        // Fill note
+        if (data.note) {
+            document.getElementById("daily-note").value = data.note;
+        }
+
+        // Fill publish status
+        if (data.published) {
+            document.getElementById("publish-toggle").checked = true;
+        }
+    }
+});    
+    
     
 
 
