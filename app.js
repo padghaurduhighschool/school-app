@@ -1772,7 +1772,230 @@ window.saveTimeTableSettings = (type) => {
         alert(`${type} updated successfully!`);
     });
 };
+window.openDailyTimeTable = () => {
+    const content = document.getElementById('content');
 
+    const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const periods = 8;
+
+    let html = `
+    <div class="space-y-4">
+        <button onclick="loadSection('home')" class="text-blue-600 font-bold">← Back</button>
+
+        <div class="bg-white p-4 rounded-xl shadow">
+            <h2 class="font-bold mb-3">Daily Time Table</h2>
+
+            <select id="class-select" class="w-full p-2 border rounded mb-3">
+                <option value="">Select Class</option>
+                <option>Class 1</option>
+                <option>Class 2</option>
+                <option>Class 3</option>
+            </select>
+
+            <div class="overflow-x-auto">
+            <table class="w-full text-xs border border-collapse">
+
+                <tr class="bg-gray-100">
+                    <th class="border p-2">Sr.</th>
+    `;
+
+    days.forEach(d => html += `<th class="border p-2">${d}</th>`);
+    html += `</tr>`;
+
+    for (let i=1;i<=periods;i++){
+        html += `<tr>
+            <td class="border p-2 text-center font-bold">${i}</td>`;
+
+        days.forEach(d=>{
+            html += `<td class="border p-1">
+                <input id="d-${i}-${d}" class="w-full text-xs p-1" />
+            </td>`;
+        });
+
+        html += `</tr>`;
+    }
+
+    html += `
+            </table>
+            </div>
+
+            <textarea id="daily-note" placeholder="Note..." 
+                class="w-full mt-3 p-2 border rounded text-sm"></textarea>
+
+            <button onclick="saveDaily()" class="mt-3 w-full bg-blue-600 text-white p-2 rounded">
+                Save
+            </button>
+        </div>
+    </div>`;
+
+    content.innerHTML = html;
+};
+
+window.saveDaily = () => {
+    const cls = document.getElementById("class-select").value;
+    if(!cls) return alert("Select class");
+
+    const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    let data = {};
+
+    for(let i=1;i<=8;i++){
+        data[i] = {};
+        days.forEach(d=>{
+            data[i][d] = document.getElementById(`d-${i}-${d}`).value || "";
+        });
+    }
+
+    firebase.database().ref("timetable/daily/"+cls).set({
+        data,
+        note: document.getElementById("daily-note").value
+    });
+
+    alert("Saved");
+};
+
+window.openExamTimeTable = () => {
+    const content = document.getElementById('content');
+
+    let html = `
+    <div class="space-y-4">
+        <button onclick="loadSection('home')" class="text-blue-600 font-bold">← Back</button>
+
+        <div class="bg-white p-4 rounded-xl shadow">
+            <h2 class="font-bold mb-3">Exam Time Table</h2>
+
+            <select id="exam-class" class="w-full p-2 border rounded mb-3">
+                <option value="">Select Class</option>
+                <option>Class 1</option>
+                <option>Class 2</option>
+            </select>
+
+            <table class="w-full text-xs border border-collapse">
+                <tr class="bg-gray-100">
+                    <th class="border p-2">Date</th>
+                    <th class="border p-2">Day</th>
+                    <th class="border p-2">Time</th>
+                    <th class="border p-2">Subject</th>
+                </tr>
+    `;
+
+    for(let i=1;i<=12;i++){
+        html += `
+        <tr>
+            <td class="border p-1"><input id="ex-date-${i}" class="w-full"></td>
+            <td class="border p-1"><input id="ex-day-${i}" class="w-full"></td>
+            <td class="border p-1"><input id="ex-time-${i}" class="w-full"></td>
+            <td class="border p-1"><input id="ex-sub-${i}" class="w-full"></td>
+        </tr>`;
+    }
+
+    html += `
+            </table>
+
+            <textarea id="exam-note" placeholder="Note..." 
+                class="w-full mt-3 p-2 border rounded text-sm"></textarea>
+
+            <button onclick="saveExam()" class="mt-3 w-full bg-blue-600 text-white p-2 rounded">
+                Save
+            </button>
+        </div>
+    </div>`;
+
+    content.innerHTML = html;
+};
+window.saveExam = () => {
+    const cls = document.getElementById("exam-class").value;
+    if(!cls) return alert("Select class");
+
+    let rows = [];
+
+    for(let i=1;i<=12;i++){
+        rows.push({
+            date: document.getElementById(`ex-date-${i}`).value,
+            day: document.getElementById(`ex-day-${i}`).value,
+            time: document.getElementById(`ex-time-${i}`).value,
+            subject: document.getElementById(`ex-sub-${i}`).value
+        });
+    }
+
+    firebase.database().ref("timetable/exam/"+cls).set({
+        rows,
+        note: document.getElementById("exam-note").value
+    });
+
+    alert("Saved");
+};
+window.openTeacherTimeTable = async () => {
+    const content = document.getElementById('content');
+
+    // Example teacher list (replace with CSV fetch)
+    const teachers = ["Sir A","Sir B","Madam C"];
+
+    const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+    let html = `
+    <div class="space-y-4">
+        <button onclick="loadSection('home')" class="text-blue-600 font-bold">← Back</button>
+
+        <div class="bg-white p-4 rounded-xl shadow">
+            <h2 class="font-bold mb-3">Teacher Time Table</h2>
+
+            <select id="teacher-select" class="w-full p-2 border rounded mb-3">
+                <option value="">Select Teacher</option>
+    `;
+
+    teachers.forEach(t=>{
+        html += `<option>${t}</option>`;
+    });
+
+    html += `</select>
+
+    <table class="w-full text-xs border border-collapse">
+        <tr class="bg-gray-100">
+            <th class="border p-2">Sr.</th>`;
+
+    days.forEach(d=> html+= `<th class="border p-2">${d}</th>`);
+    html += `</tr>`;
+
+    for(let i=1;i<=8;i++){
+        html += `<tr><td class="border p-2">${i}</td>`;
+        days.forEach(d=>{
+            html += `<td class="border p-1">
+                <input id="t-${i}-${d}" class="w-full text-xs">
+            </td>`;
+        });
+        html += `</tr>`;
+    }
+
+    html += `
+    </table>
+
+    <button onclick="saveTeacher()" class="mt-3 w-full bg-blue-600 text-white p-2 rounded">
+        Save
+    </button>
+    </div></div>`;
+
+    content.innerHTML = html;
+};    
+window.saveTeacher = () => {
+    const teacher = document.getElementById("teacher-select").value;
+    if(!teacher) return alert("Select teacher");
+
+    const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    let data = {};
+
+    for(let i=1;i<=8;i++){
+        data[i]={};
+        days.forEach(d=>{
+            data[i][d] = document.getElementById(`t-${i}-${d}`).value || "";
+        });
+    }
+
+    firebase.database().ref("timetable/teacher/"+teacher).set(data);
+
+    alert("Saved");
+};
+
+    
 
 
 
