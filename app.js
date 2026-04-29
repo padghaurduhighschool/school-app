@@ -272,7 +272,6 @@ if (section === 'home') {
         <div id="home-stud-bar-absent" class="bg-red-400 h-full transition-all duration-500" style="width: 0%"></div>
     </div>
 </div>
-// ... inside the Admin view grid ...
     <div onclick="openTeacherTimeTable()" 
         class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 cursor-pointer">
         <p class="text-gray-500 text-[10px] uppercase font-bold">Teachers View</p>
@@ -375,7 +374,6 @@ if (section === 'home') {
   </div>
 </div>
 
-// ... inside the Student view block ...
 <div onclick="showFeesDashboard()" class="bg-gradient-to-br from-indigo-600 to-blue-700 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer">
   <div class="flex items-center justify-between text-white">
     <div>
