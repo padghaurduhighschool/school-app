@@ -2624,6 +2624,44 @@ window.loadClassTimetable = async (className) => {
         grid.innerHTML = `<p class="p-5 text-red-500">Error: ${err.message}</p>`;
     }
 };
+
+window.saveClassTimetable = async () => {
+    const classSelect = document.getElementById('tt-class-select');
+    const className = classSelect ? classSelect.value : null;
+
+    if (!className) {
+        alert("Please select a class first!");
+        return;
+    }
+
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const periods = ["1", "2", "3", "4", "5", "6", "7", "8"];
+    const timetableData = {};
+
+    // 1. Collect data from all the input boxes
+    days.forEach(d => {
+        timetableData[d] = {}; // Create a folder for the Day
+        periods.forEach(p => {
+            const cell = document.getElementById(`cell-${d}-${p}`);
+            if (cell) {
+                // Save the value (e.g., "Maths") into the period
+                timetableData[d][p] = cell.value.trim();
+            }
+        });
+    });
+
+    try {
+        // 2. Upload to Firebase under timetable/class/2 (for example)
+        await firebase.database().ref("timetable/class/" + className).set(timetableData);
+        
+        // 3. Show a success message
+        alert("Timetable for Class " + className + " saved successfully!");
+    } catch (err) {
+        console.error(err);
+        alert("Error saving: " + err.message);
+    }
+};
+    
     
     
 
