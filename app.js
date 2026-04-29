@@ -586,7 +586,6 @@ else if (section === 'more') {
     content.innerHTML = `
         <div class="bg-white rounded-2xl shadow-sm p-4 space-y-4">
             <div class="border-b pb-4">
-                <p class="text-sm text-gray-500 font-medium">STAFF DETAILS</p>
                 <p class="font-bold text-lg text-blue-600">${name} (${role})</p>
             </div>
 
