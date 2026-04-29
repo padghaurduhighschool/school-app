@@ -2091,65 +2091,45 @@ window.saveTimeTableSettings = (type) => {
 };
 window.openDailyTimeTable = () => {
     const content = document.getElementById('content');
+    const role = localStorage.getItem('userRole');
+    const studentClass = localStorage.getItem('mappedClass'); // Automatically gets student's class
+    const userName = localStorage.getItem('userName');
 
-    const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    const periods = 8;
-
-    let html = `
-    <div class="space-y-4">
-        <button onclick="loadSection('home')" class="text-blue-600 font-bold">← Back</button>
-
-        <div class="bg-white p-4 rounded-xl shadow">
-            <h2 class="font-bold mb-3">Daily Time Table</h2>
-
-<select id="class-select" class="w-full p-2 border rounded mb-3">
-    <option value="">Select Class</option>
-    ${getClassOptions()}
-</select>
-<div class="flex items-center justify-between mb-3">
-    <span class="text-sm font-medium text-gray-700">Visible to Students</span>
-    <input type="checkbox" id="publish-toggle" class="w-5 h-5">
-</div>
-
-            <div class="overflow-x-auto">
-            <table class="w-full text-xs border border-collapse">
-
-                <tr class="bg-gray-100">
-                    <th class="border p-2">Sr.</th>
-    `;
-
-    days.forEach(d => html += `<th class="border p-2">${d}</th>`);
-    html += `</tr>`;
-
-    for (let i=1;i<=periods;i++){
-        html += `<tr>
-            <td class="border p-2 text-center font-bold">${i}</td>`;
-
-        days.forEach(d=>{
-            html += `<td class="border p-1">
-                <input id="d-${i}-${d}" class="w-full text-xs p-1" />
-            </td>`;
-        });
-
-        html += `</tr>`;
-    }
-
-    html += `
-            </table>
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center space-x-3 mb-2">
+                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full text-gray-600 active:scale-90 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div>
+                    <h2 class="text-lg font-bold text-gray-800">Daily Time Table</h2>
+                    <p class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">Viewing Class: ${studentClass}</p>
+                </div>
             </div>
 
-            <textarea id="daily-note" placeholder="Note..." 
-                class="w-full mt-3 p-2 border rounded text-sm"></textarea>
+            <div class="hidden">
+                <select id="tt-class-select">
+                    <option value="${studentClass}">${studentClass}</option>
+                </select>
+            </div>
 
-            <button onclick="saveDaily()" class="mt-3 w-full bg-blue-600 text-white p-2 rounded">
-                Save
-            </button>
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+                <div id="tt-display-grid" class="divide-y divide-gray-50">
+                    <p class="text-center py-10 text-gray-400 italic text-sm">Loading your schedule...</p>
+                </div>
+            </div>
+            
+            <p class="text-center text-[10px] text-gray-400 font-medium pb-10">
+                Logged in as: ${userName}
+            </p>
         </div>
-    </div>`;
+    `;
 
-    content.innerHTML = html;
+    // Automatically load the data for the student's class without needing a button
+    loadClassTimetable(studentClass);
 };
-
 window.saveDaily = () => {
     const cls = document.getElementById("class-select").value;
     if (!cls) return alert("Select class");
