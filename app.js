@@ -2174,6 +2174,32 @@ function loadTimetableForStudent(classFromSheet) {
     }
   });
 }
+async function loadTeachers() {
+    const res = await fetch(TEACHER_SHEET_CSV);
+    const text = await res.text();
+
+    const rows = text.split(/\r?\n/).filter(r => r.trim() !== "").map(r =>
+        r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+    );
+
+    const headers = rows[0];
+    const data = rows.slice(1);
+
+    const nameIndex = headers.findIndex(h => h.toLowerCase().includes("name"));
+
+    const select = document.getElementById("teacherSelect");
+
+    data.forEach(row => {
+        const name = row[nameIndex]?.trim();
+        if (name) {
+            const option = document.createElement("option");
+            option.value = name;
+            option.textContent = name;
+            select.appendChild(option);
+        }
+    });
+}
+
 
     
 
