@@ -292,39 +292,115 @@ window.loadSection = (section) => {
     else if (section === 'notices') {
         loadNoticesSection();
     }
-    else if (section === 'more') {
-        content.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-                <div class="border-b pb-4">
-                    <p class="font-bold text-lg text-blue-600">${localStorage.getItem('userName')} (${role})</p>
-                    <p class="text-xs text-gray-500">📞 ${localStorage.getItem('userPhone')}</p>
+else if (section === 'more') {
+    const role = localStorage.getItem('userRole');
+    const name = localStorage.getItem('userName');
+    const phone = localStorage.getItem('userPhone');
+    
+    content.innerHTML = `
+        <div class="space-y-4">
+            <!-- Profile Card -->
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
+                <div class="flex items-center space-x-4">
+                    <div class="bg-white/20 rounded-full p-3">
+                        <i class="fas fa-user-circle text-4xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-xl">${name}</h3>
+                        <p class="text-white/80 text-sm">${role}</p>
+                        <p class="text-white/60 text-xs mt-1"><i class="fas fa-phone mr-1"></i>${phone || 'Not provided'}</p>
+                    </div>
                 </div>
-
-                <div class="p-0 grid grid-cols-2 gap-4">
-                    <button onclick="showFeesChart()" class="flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all">
-                        <i class="fa-solid fa-chart-line text-2xl text-blue-600 mb-2"></i>
-                        <span class="text-sm font-bold text-blue-700">Fees Chart</span>
+            </div>
+            
+            <!-- Settings Section -->
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-4 border-b">
+                    <h3 class="font-bold text-gray-800"><i class="fas fa-cog mr-2 text-indigo-600"></i>Settings</h3>
+                </div>
+                
+                <div class="p-4 space-y-3">
+                    <!-- Push Notification Toggle Button -->
+                    <button id="enable-notifications-btn" onclick="togglePushNotifications()" 
+                        class="flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                        <div class="flex items-center justify-center w-full">
+                            <i class="fas fa-bell mr-2 text-blue-600"></i>
+                            <span class="text-sm font-bold text-blue-700">Checking notification status...</span>
+                        </div>
                     </button>
                     
-                    <button onclick="calculateMonthlyHours()" class="flex flex-col items-center p-4 bg-purple-50 border border-purple-100 rounded-2xl shadow-sm active:scale-95 transition-all">
-                        <i class="fa-regular fa-clock text-2xl text-purple-600 mb-2"></i>
-                        <span class="text-sm font-bold text-purple-700">Monthly Hours</span>
+                    <!-- Install App Button -->
+                    <div id="install-button-container" class="${deferredPrompt ? '' : 'hidden'}">
+                        <button onclick="triggerInstall()" 
+                            class="flex flex-col items-center p-4 bg-green-50 border border-green-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                            <div class="flex items-center justify-center w-full">
+                                <i class="fas fa-download mr-2 text-green-600"></i>
+                                <span class="text-sm font-bold text-green-700">Install App on Device</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">Add to home screen for quick access</p>
+                        </button>
+                    </div>
+                    
+                    <!-- Fees Chart Button -->
+                    <button onclick="showFeesChart()" 
+                        class="flex flex-col items-center p-4 bg-purple-50 border border-purple-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                        <div class="flex items-center justify-center w-full">
+                            <i class="fas fa-chart-line mr-2 text-purple-600"></i>
+                            <span class="text-sm font-bold text-purple-700">View Fees Chart</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Financial overview</p>
+                    </button>
+                    
+                    <!-- Monthly Hours (for staff only) -->
+                    ${role !== 'Student' ? `
+                        <button onclick="calculateMonthlyHours()" 
+                            class="flex flex-col items-center p-4 bg-orange-50 border border-orange-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                            <div class="flex items-center justify-center w-full">
+                                <i class="fas fa-clock mr-2 text-orange-600"></i>
+                                <span class="text-sm font-bold text-orange-700">Monthly Working Hours</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">Track your attendance hours</p>
+                        </button>
+                    ` : ''}
+                    
+                    <!-- Logout Button -->
+                    <button onclick="handleLogout()" 
+                        class="flex flex-col items-center p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                        <div class="flex items-center justify-center w-full">
+                            <i class="fas fa-sign-out-alt mr-2 text-red-600"></i>
+                            <span class="text-sm font-bold text-red-700">Logout</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Sign out of your account</p>
                     </button>
                 </div>
-
-                <div id="install-button-container" class="${deferredPrompt ? '' : 'hidden'}">
-                    <button onclick="triggerInstall()" class="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold flex items-center justify-between shadow-md">
-                        <span><i class="fa-solid fa-download mr-2"></i>Install App on Phone</span>
-                        <span class="text-xs bg-white text-blue-600 px-2 py-1 rounded">INSTALL</span>
-                    </button>
-                </div>
-
-                <button onclick="handleLogout()" class="w-full bg-red-50 text-red-600 p-5 rounded-2xl font-bold flex items-center justify-center border border-red-100 shadow-sm active:bg-red-100">
-                    <i class="fa-solid fa-sign-out-alt mr-2"></i> Logout from System
-                </button>
             </div>
-        `;
+            
+            <!-- App Info -->
+            <div class="text-center text-xs text-gray-400 py-4">
+                <p>Version 2.0.0 | Padgha Urdu High School</p>
+                <p class="mt-1">© 2024 All rights reserved</p>
+            </div>
+        </div>
+    `;
+    
+    // Initialize notification button state
+    setTimeout(() => {
+        checkNotificationStatus();
+    }, 100);
+}
+
+// Toggle push notifications
+window.togglePushNotifications = async () => {
+    if (isPushNotificationEnabled) {
+        // Ask for confirmation before disabling
+        const confirm = window.confirm('Are you sure you want to disable push notifications? You will stop receiving important updates.');
+        if (confirm) {
+            await disablePushNotifications();
+        }
+    } else {
+        await enablePushNotifications();
     }
+};
     else if (section === 'students') {
         loadStudentsSection();
     }
@@ -2340,6 +2416,335 @@ async function updateHomeStats() {
         console.error("Error loading stats:", e);
     }
 }
+// Push Notification Configuration
+const VAPID_PUBLIC_KEY = BDEMWUO3WUNf6Dk7mDjT-IgeCC-EfEDsLY5XYZHcS2V-Tc9rFIDhQEFU1eO6ItnbB0rKiok5vdg9BH5EbLyFTK4 ; // You'll get this from Firebase Console
+
+// Check if browser supports notifications
+let isPushNotificationSupported = false;
+let isPushNotificationEnabled = false;
+
+// Initialize push notifications
+async function initPushNotifications() {
+    isPushNotificationSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+    
+    if (!isPushNotificationSupported) {
+        console.log('Push notifications not supported');
+        return false;
+    }
+    
+    // Check if already subscribed
+    const subscription = await getPushSubscription();
+    isPushNotificationEnabled = !!subscription;
+    
+    return isPushNotificationSupported;
+}
+
+// Get current push subscription
+async function getPushSubscription() {
+    if (!isPushNotificationSupported) return null;
+    
+    const swRegistration = await navigator.serviceWorker.ready;
+    return await swRegistration.pushManager.getSubscription();
+}
+
+// Enable push notifications
+async function enablePushNotifications() {
+    if (!isPushNotificationSupported) {
+        alert('Your browser does not support push notifications. Please use a modern browser like Chrome, Firefox, or Edge.');
+        return false;
+    }
+    
+    // Request permission
+    let permission = Notification.permission;
+    
+    if (permission !== 'granted') {
+        permission = await Notification.requestPermission();
+    }
+    
+    if (permission !== 'granted') {
+        alert('You denied notification permission. Please enable notifications in your browser settings to receive updates.');
+        return false;
+    }
+    
+    try {
+        // Get service worker registration
+        const swRegistration = await navigator.serviceWorker.ready;
+        
+        // Subscribe to push notifications
+        const subscription = await swRegistration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        
+        // Save subscription to Firebase
+        const userId = localStorage.getItem('userGR') || localStorage.getItem('userPhone');
+        const userRole = localStorage.getItem('userRole');
+        const userName = localStorage.getItem('userName');
+        
+        await firebase.database().ref('push_subscriptions/' + userId).set({
+            endpoint: subscription.endpoint,
+            keys: subscription.toJSON().keys,
+            userId: userId,
+            userRole: userRole,
+            userName: userName,
+            subscribedAt: firebase.database.ServerValue.TIMESTAMP,
+            deviceInfo: navigator.userAgent
+        });
+        
+        isPushNotificationEnabled = true;
+        
+        // Update UI
+        updateNotificationButtonUI(true);
+        
+        // Send test notification
+        setTimeout(() => {
+            showLocalNotification('Notifications Enabled!', 'You will now receive important school updates and announcements.');
+        }, 1000);
+        
+        alert('✅ Push notifications enabled successfully! You will now receive important updates.');
+        return true;
+        
+    } catch (error) {
+        console.error('Push subscription error:', error);
+        
+        if (error.code === 20) { // AbortError
+            alert('Please make sure your browser supports push notifications and try again.');
+        } else if (error.name === 'InvalidStateError') {
+            alert('Service worker is not ready. Please refresh the page and try again.');
+        } else {
+            alert('Failed to enable notifications: ' + error.message);
+        }
+        return false;
+    }
+}
+
+// Disable push notifications
+async function disablePushNotifications() {
+    try {
+        const subscription = await getPushSubscription();
+        
+        if (subscription) {
+            await subscription.unsubscribe();
+        }
+        
+        // Remove from Firebase
+        const userId = localStorage.getItem('userGR') || localStorage.getItem('userPhone');
+        await firebase.database().ref('push_subscriptions/' + userId).remove();
+        
+        isPushNotificationEnabled = false;
+        updateNotificationButtonUI(false);
+        
+        alert('🔕 Push notifications disabled. You can re-enable them anytime.');
+        return true;
+        
+    } catch (error) {
+        console.error('Error disabling notifications:', error);
+        alert('Failed to disable notifications: ' + error.message);
+        return false;
+    }
+}
+
+// Helper: Convert base64 to Uint8Array for VAPID key
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
+    
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+// Show local notification (for testing)
+function showLocalNotification(title, body) {
+    if (Notification.permission === 'granted') {
+        new Notification(title, {
+            body: body,
+            icon: '/Padgha Urdu High School Logo.png',
+            badge: '/icons/icon-72x72.png',
+            vibrate: [200, 100, 200]
+        });
+    }
+}
+
+// Update notification button UI
+function updateNotificationButtonUI(enabled) {
+    const notifBtn = document.getElementById('enable-notifications-btn');
+    if (!notifBtn) return;
+    
+    if (enabled) {
+        notifBtn.innerHTML = '<i class="fas fa-bell-slash mr-2"></i>Disable Notifications';
+        notifBtn.className = 'flex flex-col items-center p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full';
+        notifBtn.querySelector('.text-sm').className = 'text-sm font-bold text-red-700';
+    } else {
+        notifBtn.innerHTML = '<i class="fas fa-bell mr-2"></i>Enable Notifications';
+        notifBtn.className = 'flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full';
+        notifBtn.querySelector('.text-sm').className = 'text-sm font-bold text-blue-700';
+    }
+}
+
+// Check notification status on page load
+async function checkNotificationStatus() {
+    await initPushNotifications();
+    updateNotificationButtonUI(isPushNotificationEnabled);
+}
+
+// Send push notification to specific user (Admin function)
+async function sendPushNotificationToUser(userId, title, body, type = 'notice', data = {}) {
+    try {
+        // Get user's subscription from Firebase
+        const subscriptionSnap = await firebase.database().ref('push_subscriptions/' + userId).once('value');
+        const subscription = subscriptionSnap.val();
+        
+        if (!subscription) {
+            console.log('User not subscribed to notifications');
+            return false;
+        }
+        
+        // Call your backend API or Firebase Cloud Function
+        const response = await fetch('/api/send-push', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                subscription: subscription,
+                title: title,
+                body: body,
+                type: type,
+                data: data,
+                timestamp: Date.now()
+            })
+        });
+        
+        return response.ok;
+        
+    } catch (error) {
+        console.error('Error sending push notification:', error);
+        return false;
+    }
+}
+
+// Send push notification to all users of a specific role
+async function sendPushNotificationToRole(role, title, body, type = 'notice') {
+    try {
+        const subscriptionsSnap = await firebase.database().ref('push_subscriptions').orderByChild('userRole').equalTo(role).once('value');
+        const subscriptions = subscriptionsSnap.val();
+        
+        if (!subscriptions) {
+            console.log(`No subscribers found for role: ${role}`);
+            return false;
+        }
+        
+        let sentCount = 0;
+        
+        for (const [userId, subscription] of Object.entries(subscriptions)) {
+            const success = await sendPushNotificationToUser(userId, title, body, type);
+            if (success) sentCount++;
+        }
+        
+        console.log(`Sent notifications to ${sentCount} ${role}(s)`);
+        return sentCount;
+        
+    } catch (error) {
+        console.error('Error sending bulk notifications:', error);
+        return 0;
+    }
+}
+
+// Auto-check for due fees and send reminders (runs daily)
+async function checkDueFeesAndNotify() {
+    const today = new Date();
+    const dayOfMonth = today.getDate();
+    
+    // Check on 10th day of every month
+    if (dayOfMonth === 10) {
+        try {
+            const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
+            const response = await fetch(FEES_CSV_URL);
+            const data = await response.text();
+            
+            // Parse CSV and find users with due fees
+            const rows = data.split('\n').slice(1);
+            const dueFeesUsers = [];
+            
+            rows.forEach(row => {
+                const cols = row.split(',');
+                const studentName = cols[1]?.trim();
+                const totalFees = parseFloat(cols[2]) || 0;
+                const paidAmount = parseFloat(cols[3]) || 0;
+                const balance = totalFees - paidAmount;
+                
+                if (balance > 0 && studentName) {
+                    dueFeesUsers.push({ name: studentName, balance: balance });
+                }
+            });
+            
+            // Send notifications to due fee users
+            for (const user of dueFeesUsers) {
+                await sendPushNotificationToUser(
+                    user.name,
+                    '💰 Fee Reminder',
+                    `Your fee balance of ₹${user.balance} is due. Please clear it at the earliest.`,
+                    'fees',
+                    { amount: user.balance }
+                );
+            }
+            
+            console.log(`Sent fee reminders to ${dueFeesUsers.length} students`);
+            
+        } catch (error) {
+            console.error('Error checking due fees:', error);
+        }
+    }
+}
+
+// Schedule daily check for due fees
+function scheduleDailyFeeCheck() {
+    // Check immediately on login
+    checkDueFeesAndNotify();
+    
+    // Then check every 24 hours
+    setInterval(() => {
+        checkDueFeesAndNotify();
+    }, 24 * 60 * 60 * 1000);
+}
+// Example Cloud Function (Node.js)
+const webpush = require('web-push');
+
+// Configure VAPID keys
+webpush.setVapidDetails(
+    'mailto:your-email@school.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+);
+
+// API endpoint to send notification
+app.post('/api/send-push', async (req, res) => {
+    const { subscription, title, body, type, data } = req.body;
+    
+    const payload = JSON.stringify({
+        title: title,
+        body: body,
+        type: type,
+        data: data,
+        timestamp: Date.now()
+    });
+    
+    try {
+        await webpush.sendNotification(subscription, payload);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Push notification error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 window.handleLogout = () => {
     if (confirm("Sign out?")) {
