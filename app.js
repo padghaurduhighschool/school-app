@@ -217,90 +217,110 @@ if (role === 'Teacher') {
     
 if (section === 'home') {
     if (["Supervisor", "Clerk", "Super Admin", "Admin"].includes(role)) {
-        content.innerHTML = 
-            if (section === 'home') {
-    if (["Supervisor", "Clerk", "Super Admin", "Admin"].includes(role)) {
         content.innerHTML = `
-            <div class="space-y-6 pb-24">
-                <div class="flex justify-between items-center px-1">
-                    <div>
-                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">Overview</h2>
-                        <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
-                    </div>
-                    <div class="bg-blue-100 p-2 rounded-full">
-                        <img src="Padgha Urdu High School Logo.png" class="w-8 h-8 rounded-full shadow-sm" onerror="this.src='https://ui-avatars.com/api/?name=School&background=2563eb&color=fff'">
-                    </div>
+            <div class="space-y-4">
+                <div class="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
+                    <h2 class="text-xl font-bold">School Overview</h2>
+                    <p class="text-xs opacity-80">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div onclick="loadSection('staff_logs_detail')" class="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 active:scale-95 transition-all">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="bg-blue-50 p-2.5 rounded-2xl text-blue-600">
-                                <i class="fa-solid fa-user-tie text-lg"></i>
-                            </div>
-                            <span class="text-[10px] font-black bg-blue-100 text-blue-700 px-2 py-1 rounded-lg" id="home-staff-total">0</span>
-                        </div>
-                        <p class="text-2xl font-black text-slate-800" id="home-staff-present">0</p>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Staff Present</p>
-                    </div>
+<div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:scale-95 transition-all" onclick="loadSection('staff_logs_detail')">
+     <div class="flex justify-between items-center mb-2">
+        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Staff Attendance</h3>
+        <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold" id="home-staff-total">0</span>
+    </div>
+    <div class="flex items-end justify-between">
+        <div>
+            <p class="text-2xl font-black text-gray-800" id="home-staff-present">0</p>
+            <p class="text-[10px] text-gray-400 font-bold uppercase">Present Today</p>
+        </div>
+        <div class="text-right">
+            <p class="text-lg font-bold text-red-500" id="home-staff-absent">0</p>
+            <p class="text-[10px] text-gray-400 font-bold uppercase">Absent</p>
+        </div>
+    </div>
+    <div class="mt-3 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
+        <div id="home-staff-bar" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
+    </div>
+</div>
 
-                    <div onclick="loadSection('student_attendance_summary')" class="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 active:scale-95 transition-all">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="bg-emerald-50 p-2.5 rounded-2xl text-emerald-600">
-                                <i class="fa-solid fa-graduation-cap text-lg"></i>
-                            </div>
-                            <span class="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg" id="home-stud-total">0</span>
-                        </div>
-                        <p class="text-2xl font-black text-slate-800" id="home-stud-present">0</p>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Students In</p>
-                    </div>
-                </div>
 
-                <div class="space-y-3">
-                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">Management Tools</h3>
-                    
-                    <div onclick="showFeesDashboard()" class="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 p-5 rounded-[2rem] shadow-lg shadow-emerald-200 active:scale-[0.98] transition-all group">
-                        <div class="relative z-10 flex justify-between items-center">
-                            <div>
-                                <h3 class="text-white text-lg font-black tracking-tight">Fees Dashboard</h3>
-                                <p class="text-emerald-100 text-[10px] font-bold uppercase tracking-widest opacity-80">Accounts & Dues</p>
-                            </div>
-                            <div class="bg-white/20 p-3 rounded-2xl backdrop-blur-md">
-                                <i class="fa-solid fa-indian-rupee-sign text-white text-xl"></i>
-                            </div>
-                        </div>
-                        <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full group-hover:scale-150 transition-transform duration-700"></div>
-                    </div>
+<div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:scale-95 transition-all" onclick="loadSection('student_attendance_summary')">
+    <div class="flex justify-between items-center mb-2">
+        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Student Attendance</h3>
+        <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold" id="home-stud-total">0</span>
+    </div>
+    
+    <div class="grid grid-cols-3 gap-2 items-end">
 
-                    <div onclick="openTeacherTimeTable()" class="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-blue-600 p-5 rounded-[2rem] shadow-lg shadow-blue-200 active:scale-[0.98] transition-all group">
-                        <div class="relative z-10 flex justify-between items-center">
-                            <div>
-                                <h3 class="text-white text-lg font-black tracking-tight">Staff Schedule</h3>
-                                <p class="text-blue-100 text-[10px] font-bold uppercase tracking-widest opacity-80">Teacher Timetables</p>
-                            </div>
-                            <div class="bg-white/20 p-3 rounded-2xl backdrop-blur-md">
-                                <i class="fa-solid fa-calendar-week text-white text-xl"></i>
-                            </div>
-                        </div>
-                        <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full group-hover:scale-150 transition-transform duration-700"></div>
-                    </div>
+        <div >
+            <p class="text-xl font-black text-gray-800" id="home-stud-present">0</p>
+            <p class="text-[8px] text-gray-400 font-bold uppercase">Present</p>
+        </div>
+        <div class="text-center">
+            <p class="text-xs font-bold text-red-500" id="home-stud-absent">0</p>
+            <p class="text-[8px] text-gray-400 font-bold uppercase">Absent</p>
+        </div>
+        <div class="text-right">
+            <p class="text-xs font-bold text-orange-500" id="home-stud-unchecked">0</p>
+            <p class="text-[8px] text-gray-400 font-bold uppercase">Unchecked</p>
+        </div>
+    </div>
 
-                    <div onclick="loadSection('students')" class="flex items-center justify-between bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm active:bg-slate-50 transition-all">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-orange-50 p-3 rounded-2xl text-orange-500">
-                                <i class="fa-solid fa-address-book text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-slate-800 font-bold tracking-tight">Student Directory</h3>
-                                <p class="text-slate-400 text-[10px] font-bold uppercase">Records & GR Nos</p>
-                            </div>
+    <div class="mt-3 w-full bg-gray-100 h-1.5 rounded-full overflow-hidden flex">
+        <div id="home-stud-bar-present" class="bg-green-500 h-full transition-all duration-500" style="width: 0%"></div>
+        <div id="home-stud-bar-absent" class="bg-red-400 h-full transition-all duration-500" style="width: 0%"></div>
+    </div>
+</div>
+    <div onclick="openTeacherTimeTable()" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 cursor-pointer">
+        <p class="text-gray-500 text-[10px] uppercase font-bold">Teachers View</p>
+        <p class="text-xl font-bold text-blue-600">Teacher Time Table</p>
+    </div>
+
+    <div onclick="showFeesDashboard()" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-green-500 cursor-pointer">
+        <p class="text-gray-500 text-[10px] uppercase font-bold">Accounts & Payments</p>
+        <p class="text-xl font-bold text-green-600">Fees Dashboard</p>
+    </div>
+
+<div class="grid grid-cols-1 gap-3">
+
+    <!-- Daily -->
+    <div onclick="openDailyTimeTable()" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-green-500 cursor-pointer">
+        <p class="text-gray-500 text-[10px] uppercase font-bold">Students View</p>
+        <p class="text-xl font-bold text-green-600">Daily Time Table</p>
+    </div>
+
+    <!-- Exam -->
+    <div onclick="openExamTimeTable()" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-orange-500 cursor-pointer">
+        <p class="text-gray-500 text-[10px] uppercase font-bold">Students View</p>
+        <p class="text-xl font-bold text-orange-600">Exam Time Table</p>
+    </div>
+
+    <!-- Teacher -->
+    <div onclick="openTeacherTimeTable()" 
+        class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 cursor-pointer">
+        <p class="text-gray-500 text-[10px] uppercase font-bold">Teachers View</p>
+        <p class="text-xl font-bold text-blue-600">Teacher Time Table</p>
+    </div>
+
+</div>
+
+
+                
+             <div onclick="loadSection('students')" class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500 text-center">
+                    <div class="flex items-center space-x-3">
+                        <div>
+                            <p class="text-gray-500 text-[10px] uppercase font-bold">View records, GR Nos, and Contacts</p>
+                            <p class="text-2xl font-bold text-blue-600">Student Details</p>
                         </div>
-                        <i class="fa-solid fa-chevron-right text-slate-300 text-xs"></i>
                     </div>
-                </div>
+                </div>  
             </div>
         `;
-
         updateHomeSummary();
 } else if (role === 'Teacher') {
     // Teacher home view: greeting + Teacher Time Table card
@@ -2908,18 +2928,7 @@ window.filterFeeList = () => {
         item.style.display = item.innerText.toLowerCase().includes(q) ? 'block' : 'none';
     });
 };
-function setActiveNav(element, section) {
-    // 1. Remove active class from all buttons
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // 2. Add active class to clicked button
-    element.classList.add('active');
-    
-    // 3. Call your original load function
-    loadSection(section);
-}
+
 
     
     
