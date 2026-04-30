@@ -1235,79 +1235,387 @@ window.saveExamTimetable = async () => {
     }
 };
 
+// UPDATED: Teacher Time Table - Matrix format (6 columns x 8 rows, Friday 4 rows)
 window.openTeacherTimeTable = () => {
     const content = document.getElementById('content');
     const role = localStorage.getItem('userRole');
     const teacherName = localStorage.getItem('userName');
     const isAdmin = ['Admin', 'Super Admin', 'Supervisor', 'Clerk'].includes(role);
     
-    // For regular teachers - show only their own timetable
+    // For regular teachers - show only their own timetable (read-only)
     if (!isAdmin && role === 'Teacher') {
         content.innerHTML = `
-            <div class="space-y-4">
+        <div class="space-y-4">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-2xl text-white shadow-lg">
+                <h2 class="text-2xl font-bold">Hello, ${name}</h2>
+                <p class="text-sm opacity-80 mt-1">Welcome to your Dashboard</p>
+                <p class="text-xs opacity-70 mt-2">Class: ${mappedClass}</p>
+            </div>
+
+            <div onclick="openDailyTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500 cursor-pointer active:scale-95 transition-all">
                 <div class="flex items-center justify-between">
-                    <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
-                        <i class="fa-solid fa-arrow-left"></i>
-                    </button>
-                    <h2 class="text-lg font-bold">My Time Table</h2>
-                    <div></div>
-                </div>
-                
-                <div class="bg-gradient-to-r from-purple-600 to-indigo-700 p-4 rounded-2xl text-white">
-                    <div class="flex items-center gap-3">
-                        <i class="fa-solid fa-user-graduate text-3xl"></i>
-                        <div>
-                            <p class="text-xs opacity-80">Teacher Schedule</p>
-                            <p class="font-bold text-lg">${teacherName}</p>
-                        </div>
+                    <div>
+                        <p class="text-gray-500 text-[10px] uppercase font-bold">School Schedule</p>
+                        <p class="text-lg font-bold text-green-600">Daily Time Table</p>
+                        <p class="text-xs text-gray-400 mt-1">View all class schedules</p>
                     </div>
-                </div>
-                
-                <div id="teacher-own-timetable" class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                    <div class="p-8 text-center text-gray-400">
-                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
-                        <p>Loading your timetable...</p>
-                    </div>
+                    <i class="fa-regular fa-calendar text-green-400 text-2xl"></i>
                 </div>
             </div>
-        `;
+
+            <div onclick="openExamTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-500 cursor-pointer active:scale-95 transition-all">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-[10px] uppercase font-bold">Assessments</p>
+                        <p class="text-lg font-bold text-orange-600">Exam Time Table</p>
+                        <p class="text-xs text-gray-400 mt-1">Check exam schedule</p>
+                    </div>
+                    <i class="fa-regular fa-clock text-orange-400 text-2xl"></i>
+                </div>
+            </div>
+
+            <div onclick="openTeacherTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-purple-500 cursor-pointer active:scale-95 transition-all">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-[10px] uppercase font-bold">My Schedule</p>
+                        <p class="text-lg font-bold text-purple-600">Teacher Time Table</p>
+                        <p class="text-xs text-gray-400 mt-1">${name}</p>
+                    </div>
+                    <i class="fa-regular fa-user text-purple-400 text-2xl"></i>
+                </div>
+            </div>
+
+            <div onclick="showFeesDashboard()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 cursor-pointer active:scale-95 transition-all">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-[10px] uppercase font-bold">Accounts</p>
+                        <p class="text-lg font-bold text-emerald-600">Fees Dashboard</p>
+                        <p class="text-xs text-gray-400 mt-1">View class payments</p>
+                    </div>
+                    <i class="fa-regular fa-credit-card text-emerald-400 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    `;
         
-        // Load the logged-in teacher's timetable
-        loadTeacherOwnTimetable(teacherName);
+        // Load the logged-in teacher's timetable (read-only view)
+        loadTeacherOwnTimetableMatrix(teacherName, false);
         return;
     }
     
-    // For Admin/Supervisor - full management interface
+    // For Admin/Supervisor - full management interface with edit capability
     content.innerHTML = `
         <div class="space-y-4">
             <div class="flex items-center justify-between">
                 <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
                     <i class="fa-solid fa-arrow-left"></i>
                 </button>
-                <h2 class="text-lg font-bold">Manage Teacher Time Table</h2>
-                <div></div>
+                <h2 class="text-lg font-bold">Teacher Time Table Manager</h2>
+                <button onclick="saveTeacherTimetableMatrix()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold">
+                    <i class="fa-solid fa-save mr-1"></i>SAVE
+                </button>
             </div>
             
             <div class="bg-white p-4 rounded-xl shadow">
-                <div class="flex gap-2 mb-4">
-                    <select id="teacherSelect" class="flex-1 p-3 bg-gray-50 rounded-xl text-sm border">
-                        <option value="">Select Teacher</option>
-                    </select>
-                    <button id="publishBtn" onclick="togglePublishTimetable()" class="px-4 py-2 rounded-lg font-bold text-xs"></button>
+                <label class="block text-xs font-bold text-gray-500 mb-2">Select Teacher</label>
+                <select id="teacherSelect" class="w-full p-3 bg-gray-50 rounded-xl text-sm border mb-4">
+                    <option value="">-- Select Teacher --</option>
+                </select>
+                
+                <div id="teacher-tt-container" class="mt-4">
+                    <p class="text-center text-gray-400 py-8">Select a teacher to view/edit timetable</p>
                 </div>
-                
-                <div id="teacher-tt-container"></div>
-                
-                <button onclick="saveTeacherTimetable()" class="w-full mt-4 bg-purple-600 text-white py-3 rounded-xl font-bold shadow-md active:scale-95 transition-all">
-                    <i class="fa-solid fa-save mr-2"></i>Save Timetable
-                </button>
             </div>
         </div>
     `;
     
-    loadTeacherDropdown();
-    updatePublishButtonUI();
+    loadTeacherDropdownForMatrix();
 };
+
+// Load teacher dropdown for matrix timetable (Admin view)
+async function loadTeacherDropdownForMatrix() {
+    try {
+        const res = await fetch(TEACHER_SHEET_CSV);
+        const text = await res.text();
+        const rows = text.split('\n').slice(1);
+        const teachers = [];
+        
+        for (let i = 0; i < rows.length; i++) {
+            if (!rows[i].trim()) continue;
+            // Parse CSV properly
+            const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            if (cols[2]) {
+                let name = cols[2].replace(/"/g, '').trim();
+                if (name) teachers.push(name);
+            }
+        }
+        
+        const select = document.getElementById('teacherSelect');
+        if (select) {
+            select.innerHTML = '<option value="">-- Select Teacher --</option>' + 
+                teachers.map(t => `<option value="${t}">${t}</option>`).join('');
+            select.onchange = () => loadTeacherTimetableForEditMatrix(select.value);
+        }
+    } catch (e) {
+        console.error("Error loading teachers:", e);
+    }
+}
+
+// Load teacher timetable for editing (Admin view - Edit mode)
+async function loadTeacherTimetableForEditMatrix(teacherName) {
+    const container = document.getElementById('teacher-tt-container');
+    if (!teacherName) {
+        container.innerHTML = '<p class="text-center text-gray-400 py-8">Select a teacher to view/edit timetable</p>';
+        return;
+    }
+    
+    container.innerHTML = `<div class="p-8 text-center text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...</div>`;
+    
+    try {
+        const sanitizedKey = teacherName.toLowerCase().replace(/\s+/g, '_');
+        const snap = await firebase.database().ref(`teacher_timetables/${sanitizedKey}`).once('value');
+        const data = snap.val();
+        const schedule = data?.schedule || {};
+        
+        // Render editable matrix (same format as Daily Time Table)
+        renderTeacherTimetableMatrix(container, teacherName, schedule, true);
+    } catch (err) {
+        container.innerHTML = `<p class="text-red-500 p-8 text-center">Error loading timetable: ${err.message}</p>`;
+    }
+}
+
+// Load teacher's own timetable (Teacher view - Read-only)
+async function loadTeacherOwnTimetableMatrix(teacherName, isEditable = false) {
+    const container = document.getElementById('teacher-own-timetable');
+    if (!container) return;
+    
+    try {
+        const sanitizedKey = teacherName.toLowerCase().replace(/\s+/g, '_');
+        let schedule = null;
+        
+        // Try multiple paths
+        const snap1 = await firebase.database().ref(`teacher_timetables/${sanitizedKey}`).once('value');
+        if (snap1.exists()) {
+            schedule = snap1.val()?.schedule;
+        }
+        
+        if (!schedule) {
+            const snap2 = await firebase.database().ref(`timetable/teacher/${teacherName}`).once('value');
+            if (snap2.exists()) {
+                schedule = snap2.val();
+            }
+        }
+        
+        if (!schedule) {
+            container.innerHTML = `
+                <div class="p-8 text-center">
+                    <i class="fa-solid fa-calendar-times text-5xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500 font-medium">No timetable assigned yet</p>
+                    <p class="text-xs text-gray-400 mt-2">Please contact the school administrator</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Render read-only matrix
+        renderTeacherTimetableMatrix(container, teacherName, schedule, false);
+    } catch (error) {
+        console.error("Error loading teacher timetable:", error);
+        container.innerHTML = `<div class="p-8 text-center text-red-500">Error loading timetable</div>`;
+    }
+}
+
+// Render Teacher Time Table in matrix format (8 periods x 6 days, Friday 4 periods)
+function renderTeacherTimetableMatrix(container, teacherName, schedule, isEditable) {
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const fullPeriods = 8;  // 8 periods for Mon-Thu & Sat
+    const fridayPeriods = 4; // Only 4 periods on Friday
+    
+    let html = `
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-sm">
+                <thead>
+                    <tr class="bg-purple-600 text-white">
+                        <th class="p-3 border border-purple-500 text-center font-bold">Period</th>
+                        ${days.map(day => `<th class="p-3 border border-purple-500 text-center font-bold">${day}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    // Render periods 1-8
+    for (let period = 1; period <= fullPeriods; period++) {
+        // Skip period 5-8 on Friday
+        if (period > fridayPeriods) {
+            // For Friday, show merged or empty cells
+            if (period === 5) {
+                // Create a special row for Friday indicating early dismissal
+                html += `
+                    <tr class="bg-amber-50">
+                        <td class="p-3 border text-center font-bold text-amber-600">${period}</td>
+                        ${days.map((day, idx) => {
+                            if (day === 'Friday') {
+                                return `<td class="p-3 border text-center text-amber-600 italic" colspan="1">Early Dismissal</td>`;
+                            }
+                            const value = schedule?.[day]?.[period] || '';
+                            if (isEditable) {
+                                return `<td class="p-1 border"><input type="text" id="cell-${day}-${period}" value="${value.replace(/"/g, '&quot;')}" class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" placeholder="—"></td>`;
+                            } else {
+                                return `<td class="p-3 border text-gray-700">${value || '—'}</td>`;
+                            }
+                        }).join('')}
+                    </tr>
+                `;
+            }
+            continue;
+        }
+        
+        html += `<tr class="hover:bg-gray-50">`;
+        html += `<td class="p-3 border text-center font-bold text-purple-600 bg-purple-50">${period}</td>`;
+        
+        for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
+            const day = days[dayIdx];
+            const value = schedule?.[day]?.[period] || '';
+            
+            if (isEditable) {
+                // Editable for Admin
+                html += `<td class="p-1 border">
+                    <input type="text" id="cell-${day}-${period}" value="${value.replace(/"/g, '&quot;')}" 
+                        class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" 
+                        placeholder="Subject / Class">
+                </td>`;
+            } else {
+                // Read-only for Teacher
+                html += `<td class="p-3 border text-gray-700 text-xs">${value || '—'}</td>`;
+            }
+        }
+        html += `</tr>`;
+    }
+    
+    // Add a note row
+    html += `
+        <tr class="bg-gray-50">
+            <td class="p-3 border text-center font-bold text-gray-500">Note</td>
+            <td colspan="${days.length}" class="p-3 border text-xs text-gray-500">
+                <i class="fa-regular fa-clock mr-1"></i> 
+                Friday: Early dismissal after 4th period | Regular days: 8 periods
+                ${!isEditable ? '<br>Contact admin for schedule changes' : ''}
+            </td>
+        </tr>
+    `;
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    // Add note about Friday for teachers
+    if (!isEditable) {
+        html += `
+            <div class="mt-4 p-3 bg-amber-50 rounded-lg text-xs text-amber-700">
+                <i class="fa-regular fa-bell mr-1"></i>
+                <strong>Note:</strong> Friday has only 4 periods (early dismissal). Periods 5-8 are not applicable on Friday.
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+}
+
+// Save Teacher Timetable (Admin function)
+window.saveTeacherTimetableMatrix = async () => {
+    const teacher = document.getElementById('teacherSelect')?.value;
+    if (!teacher) {
+        alert("Please select a teacher first!");
+        return;
+    }
+    
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const fullPeriods = 8;
+    const fridayPeriods = 4;
+    const schedule = {};
+    
+    // Initialize schedule object
+    days.forEach(day => {
+        schedule[day] = {};
+    });
+    
+    // Collect data for all periods
+    for (let period = 1; period <= fullPeriods; period++) {
+        for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
+            const day = days[dayIdx];
+            
+            // Skip saving periods > 4 for Friday
+            if (day === 'Friday' && period > fridayPeriods) {
+                continue;
+            }
+            
+            const input = document.getElementById(`cell-${day}-${period}`);
+            if (input) {
+                schedule[day][period] = input.value.trim();
+            }
+        }
+    }
+    
+    const sanitizedKey = teacher.toLowerCase().replace(/\s+/g, '_');
+    const saveData = {
+        displayName: teacher,
+        schedule: schedule,
+        updatedBy: localStorage.getItem('userName'),
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        format: "matrix_8x6" // Indicate the format
+    };
+    
+    try {
+        // Save to Firebase
+        await firebase.database().ref(`teacher_timetables/${sanitizedKey}`).set(saveData);
+        
+        // Also save to legacy location for compatibility
+        await firebase.database().ref(`timetable/teacher/${teacher}`).set(schedule);
+        
+        alert(`Timetable saved successfully for ${teacher}!`);
+        
+        // If the saved teacher is the currently logged-in teacher, refresh their view
+        if (teacher === localStorage.getItem('userName')) {
+            loadTeacherOwnTimetableMatrix(teacher, false);
+        }
+    } catch (err) {
+        alert("Error saving: " + err.message);
+    }
+};
+
+// Also update the saveTeacherTimetable function for backward compatibility
+window.saveTeacherTimetable = window.saveTeacherTimetableMatrix;
+
+// Publish toggle for admin
+function updatePublishButtonUI() {
+    const btn = document.getElementById('publishBtn');
+    if (!btn) return;
+    
+    firebase.database().ref('settings/teacher_timetable_published').on('value', (snap) => {
+        const isPub = snap.val() || false;
+        btn.innerText = isPub ? "UNPUBLISH" : "PUBLISH";
+        btn.className = isPub ? "px-4 py-2 rounded-lg font-bold text-xs text-white bg-red-500" 
+                             : "px-4 py-2 rounded-lg font-bold text-xs text-white bg-green-500";
+    });
+}
+
+window.togglePublishTimetable = () => {
+    const ref = firebase.database().ref('settings/teacher_timetable_published');
+    ref.once('value', (snap) => {
+        const currentState = snap.val() || false;
+        ref.set(!currentState).then(() => {
+            alert(currentState ? "Timetable hidden from teachers" : "Timetable published to teachers");
+        });
+    });
+};
+
+// Also update the loadTeacherDropdown function for matrix compatibility
+async function loadTeacherDropdown() {
+    await loadTeacherDropdownForMatrix();
+}
+
 async function loadTeacherOwnTimetable(teacherName) {
     const container = document.getElementById('teacher-own-timetable');
     if (!container) return;
