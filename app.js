@@ -146,7 +146,142 @@ window.loadSection = (section) => {
     document.getElementById('user-role-title').innerHTML = `<i class="fa-solid fa-school mr-2"></i>${role} Dashboard`;
     
     if (section === 'home') {
-        loadModernDashboard(role, name, localStorage.getItem('mappedClass'));
+        if (["Supervisor", "Clerk", "Super Admin", "Admin", "Teacher"].includes(role)) {
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-2xl text-white shadow-lg">
+                        <h2 class="text-2xl font-bold">Welcome, ${name}</h2>
+                        <p class="text-sm opacity-80 mt-1">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:scale-95 transition-all" onclick="loadSection('staff_logs_detail')">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Staff Attendance</h3>
+                            <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold" id="home-staff-total">0</span>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <div>
+                                <p class="text-2xl font-black text-gray-800" id="home-staff-present">0</p>
+                                <p class="text-[10px] text-gray-400 font-bold uppercase">Present Today</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-lg font-bold text-red-500" id="home-staff-absent">0</p>
+                                <p class="text-[10px] text-gray-400 font-bold uppercase">Absent</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
+                            <div id="home-staff-bar" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:scale-95 transition-all" onclick="loadSection('student_attendance_summary')">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Student Attendance</h3>
+                            <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold" id="home-stud-total">0</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 items-end">
+                            <div>
+                                <p class="text-xl font-black text-gray-800" id="home-stud-present">0</p>
+                                <p class="text-[8px] text-gray-400 font-bold uppercase">Present</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xs font-bold text-red-500" id="home-stud-absent">0</p>
+                                <p class="text-[8px] text-gray-400 font-bold uppercase">Absent</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs font-bold text-orange-500" id="home-stud-unchecked">0</p>
+                                <p class="text-[8px] text-gray-400 font-bold uppercase">Unchecked</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 w-full bg-gray-100 h-1.5 rounded-full overflow-hidden flex">
+                            <div id="home-stud-bar-present" class="bg-green-500 h-full transition-all duration-500" style="width: 0%"></div>
+                            <div id="home-stud-bar-absent" class="bg-red-400 h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div onclick="openDailyTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500 cursor-pointer active:scale-95 transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-[10px] uppercase font-bold">Students View</p>
+                                <p class="text-lg font-bold text-green-600">Daily Time Table</p>
+                            </div>
+                            <i class="fa-regular fa-calendar text-green-400 text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div onclick="openExamTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-500 cursor-pointer active:scale-95 transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-[10px] uppercase font-bold">Students View</p>
+                                <p class="text-lg font-bold text-orange-600">Exam Time Table</p>
+                            </div>
+                            <i class="fa-regular fa-clock text-orange-400 text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div onclick="openTeacherTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-purple-500 cursor-pointer active:scale-95 transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-[10px] uppercase font-bold">Teachers View</p>
+                                <p class="text-lg font-bold text-purple-600">Teacher Time Table</p>
+                            </div>
+                            <i class="fa-regular fa-user text-purple-400 text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div onclick="loadSection('students')" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500 cursor-pointer active:scale-95 transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-[10px] uppercase font-bold">View records</p>
+                                <p class="text-lg font-bold text-blue-600">Student Details</p>
+                            </div>
+                            <i class="fa-regular fa-address-card text-blue-400 text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div onclick="showFeesDashboard()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 cursor-pointer active:scale-95 transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-[10px] uppercase font-bold">Accounts</p>
+                                <p class="text-lg font-bold text-emerald-600">Fees Dashboard</p>
+                            </div>
+                            <i class="fa-regular fa-credit-card text-emerald-400 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
+            updateHomeSummary();
+        } else if (role === 'Student') {
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-2xl text-white shadow-lg">
+                        <h2 class="text-2xl font-bold">Hello, ${name}</h2>
+                        <p class="text-sm opacity-80 mt-1">Welcome to your Dashboard</p>
+                    </div>
+
+                    <div onclick="openDailyTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500 cursor-pointer active:scale-95 transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-[10px] uppercase font-bold">Schedule</p>
+                                <p class="text-lg font-bold text-green-600">Daily Time Table</p>
+                                <p class="text-xs text-gray-400 mt-1">Class: ${localStorage.getItem('mappedClass')}</p>
+                            </div>
+                            <i class="fa-regular fa-calendar text-green-400 text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div onclick="openExamTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-500 cursor-pointer active:scale-95 transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-[10px] uppercase font-bold">Assessments</p>
+                                <p class="text-lg font-bold text-orange-600">Exam Time Table</p>
+                            </div>
+                            <i class="fa-regular fa-clock text-orange-400 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
     } 
     else if (section === 'attendance') {
         loadAttendanceSection();
@@ -157,88 +292,115 @@ window.loadSection = (section) => {
     else if (section === 'notices') {
         loadNoticesSection();
     }
-    else if (section === 'more') {
-        const role = localStorage.getItem('userRole');
-        const name = localStorage.getItem('userName');
-        const phone = localStorage.getItem('userPhone');
-        
-        content.innerHTML = `
-            <div class="space-y-4">
-                <!-- Profile Card -->
-                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
-                    <div class="flex items-center space-x-4">
-                        <div class="bg-white/20 rounded-full p-3">
-                            <i class="fas fa-user-circle text-4xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-xl">${escapeHtml(name)}</h3>
-                            <p class="text-white/80 text-sm">${role}</p>
-                            <p class="text-white/60 text-xs mt-1"><i class="fas fa-phone mr-1"></i>${phone || 'Not provided'}</p>
-                        </div>
+else if (section === 'more') {
+    const role = localStorage.getItem('userRole');
+    const name = localStorage.getItem('userName');
+    const phone = localStorage.getItem('userPhone');
+    
+    content.innerHTML = `
+        <div class="space-y-4">
+            <!-- Profile Card -->
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
+                <div class="flex items-center space-x-4">
+                    <div class="bg-white/20 rounded-full p-3">
+                        <i class="fas fa-user-circle text-4xl"></i>
                     </div>
-                </div>
-                
-                <!-- Settings Section -->
-                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
-                    <div class="p-4 border-b">
-                        <h3 class="font-bold text-gray-800"><i class="fas fa-cog mr-2 text-indigo-600"></i>Settings</h3>
+                    <div>
+                        <h3 class="font-bold text-xl">${name}</h3>
+                        <p class="text-white/80 text-sm">${role}</p>
+                        <p class="text-white/60 text-xs mt-1"><i class="fas fa-phone mr-1"></i>${phone || 'Not provided'}</p>
                     </div>
-                    
-                    <div class="p-4 space-y-3">
-                        <!-- Push Notification Toggle Button -->
-                        <button id="enable-notifications-btn" onclick="togglePushNotifications()" 
-                            class="w-full p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all flex items-center justify-center">
-                            <i class="fas fa-bell mr-2 text-blue-600"></i>
-                            <span class="text-sm font-bold text-blue-700">Checking notification status...</span>
-                        </button>
-                        
-                        <!-- Install App Button -->
-                        <div id="install-button-container" class="${deferredPrompt ? '' : 'hidden'}">
-                            <button onclick="triggerInstall()" 
-                                class="w-full p-4 bg-green-50 border border-green-100 rounded-2xl shadow-sm active:scale-95 transition-all flex items-center justify-center">
-                                <i class="fas fa-download mr-2 text-green-600"></i>
-                                <span class="text-sm font-bold text-green-700">Install App on Device</span>
-                            </button>
-                        </div>
-                        
-                        <!-- Fees Chart Button -->
-                        <button onclick="showFeesChart()" 
-                            class="w-full p-4 bg-purple-50 border border-purple-100 rounded-2xl shadow-sm active:scale-95 transition-all flex items-center justify-center">
-                            <i class="fas fa-chart-line mr-2 text-purple-600"></i>
-                            <span class="text-sm font-bold text-purple-700">View Fees Chart</span>
-                        </button>
-                        
-                        <!-- Monthly Hours (for staff only) -->
-                        ${role !== 'Student' ? `
-                            <button onclick="calculateMonthlyHours()" 
-                                class="w-full p-4 bg-orange-50 border border-orange-100 rounded-2xl shadow-sm active:scale-95 transition-all flex items-center justify-center">
-                                <i class="fas fa-clock mr-2 text-orange-600"></i>
-                                <span class="text-sm font-bold text-orange-700">Monthly Working Hours</span>
-                            </button>
-                        ` : ''}
-                        
-                        <!-- Logout Button -->
-                        <button onclick="handleLogout()" 
-                            class="w-full p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm active:scale-95 transition-all flex items-center justify-center">
-                            <i class="fas fa-sign-out-alt mr-2 text-red-600"></i>
-                            <span class="text-sm font-bold text-red-700">Logout</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- App Info -->
-                <div class="text-center text-xs text-gray-400 py-4">
-                    <p>Version 2.0.0 | Padgha Urdu High School</p>
-                    <p class="mt-1">© 2024 All rights reserved</p>
                 </div>
             </div>
-        `;
-        
-        // Initialize notification button state after DOM is ready
-        setTimeout(() => {
-            checkNotificationStatus();
-        }, 100);
+            
+            <!-- Settings Section -->
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-4 border-b">
+                    <h3 class="font-bold text-gray-800"><i class="fas fa-cog mr-2 text-indigo-600"></i>Settings</h3>
+                </div>
+                
+                <div class="p-4 space-y-3">
+                    <!-- Push Notification Toggle Button -->
+                    <button id="enable-notifications-btn" onclick="togglePushNotifications()" 
+                        class="flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                        <div class="flex items-center justify-center w-full">
+                            <i class="fas fa-bell mr-2 text-blue-600"></i>
+                            <span class="text-sm font-bold text-blue-700">Checking notification status...</span>
+                        </div>
+                    </button>
+                    
+                    <!-- Install App Button -->
+                    <div id="install-button-container" class="${deferredPrompt ? '' : 'hidden'}">
+                        <button onclick="triggerInstall()" 
+                            class="flex flex-col items-center p-4 bg-green-50 border border-green-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                            <div class="flex items-center justify-center w-full">
+                                <i class="fas fa-download mr-2 text-green-600"></i>
+                                <span class="text-sm font-bold text-green-700">Install App on Device</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">Add to home screen for quick access</p>
+                        </button>
+                    </div>
+                    
+                    <!-- Fees Chart Button -->
+                    <button onclick="showFeesChart()" 
+                        class="flex flex-col items-center p-4 bg-purple-50 border border-purple-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                        <div class="flex items-center justify-center w-full">
+                            <i class="fas fa-chart-line mr-2 text-purple-600"></i>
+                            <span class="text-sm font-bold text-purple-700">View Fees Chart</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Financial overview</p>
+                    </button>
+                    
+                    <!-- Monthly Hours (for staff only) -->
+                    ${role !== 'Student' ? `
+                        <button onclick="calculateMonthlyHours()" 
+                            class="flex flex-col items-center p-4 bg-orange-50 border border-orange-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                            <div class="flex items-center justify-center w-full">
+                                <i class="fas fa-clock mr-2 text-orange-600"></i>
+                                <span class="text-sm font-bold text-orange-700">Monthly Working Hours</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">Track your attendance hours</p>
+                        </button>
+                    ` : ''}
+                    
+                    <!-- Logout Button -->
+                    <button onclick="handleLogout()" 
+                        class="flex flex-col items-center p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                        <div class="flex items-center justify-center w-full">
+                            <i class="fas fa-sign-out-alt mr-2 text-red-600"></i>
+                            <span class="text-sm font-bold text-red-700">Logout</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Sign out of your account</p>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- App Info -->
+            <div class="text-center text-xs text-gray-400 py-4">
+                <p>Version 2.0.0 | Padgha Urdu High School</p>
+                <p class="mt-1">© 2024 All rights reserved</p>
+            </div>
+        </div>
+    `;
+    
+    // Initialize notification button state
+    setTimeout(() => {
+        checkNotificationStatus();
+    }, 100);
+}
+
+// Toggle push notifications
+window.togglePushNotifications = async () => {
+    if (isPushNotificationEnabled) {
+        // Ask for confirmation before disabling
+        const confirm = window.confirm('Are you sure you want to disable push notifications? You will stop receiving important updates.');
+        if (confirm) {
+            await disablePushNotifications();
+        }
+    } else {
+        await enablePushNotifications();
     }
+};
     else if (section === 'students') {
         loadStudentsSection();
     }
