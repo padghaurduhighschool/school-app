@@ -306,9 +306,9 @@ else if (section === 'more') {
                         <i class="fas fa-user-circle text-4xl"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-xl">${name}</h3>
-                        <p class="text-white/80 text-sm">${role}</p>
-                        <p class="text-white/60 text-xs mt-1"><i class="fas fa-phone mr-1"></i>${phone || 'Not provided'}</p>
+                        <h3 class="font-bold text-xl">${escapeHtml(name)}</h3>
+                        <p class="text-white/80 text-sm">${escapeHtml(role)}</p>
+                        <p class="text-white/60 text-xs mt-1"><i class="fas fa-phone mr-1"></i>${escapeHtml(phone) || 'Not provided'}</p>
                     </div>
                 </div>
             </div>
@@ -387,6 +387,29 @@ else if (section === 'more') {
     setTimeout(() => {
         checkNotificationStatus();
     }, 100);
+}
+
+// Toggle push notifications
+window.togglePushNotifications = async () => {
+    if (isPushNotificationEnabled) {
+        // Ask for confirmation before disabling
+        const confirm = window.confirm('Are you sure you want to disable push notifications? You will stop receiving important updates.');
+        if (confirm) {
+            await disablePushNotifications();
+        }
+    } else {
+        await enablePushNotifications();
+    }
+};
+
+else if (section === 'students') {
+    loadStudentsSection();
+}
+else if (section === 'staff_logs_detail') {
+    loadStaffLogsDetail();
+}
+else if (section === 'student_attendance_summary') {
+    loadClassAttendanceStatus();
 }
 
 // Toggle push notifications
