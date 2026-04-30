@@ -389,18 +389,7 @@ else if (section === 'more') {
     }, 100);
 }
 
-// Toggle push notifications
-window.togglePushNotifications = async () => {
-    if (isPushNotificationEnabled) {
-        // Ask for confirmation before disabling
-        const confirm = window.confirm('Are you sure you want to disable push notifications? You will stop receiving important updates.');
-        if (confirm) {
-            await disablePushNotifications();
-        }
-    } else {
-        await enablePushNotifications();
-    }
-};
+
 
 else if (section === 'students') {
     loadStudentsSection();
@@ -412,18 +401,6 @@ else if (section === 'student_attendance_summary') {
     loadClassAttendanceStatus();
 }
 
-// Toggle push notifications
-window.togglePushNotifications = async () => {
-    if (isPushNotificationEnabled) {
-        // Ask for confirmation before disabling
-        const confirm = window.confirm('Are you sure you want to disable push notifications? You will stop receiving important updates.');
-        if (confirm) {
-            await disablePushNotifications();
-        }
-    } else {
-        await enablePushNotifications();
-    }
-};
     else if (section === 'students') {
         loadStudentsSection();
     }
@@ -2812,7 +2789,18 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
-
+// Toggle push notifications
+window.togglePushNotifications = async () => {
+    if (isPushNotificationEnabled) {
+        // Ask for confirmation before disabling
+        const confirm = window.confirm('Are you sure you want to disable push notifications? You will stop receiving important updates.');
+        if (confirm) {
+            await disablePushNotifications();
+        }
+    } else {
+        await enablePushNotifications();
+    }
+};
 
 
 
