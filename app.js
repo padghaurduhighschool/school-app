@@ -2928,7 +2928,18 @@ window.filterFeeList = () => {
         item.style.display = item.innerText.toLowerCase().includes(q) ? 'block' : 'none';
     });
 };
-
+function setActiveNav(element, section) {
+    // 1. Remove active class from all buttons
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // 2. Add active class to clicked button
+    element.classList.add('active');
+    
+    // 3. Call your original load function
+    loadSection(section);
+}
 
     
     
