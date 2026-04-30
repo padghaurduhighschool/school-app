@@ -2208,9 +2208,144 @@ window.triggerInstall = async () => {
     }
 };
 
+// Enhanced Modern Home Dashboard
+window.loadModernDashboard = (role, name, mappedClass) => {
+    const content = document.getElementById('content');
+    
+    // Modern Welcome Card with Stats
+    const welcomeCard = `
+        <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-6 text-white shadow-xl mb-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h2 class="text-2xl font-bold mb-1">Hello, ${name}! 👋</h2>
+                    <p class="text-white/80 text-sm">${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    ${mappedClass ? `<p class="text-white/70 text-xs mt-2"><i class="fas fa-graduation-cap mr-1"></i>Class: ${mappedClass}</p>` : ''}
+                </div>
+                <div class="bg-white/20 backdrop-blur rounded-full p-3">
+                    <i class="fas fa-school text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if (["Supervisor", "Clerk", "Super Admin", "Admin", "Teacher"].includes(role)) {
+        content.innerHTML = welcomeCard + `
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg hover-card">
+                    <i class="fas fa-users text-2xl mb-2"></i>
+                    <p class="text-2xl font-bold" id="staff-count">0</p>
+                    <p class="text-xs opacity-90">Total Staff</p>
+                </div>
+                <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg hover-card">
+                    <i class="fas fa-child text-2xl mb-2"></i>
+                    <p class="text-2xl font-bold" id="student-count">0</p>
+                    <p class="text-xs opacity-90">Total Students</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 gap-4">
+                ${createModernCard("Staff Attendance", "fas fa-user-check", "blue", "staff_logs_detail", "View staff attendance records")}
+                ${createModernCard("Student Attendance", "fas fa-calendar-check", "green", "student_attendance_summary", "Today's attendance status")}
+                ${createModernCard("Daily Time Table", "fas fa-calendar-alt", "purple", "openDailyTimeTable", "View class schedules")}
+                ${createModernCard("Exam Time Table", "fas fa-clock", "orange", "openExamTimeTable", "Exam schedule & dates")}
+                ${createModernCard("Teacher Time Table", "fas fa-chalkboard-user", "indigo", "openTeacherTimeTable", "Teacher wise schedule")}
+                ${createModernCard("Student Directory", "fas fa-address-book", "cyan", "loadSection", "students", "View all student details")}
+                ${createModernCard("Fees Dashboard", "fas fa-credit-card", "emerald", "showFeesDashboard", "Fee collection status")}
+            </div>
+        `;
+        updateHomeStats();
+    } else if (role === 'Student') {
+        content.innerHTML = welcomeCard + `
+            <div class="grid grid-cols-1 gap-4">
+                ${createModernCard("My Time Table", "fas fa-calendar-alt", "purple", "openDailyTimeTable", "View your class schedule")}
+                ${createModernCard("Exam Schedule", "fas fa-clock", "orange", "openExamTimeTable", "Upcoming exams")}
+                ${createModernCard("My Attendance", "fas fa-check-circle", "green", "loadSection", "attendance", "Your attendance record")}
+                ${createModernCard("Homework", "fas fa-book-open", "blue", "loadSection", "homework", "Pending assignments")}
+                ${createModernCard("Fees Status", "fas fa-credit-card", "emerald", "showFeesDashboard", "Fee payment status")}
+                ${createModernCard("School Notices", "fas fa-bell", "red", "loadSection", "notices", "Latest announcements")}
+            </div>
+        `;
+    }
+    
+    // Animate counters
+    animateCounters();
+};
+
+function createModernCard(title, icon, color, action, param1, param2) {
+    const colorMap = {
+        blue: "from-blue-500 to-blue-600",
+        green: "from-green-500 to-green-600",
+        purple: "from-purple-500 to-purple-600",
+        orange: "from-orange-500 to-orange-600",
+        indigo: "from-indigo-500 to-indigo-600",
+        cyan: "from-cyan-500 to-cyan-600",
+        emerald: "from-emerald-500 to-emerald-600",
+        red: "from-red-500 to-red-600",
+        pink: "from-pink-500 to-pink-600"
+    };
+    
+    const gradient = colorMap[color] || colorMap.blue;
+    const onClick = param2 ? `${action}('${param1}', '${param2}')` : (param1 ? `${action}('${param1}')` : `${action}()`);
+    
+    return `
+        <div onclick="${onClick}" class="bg-white rounded-xl shadow-sm hover-card cursor-pointer overflow-hidden transition-all">
+            <div class="flex items-center p-4">
+                <div class="bg-gradient-to-br ${gradient} rounded-xl p-3 text-white mr-4">
+                    <i class="${icon} text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-800">${title}</h3>
+                    <p class="text-xs text-gray-500 mt-1">${param2 || "Tap to view"}</p>
+                </div>
+                <i class="fas fa-chevron-right text-gray-300"></i>
+            </div>
+        </div>
+    `;
+}
+
+function animateCounters() {
+    const counters = document.querySelectorAll('[id$="-count"]');
+    counters.forEach(counter => {
+        const target = parseInt(counter.innerText);
+        if (isNaN(target)) return;
+        let current = 0;
+        const increment = target / 30;
+        const updateCounter = () => {
+            current += increment;
+            if (current < target) {
+                counter.innerText = Math.ceil(current);
+                requestAnimationFrame(updateCounter);
+            } else {
+                counter.innerText = target;
+            }
+        };
+        updateCounter();
+    });
+}
+
+async function updateHomeStats() {
+    try {
+        const [staffRes, studRes] = await Promise.all([
+            fetch(TEACHER_SHEET_CSV),
+            fetch(STUDENT_SHEET_CSV)
+        ]);
+        const staffCount = (await staffRes.text()).split('\n').filter(r => r.trim()).length - 1;
+        const studentCount = (await studRes.text()).split('\n').filter(r => r.trim()).length - 1;
+        
+        const staffEl = document.getElementById('staff-count');
+        const studentEl = document.getElementById('student-count');
+        if (staffEl) staffEl.innerText = staffCount;
+        if (studentEl) studentEl.innerText = studentCount;
+    } catch (e) {
+        console.error("Error loading stats:", e);
+    }
+}
+
 window.handleLogout = () => {
     if (confirm("Sign out?")) {
         localStorage.clear();
         location.reload();
     }
 };
+
+
