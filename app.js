@@ -2816,169 +2816,110 @@ window.showFeesChart = async () => {
     }
 };
 window.showFeesDashboard = async () => {
-const content = document.getElementById('content');
-const role = localStorage.getItem('userRole');
-const userName = (localStorage.getItem('name') || localStorage.getItem('userName') || "").trim();
-const userClass = localStorage.getItem('mappedClass') || localStorage.getItem('class');
+    const content = document.getElementById('content');
+    const role = localStorage.getItem('userRole');
+    const userName = (localStorage.getItem('name') || localStorage.getItem('userName') || "").trim();
+    const userClass = localStorage.getItem('mappedClass') || localStorage.getItem('class');
 
-// show loader (you already have this)
-content.innerHTML = `
-    <div class="flex flex-col items-center justify-center p-10">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p class="mt-2 text-xs text-gray-500">Syncing Accounts...</p>
-    </div>
-`;
-
-try {
-    // Fetch students, payments AND the fees chart (source of truth for fee amounts)
-    const [studentRes, paymentRes, feesRes] = await Promise.all([
-        fetch(STUDENT_SHEET_CSV).then(r => r.text()),
-        fetch(FEES_PAYMENT_CSV).then(r => r.text()),
-        fetch(FEES_CSV_URL).then(r => r.text())    // FEES_CSV_URL should already be defined in your file
-    ]);
-
-    const students = d3.csvParse(studentRes);
-    const payments = d3.csvParse(paymentRes);
-    const fees = d3.csvParse(feesRes);
-
-    // Build lookup maps from fees CSV
-    const normalize = s => String(s || '').toLowerCase().replace(/\s+/g, '').replace(/[^\w]/g, '');
-    const feesByGR = {};
-    const feesByName = {};
-    const feesByClass = {};
-
-    fees.forEach(row => {
-        // extract common fields (robust to header differences)
-        const gr = (row.GR || row['GR No'] || row.GR_No || row.gr || row['Gr'] || '').toString().trim();
-        const name = (row.Name || row['Full Name'] || row.name || '').toString().trim();
-        const cls = (row.Class || row.ClassName || row['Class Name'] || row.class || '').toString().trim();
-
-        // amount field: try multiple candidate headers, fallback to 0
-        const amount = parseFloat(
-            row.TotalFees || row['Total Fees'] || row.Fees || row.Fee || row.Amount || row.amount || row.fee || 0
-        ) || 0;
-
-        if (gr) feesByGR[gr] = amount;
-        if (name) feesByName[normalize(name)] = amount;
-        if (cls) {
-            const k = normalize(cls);
-            // If multiple rows for same class, prefer the largest defined fee (safer)
-            feesByClass[k] = Math.max(feesByClass[k] || 0, amount);
-        }
-    });
-
-    // Helper to extract student fields robustly
-    const getStudentField = (s, candidates) => {
-        for (const k of candidates) {
-            if (s[k] !== undefined && s[k] !== null && String(s[k]).trim() !== '') return String(s[k]).trim();
-        }
-        return '';
-    };
-
-    // Start building the HTML UI (sticky header etc.)
-    let html = `
-        <div class="bg-gray-50 min-h-screen pb-20">
-            <div class="sticky top-0 bg-white border-b p-4 flex items-center z-10 shadow-sm">
-                <button onclick="loadSection('home')" class="mr-3 text-blue-600 text-xl">←</button>
-                <h2 class="text-lg font-bold text-gray-800">Fees Status</h2>
-            </div>
+    content.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-10">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-2 text-xs text-gray-500">Syncing Accounts...</p>
+        </div>
     `;
 
-    if (['Admin', 'Super Admin', 'Supervisor', 'Clerk', 'Teacher'].includes(role)) {
-        html += `<div class="p-4 space-y-3">
+    try {
+        const FEES_PAYMENT_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
+        
+        const [studentRes, paymentRes] = await Promise.all([
+            fetch(STUDENT_SHEET_CSV).then(r => r.text()),
+            fetch(FEES_PAYMENT_CSV).then(r => r.text())
+        ]);
+
+        const students = d3.csvParse(studentRes);
+        const payments = d3.csvParse(paymentRes);
+
+        let html = `
+            <div class="bg-gray-50 min-h-screen pb-20">
+                <div class="sticky top-0 bg-white border-b p-4 flex items-center z-10 shadow-sm">
+                    <button onclick="loadSection('home')" class="mr-3 text-blue-600 text-xl">←</button>
+                    <h2 class="text-lg font-bold text-gray-800">Fees Status</h2>
+                </div>
+        `;
+
+        if (['Admin', 'Super Admin', 'Supervisor', 'Clerk', 'Teacher'].includes(role)) {
+            html += `
+                <div class="p-4 space-y-3">
                     <div class="flex gap-2">
                         <input type="text" id="feeSearch" oninput="filterFeeList()" placeholder="Search Name or Class..." class="flex-1 p-3 rounded-xl border border-gray-200 text-sm shadow-sm outline-none">
                     </div>
-                    <div id="feeListContainer" class="space-y-3">`;
-        
-        students.forEach(student => {
-            // Normalize student fields from student CSV (accept different header names)
-            const studentName = getStudentField(student, ['Name','Full Name','full name','name','Student Name','Student']);
-            const studentClassField = getStudentField(student, ['Class','class','ClassName','class_name']);
-            const studentGR = getStudentField(student, ['GR','GR_No','GR No','gr','gr_no','Gr']);
-            const studentContact = getStudentField(student, ['Contact','Contact No.','ContactNo','Phone','phone','contact','Mobile']);
-
-            // If teacher role restrict to teacher's mapped class
-            if (role === 'Teacher' && userClass && studentClassField && normalize(studentClassField) !== normalize(userClass)) return;
-
-            // skip rows with no name
-            if (!studentName) return;
-
-            // Determine feeLimit from fees CSV maps (GR -> name -> class), fallback to student.TotalFees if present
-            let feeLimit = 0;
-            if (studentGR && feesByGR[studentGR] !== undefined) {
-                feeLimit = feesByGR[studentGR];
-            } else if (feesByName[normalize(studentName)] !== undefined) {
-                feeLimit = feesByName[normalize(studentName)];
-            } else if (studentClassField && feesByClass[normalize(studentClassField)] !== undefined) {
-                feeLimit = feesByClass[normalize(studentClassField)];
-            } else {
-                // fallback to student csv's own field variants
-                feeLimit = parseFloat(getStudentField(student, ['TotalFees','Total Fees','Fees','Fee','fee','Total_Fees'])) || 0;
-            }
-
-            // Find payments for this student (robust name matching - try GR too)
-            const studentPayments = payments.filter(p => {
-                const payName = (p.Name || p.name || p['Payer Name'] || p['Name '] || '').toString().trim();
-                const payGR = (p.GR || p['GR No'] || p.GR_No || p.gr || '').toString().trim();
-                if (studentGR && payGR && studentGR === payGR) return true;
-                if (payName && studentName && payName.toLowerCase() === studentName.toLowerCase()) return true;
-                return false;
-            });
-
-            const totalPaid = studentPayments.reduce((sum, p) => {
-                const amt = parseFloat(p.Amount || p.amount || p.Paid || p.paid || p['Payment'] || 0) || 0;
-                return sum + amt;
-            }, 0);
-
-            const balance = feeLimit - totalPaid;
-            const hasAnyPayment = studentPayments.length > 0;
-
-            // UI decision:
-            // Only mark FULL PAID when we have a positive feeLimit and balance <= 0.
-            const isFullyPaid = feeLimit > 0 && balance <= 0;
-            const needsPayment = feeLimit > 0 && balance > 0;
-
-            const cardColor = !hasAnyPayment ? 'border-red-600 bg-red-50/30'
-                                : (feeLimit === 0 ? 'border-gray-300'
-                                : (needsPayment ? 'border-orange-400' : 'border-green-500'));
-
-            html += `
-                <div class="fee-item bg-white p-4 rounded-2xl shadow-sm border-l-4 ${cardColor}">
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <p class="font-bold text-gray-800 text-sm uppercase">${studentName}</p>
-                            <p class="text-[10px] text-gray-500 font-medium">CLASS: ${studentClassField || ''} | GR: ${studentGR || 'N/A'}</p>
-                            ${!hasAnyPayment ? 
-                                `<span class="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold mt-1 inline-block">NO PAYMENT FOUND</span>` 
-                            : (studentContact ? `<p class="text-[10px] text-blue-600 font-bold mt-1">📞 ${studentContact}</p>` : '')}
-                        </div>
-                        <div class="text-right">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase">Paid</p>
-                            <p class="text-sm font-black text-gray-800">₹${totalPaid}</p>
-                            ${feeLimit === 0 ? 
-                                `<p class="text-[10px] font-black text-gray-500 mt-1">Fee not set</p>` 
-                            : (isFullyPaid ? 
-                                `<p class="text-[10px] font-black text-green-600 mt-1">FULL PAID</p>` 
-                                : `<p class="text-[10px] font-black text-red-600 mt-1">Pending: ₹${Math.max(0, balance)}</p>`)}
-                        </div>
-                    </div>
-                </div>
+                    <div id="feeListContainer" class="space-y-3">
             `;
-        });
 
-        html += `</div></div>`;
-    } else if (role === 'Student') {
-        // student view (you can keep existing student section logic)
+students.forEach(student => {
+    // Normalize common header variants so code doesn't crash when CSV header differs
+    const studentName = (student.Name || student.name || student['Full Name'] || student['FullName'] || student['full name'] || '').trim();
+    const studentClassField = (student.Class || student.class || student.ClassName || student['Class '] || student['class'] || '').trim();
+    const studentGR = (student.GR_No || student.GR || student['GR No'] || student['GR_No'] || student.gr || '').trim();
+    const studentContact = (student.Contact || student.ContactNo || student['Contact No.'] || student['Contact'] || student.contact || '').trim();
+    const totalFees = parseFloat(student.TotalFees || student['Total Fees'] || student.totalfees || 0) || 0;
+
+    // If teacher role, only show students in teacher's class
+    if (role === 'Teacher' && userClass && studentClassField !== userClass) return;
+
+    // Skip malformed rows with no name
+    if (!studentName) return;
+
+    // Normalize payment name field similarly
+    const studentPayments = payments.filter(p => {
+        const payName = (p.Name || p.name || p['Payer Name'] || '').trim();
+        return payName && payName.toLowerCase() === studentName.toLowerCase();
+    });
+
+    const totalPaid = studentPayments.reduce((sum, p) => sum + (parseFloat(p.Amount || p.amount || p['Paid'] || 0) || 0), 0);
+    const balance = totalFees - totalPaid;
+    const isUnpaid = studentPayments.length === 0;
+    const cardColor = isUnpaid ? 'border-red-600 bg-red-50/30' : (balance > 0 ? 'border-orange-400' : 'border-green-500');
+
+    html += `
+        <div class="fee-item bg-white p-4 rounded-2xl shadow-sm border-l-4 ${cardColor}">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <p class="font-bold text-gray-800 text-sm uppercase">${studentName}</p>
+                    <p class="text-[10px] text-gray-500 font-medium">CLASS: ${studentClassField || student.Class || ''} | GR: ${studentGR || 'N/A'}</p>
+                    ${isUnpaid ? 
+                        `<span class="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold mt-1 inline-block">NO PAYMENT FOUND</span>` : 
+                        `<p class="text-[10px] text-blue-600 font-bold mt-1">📞 ${studentContact || ''}</p>`
+                    }
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Paid</p>
+                    <p class="text-sm font-black text-gray-800">₹${totalPaid}</p>
+                    ${balance > 0 ? 
+                        `<p class="text-[10px] font-black text-red-600 mt-1">Pending: ₹${balance}</p>` : 
+                        `<p class="text-[10px] font-black text-green-600 mt-1">FULL PAID</p>`
+                    }
+                </div>
+            </div>
+        </div>
+    `;
+});
+
+            
+            html += `</div></div>`;
+
+        } else if (role === 'Student') {
+            // ... Student logic remains same as before ...
+        }
+
+        html += `</div>`;
+        content.innerHTML = html;
+
+    } catch (err) {
+        console.error(err);
+        content.innerHTML = `<div class="p-10 text-center text-red-500">Error loading data.</div>`;
     }
-
-    html += `</div>`;
-    content.innerHTML = html;
-
-} catch (err) {
-    console.error(err);
-    content.innerHTML = `<div class="p-10 text-center text-red-500">Error loading data.</div>`;
-}
+};
 
 // Simple search filter for the staff view
 window.filterFeeList = () => {
