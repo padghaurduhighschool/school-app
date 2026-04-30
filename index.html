@@ -46,11 +46,27 @@
 
     /* Bottom Nav Glass Effect */
     .glass-nav {
-        background: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.8);
         backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(12px);
         border-top: 1px solid rgba(255, 255, 255, 0.5);
     }
+.nav-btn {
+    color: #94a3b8; /* slate-400 */
+}
+
+.nav-btn.active {
+    color: #2563eb; /* blue-600 */
+    transform: translateY(-5px);
+}
+
+.nav-btn i {
+    transition: transform 0.2s ease;
+}
+
+.nav-btn:active i {
+    transform: scale(0.8);
+}
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -79,32 +95,34 @@
         <main id="content" class="p-4">
             </main>
 
-<nav class="fixed bottom-0 left-0 right-0 glass-nav flex justify-around p-3 pb-6 z-50">
-    <button onclick="loadSection('home')" class="flex flex-col items-center text-slate-600 active:text-blue-600">
-        <i class="fa-solid fa-house text-xl"></i>
-        <span class="text-[10px] mt-1 font-semibold uppercase tracking-tighter">Home</span>
+<nav class="fixed bottom-6 left-4 right-4 bg-white/80 backdrop-blur-lg border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] rounded-2xl flex justify-around p-2 z-50">
+    <button onclick="setActiveNav(this, 'home')" class="nav-btn active flex flex-col items-center justify-center w-16 h-14 transition-all duration-300">
+        <i class="fa-solid fa-house-chimney text-lg"></i>
+        <span class="text-[9px] mt-1 font-bold uppercase tracking-widest">Home</span>
     </button>
 
-    <button onclick="loadSection('attendance')" class="flex flex-col items-center text-slate-600 active:text-blue-600">
-        <i class="fa-solid fa-calendar-check text-xl"></i>
-        <span class="text-[10px] mt-1 font-semibold uppercase tracking-tighter">Attendance</span>
+    <button onclick="setActiveNav(this, 'attendance')" class="nav-btn flex flex-col items-center justify-center w-16 h-14 transition-all duration-300">
+        <i class="fa-solid fa-calendar-check text-lg"></i>
+        <span class="text-[9px] mt-1 font-bold uppercase tracking-widest">Roll Call</span>
     </button>
 
-    <button onclick="loadSection('homework')" class="flex flex-col items-center text-slate-600 active:text-blue-600">
-        <i class="fa-solid fa-book-open text-xl"></i>
-        <span class="text-[10px] mt-1 font-semibold uppercase tracking-tighter">Homework</span>
+    <button onclick="setActiveNav(this, 'homework')" class="nav-btn flex flex-col items-center justify-center w-16 h-14 transition-all duration-300">
+        <i class="fa-solid fa-book-bookmark text-lg"></i>
+        <span class="text-[9px] mt-1 font-bold uppercase tracking-widest">Work</span>
     </button>
 
-    <button onclick="loadSection('notices')" class="flex flex-col items-center text-slate-600 active:text-blue-600">
-        <i class="fa-solid fa-bell text-xl"></i>
-        <span class="text-[10px] mt-1 font-semibold uppercase tracking-tighter">Notices</span>
+    <button onclick="setActiveNav(this, 'notices')" class="nav-btn flex flex-col items-center justify-center w-16 h-14 transition-all duration-300 relative">
+        <i class="fa-solid fa-bullhorn text-lg"></i>
+        <span class="text-[9px] mt-1 font-bold uppercase tracking-widest">News</span>
+        <span class="absolute top-3 right-5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
     </button>
 
-    <button onclick="loadSection('more')" class="flex flex-col items-center text-slate-600 active:text-blue-600">
-        <i class="fa-solid fa-bars text-xl"></i>
-        <span class="text-[10px] mt-1 font-semibold uppercase tracking-tighter">More</span>
+    <button onclick="setActiveNav(this, 'more')" class="nav-btn flex flex-col items-center justify-center w-16 h-14 transition-all duration-300">
+        <i class="fa-solid fa-grip text-lg"></i>
+        <span class="text-[9px] mt-1 font-bold uppercase tracking-widest">Menu</span>
     </button>
 </nav>
+        
     </div>
 <script>
       if ('serviceWorker' in navigator) {
