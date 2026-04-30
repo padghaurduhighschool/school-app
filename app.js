@@ -1107,25 +1107,59 @@ window.loadClassTimetable = async (className) => {
         const snap = await firebase.database().ref("timetable/class/" + className).once('value');
         const data = snap.val() || {};
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const periods = ["1", "2", "3", "4", "5", "6", "7", "8"];
+        const totalPeriods = 8;
+        const fridayMaxPeriod = 4;
 
-        let html = '<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><tr class="bg-gray-50"><th class="p-2 border text-xs">Period</th>';
-        days.forEach(d => html += `<th class="p-2 border text-xs">${d.substring(0,3)}</th>`);
-        html += `</tr>`;
+        let html = '<div class="overflow-x-auto"><table class="w-full border-collapse text-sm">';
         
-        periods.forEach(p => {
-            html += `<tr><td class="p-2 border bg-gray-50 font-bold text-blue-600 text-center text-xs">${p}</td>`;
-            days.forEach(d => {
-                const value = (data[d] && data[d][p]) ? data[d][p] : "";
-                if (isAdmin) {
-                    html += `<td class="p-1 border"><input type="text" id="cell-${d}-${p}" value="${value}" class="w-full p-1 text-xs border-none focus:bg-yellow-50" placeholder="-"></td>`;
-                } else {
-                    html += `<td class="p-2 border text-xs text-gray-700">${value || '-'}</td>`;
+        // Header
+        html += `<thead><tr class="bg-green-600 text-white">
+            <th class="p-3 border border-green-500 text-center font-bold w-16">Period</th>
+            ${days.map(d => `<th class="p-3 border border-green-500 text-center font-bold">${d}</th>`).join('')}
+         </tr></thead><tbody>`;
+        
+        // Body - Periods 1 to 8
+        for (let period = 1; period <= totalPeriods; period++) {
+            const isFridayPeriod = period > fridayMaxPeriod;
+            
+            html += `<tr class="${isFridayPeriod ? 'bg-gray-50' : 'hover:bg-gray-50'}">`;
+            html += `<td class="p-3 border text-center font-bold ${isFridayPeriod ? 'text-gray-400' : 'text-green-600 bg-green-50'}">${period}${isFridayPeriod ? '†' : ''}</td>`;
+            
+            for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
+                const day = days[dayIdx];
+                
+                // Handle Friday special case
+                if (day === 'Friday' && isFridayPeriod) {
+                    if (period === 5) {
+                        const rowspan = totalPeriods - fridayMaxPeriod;
+                        html += `<td rowspan="${rowspan}" class="p-3 border text-center bg-amber-50 align-middle">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-regular fa-clock text-amber-500 mb-1"></i>
+                                <span class="text-amber-700 font-medium text-xs">Early Dismissal</span>
+                                <span class="text-amber-500 text-[10px]">No classes</span>
+                            </div>
+                        </td>`;
+                    }
+                    continue;
                 }
-            });
+                
+                const value = (data[day] && data[day][period]) ? data[day][period] : "";
+                
+                if (isAdmin) {
+                    html += `<td class="p-1 border"><input type="text" id="cell-${day}-${period}" value="${value}" class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" placeholder="Subject"></td>`;
+                } else {
+                    html += `<td class="p-3 border text-gray-700 text-xs">${value || '—'}</td>`;
+                }
+            }
             html += `</tr>`;
-        });
-        html += `</table></div>`;
+        }
+        
+        // Footer note
+        html += `<tr class="bg-gray-50"><td colspan="7" class="p-3 text-xs text-gray-500">
+            <i class="fa-regular fa-clock mr-1"></i> <strong>Note:</strong> Friday has only 4 periods (Early dismissal)
+        </td></tr>`;
+        
+        html += `</tbody></table></div>`;
         grid.innerHTML = html;
     } catch (err) {
         grid.innerHTML = `<p class="p-5 text-red-500">Error: ${err.message}</p>`;
@@ -1138,20 +1172,33 @@ window.saveClassTimetable = async () => {
     if (!className) return alert("Select a class first!");
     
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const periods = ["1", "2", "3", "4", "5", "6", "7", "8"];
+    const totalPeriods = 8;
+    const fridayMaxPeriod = 4;
     const timetableData = {};
     
-    days.forEach(d => {
-        timetableData[d] = {};
-        periods.forEach(p => {
-            const cell = document.getElementById(`cell-${d}-${p}`);
-            if (cell) timetableData[d][p] = cell.value.trim();
-        });
+    days.forEach(day => {
+        timetableData[day] = {};
     });
+    
+    for (let period = 1; period <= totalPeriods; period++) {
+        for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
+            const day = days[dayIdx];
+            
+            // Skip saving for Friday periods 5-8
+            if (day === 'Friday' && period > fridayMaxPeriod) {
+                continue;
+            }
+            
+            const cell = document.getElementById(`cell-${day}-${period}`);
+            if (cell) {
+                timetableData[day][period] = cell.value.trim();
+            }
+        }
+    }
     
     try {
         await firebase.database().ref("timetable/class/" + className).set(timetableData);
-        alert(`Timetable for Class ${className} saved!`);
+        alert(`✅ Timetable for Class ${className} saved!\n📅 Friday has 4 periods only`);
     } catch (err) {
         alert("Error: " + err.message);
     }
@@ -1245,58 +1292,33 @@ window.openTeacherTimeTable = () => {
     // For regular teachers - show only their own timetable (read-only)
     if (!isAdmin && role === 'Teacher') {
         content.innerHTML = `
-        <div class="space-y-4">
-            <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-2xl text-white shadow-lg">
-                <h2 class="text-2xl font-bold">Hello, ${name}</h2>
-                <p class="text-sm opacity-80 mt-1">Welcome to your Dashboard</p>
-                <p class="text-xs opacity-70 mt-2">Class: ${mappedClass}</p>
-            </div>
-
-            <div onclick="openDailyTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500 cursor-pointer active:scale-95 transition-all">
+            <div class="space-y-4">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-[10px] uppercase font-bold">School Schedule</p>
-                        <p class="text-lg font-bold text-green-600">Daily Time Table</p>
-                        <p class="text-xs text-gray-400 mt-1">View all class schedules</p>
+                    <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h2 class="text-lg font-bold">My Time Table</h2>
+                    <div></div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-purple-600 to-indigo-700 p-4 rounded-2xl text-white">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-chalkboard-user text-3xl"></i>
+                        <div>
+                            <p class="text-xs opacity-80">Teacher Schedule</p>
+                            <p class="font-bold text-lg">${teacherName}</p>
+                        </div>
                     </div>
-                    <i class="fa-regular fa-calendar text-green-400 text-2xl"></i>
+                </div>
+                
+                <div id="teacher-own-timetable" class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="p-8 text-center text-gray-400">
+                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                        <p>Loading your timetable...</p>
+                    </div>
                 </div>
             </div>
-
-            <div onclick="openExamTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-500 cursor-pointer active:scale-95 transition-all">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-[10px] uppercase font-bold">Assessments</p>
-                        <p class="text-lg font-bold text-orange-600">Exam Time Table</p>
-                        <p class="text-xs text-gray-400 mt-1">Check exam schedule</p>
-                    </div>
-                    <i class="fa-regular fa-clock text-orange-400 text-2xl"></i>
-                </div>
-            </div>
-
-            <div onclick="openTeacherTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-purple-500 cursor-pointer active:scale-95 transition-all">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-[10px] uppercase font-bold">My Schedule</p>
-                        <p class="text-lg font-bold text-purple-600">Teacher Time Table</p>
-                        <p class="text-xs text-gray-400 mt-1">${name}</p>
-                    </div>
-                    <i class="fa-regular fa-user text-purple-400 text-2xl"></i>
-                </div>
-            </div>
-
-            <div onclick="showFeesDashboard()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 cursor-pointer active:scale-95 transition-all">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-[10px] uppercase font-bold">Accounts</p>
-                        <p class="text-lg font-bold text-emerald-600">Fees Dashboard</p>
-                        <p class="text-xs text-gray-400 mt-1">View class payments</p>
-                    </div>
-                    <i class="fa-regular fa-credit-card text-emerald-400 text-2xl"></i>
-                </div>
-            </div>
-        </div>
-    `;
+        `;
         
         // Load the logged-in teacher's timetable (read-only view)
         loadTeacherOwnTimetableMatrix(teacherName, false);
@@ -1317,7 +1339,7 @@ window.openTeacherTimeTable = () => {
             </div>
             
             <div class="bg-white p-4 rounded-xl shadow">
-                <label class="block text-xs font-bold text-gray-500 mb-2">Select Teacher</label>
+                <label class="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Select Teacher</label>
                 <select id="teacherSelect" class="w-full p-3 bg-gray-50 rounded-xl text-sm border mb-4">
                     <option value="">-- Select Teacher --</option>
                 </select>
@@ -1332,7 +1354,6 @@ window.openTeacherTimeTable = () => {
     loadTeacherDropdownForMatrix();
 };
 
-// Load teacher dropdown for matrix timetable (Admin view)
 async function loadTeacherDropdownForMatrix() {
     try {
         const res = await fetch(TEACHER_SHEET_CSV);
@@ -1358,10 +1379,10 @@ async function loadTeacherDropdownForMatrix() {
         }
     } catch (e) {
         console.error("Error loading teachers:", e);
+        const select = document.getElementById('teacherSelect');
+        if (select) select.innerHTML = '<option value="">Error loading teachers</option>';
     }
 }
-
-// Load teacher timetable for editing (Admin view - Edit mode)
 async function loadTeacherTimetableForEditMatrix(teacherName) {
     const container = document.getElementById('teacher-tt-container');
     if (!teacherName) {
@@ -1377,7 +1398,7 @@ async function loadTeacherTimetableForEditMatrix(teacherName) {
         const data = snap.val();
         const schedule = data?.schedule || {};
         
-        // Render editable matrix (same format as Daily Time Table)
+        // Render editable matrix
         renderTeacherTimetableMatrix(container, teacherName, schedule, true);
     } catch (err) {
         container.innerHTML = `<p class="text-red-500 p-8 text-center">Error loading timetable: ${err.message}</p>`;
@@ -1428,80 +1449,96 @@ async function loadTeacherOwnTimetableMatrix(teacherName, isEditable = false) {
 // Render Teacher Time Table in matrix format (8 periods x 6 days, Friday 4 periods)
 function renderTeacherTimetableMatrix(container, teacherName, schedule, isEditable) {
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const fullPeriods = 8;  // 8 periods for Mon-Thu & Sat
-    const fridayPeriods = 4; // Only 4 periods on Friday
+    const totalPeriods = 8;
+    const fridayMaxPeriod = 4; // Friday only 4 periods
     
     let html = `
         <div class="overflow-x-auto">
             <table class="w-full border-collapse text-sm">
                 <thead>
                     <tr class="bg-purple-600 text-white">
-                        <th class="p-3 border border-purple-500 text-center font-bold">Period</th>
+                        <th class="p-3 border border-purple-500 text-center font-bold w-16">Period</th>
                         ${days.map(day => `<th class="p-3 border border-purple-500 text-center font-bold">${day}</th>`).join('')}
                     </tr>
                 </thead>
                 <tbody>
     `;
     
-    // Render periods 1-8
-    for (let period = 1; period <= fullPeriods; period++) {
-        // Skip period 5-8 on Friday
-        if (period > fridayPeriods) {
-            // For Friday, show merged or empty cells
-            if (period === 5) {
-                // Create a special row for Friday indicating early dismissal
-                html += `
-                    <tr class="bg-amber-50">
-                        <td class="p-3 border text-center font-bold text-amber-600">${period}</td>
-                        ${days.map((day, idx) => {
-                            if (day === 'Friday') {
-                                return `<td class="p-3 border text-center text-amber-600 italic" colspan="1">Early Dismissal</td>`;
-                            }
-                            const value = schedule?.[day]?.[period] || '';
-                            if (isEditable) {
-                                return `<td class="p-1 border"><input type="text" id="cell-${day}-${period}" value="${value.replace(/"/g, '&quot;')}" class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" placeholder="—"></td>`;
-                            } else {
-                                return `<td class="p-3 border text-gray-700">${value || '—'}</td>`;
-                            }
-                        }).join('')}
-                    </tr>
-                `;
-            }
-            continue;
-        }
+    // Render periods 1 to 8
+    for (let period = 1; period <= totalPeriods; period++) {
+        const isFridayPeriod = period > fridayMaxPeriod;
         
-        html += `<tr class="hover:bg-gray-50">`;
-        html += `<td class="p-3 border text-center font-bold text-purple-600 bg-purple-50">${period}</td>`;
+        html += `<tr class="${isFridayPeriod ? 'bg-gray-50' : 'hover:bg-gray-50'}">`;
         
+        // Period number column
+        html += `<td class="p-3 border text-center font-bold ${isFridayPeriod ? 'text-gray-400' : 'text-purple-600 bg-purple-50'}">
+            ${period}${isFridayPeriod ? '†' : ''}
+        </td>`;
+        
+        // Loop through each day
         for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
             const day = days[dayIdx];
+            
+            // Handle Friday special case
+            if (day === 'Friday' && isFridayPeriod) {
+                // For Friday periods 5-8: show "Early Dismissal" merged cell
+                if (period === 5) {
+                    // First of the merged rows - show the message
+                    const rowspan = totalPeriods - fridayMaxPeriod; // rowspan = 4
+                    html += `<td rowspan="${rowspan}" class="p-3 border text-center bg-amber-50 align-middle">
+                        <div class="flex flex-col items-center">
+                            <i class="fa-solid fa-bell text-amber-500 text-lg mb-1"></i>
+                            <span class="text-amber-700 font-medium text-xs">Early Dismissal</span>
+                            <span class="text-amber-500 text-[10px] mt-1">No classes after period 4</span>
+                        </div>
+                    </td>`;
+                }
+                // Skip the other rows (5-8) since they're merged
+                continue;
+            }
+            
+            // Regular period cell (or Friday period 1-4)
             const value = schedule?.[day]?.[period] || '';
             
             if (isEditable) {
                 // Editable for Admin
+                const placeholder = day === 'Friday' && period <= fridayMaxPeriod ? 
+                    "Subject / Class (Fri - Period " + period + ")" : 
+                    "Subject / Class";
+                    
                 html += `<td class="p-1 border">
-                    <input type="text" id="cell-${day}-${period}" value="${value.replace(/"/g, '&quot;')}" 
+                    <input type="text" id="cell-${day}-${period}" 
+                        value="${value.replace(/"/g, '&quot;')}" 
                         class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" 
-                        placeholder="Subject / Class">
-                </td>`;
+                        placeholder="${placeholder}">
+                 </td>`;
             } else {
                 // Read-only for Teacher
-                html += `<td class="p-3 border text-gray-700 text-xs">${value || '—'}</td>`;
+                const displayValue = value || '—';
+                html += `<td class="p-3 border text-gray-700 text-xs">${displayValue}</td>`;
             }
         }
         html += `</tr>`;
     }
     
-    // Add a note row
+    // Add footer note
     html += `
-        <tr class="bg-gray-50">
-            <td class="p-3 border text-center font-bold text-gray-500">Note</td>
-            <td colspan="${days.length}" class="p-3 border text-xs text-gray-500">
-                <i class="fa-regular fa-clock mr-1"></i> 
-                Friday: Early dismissal after 4th period | Regular days: 8 periods
-                ${!isEditable ? '<br>Contact admin for schedule changes' : ''}
-            </td>
-        </tr>
+        <tr class="bg-gray-50 border-t-2">
+            <td colspan="7" class="p-3 text-xs text-gray-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <i class="fa-regular fa-clock mr-1 text-amber-500"></i>
+                        <strong>Note:</strong> Friday has only 4 periods (Early dismissal at 10:45 AM)
+                        ${!isEditable ? '<br><span class="text-[10px] text-gray-400 ml-4">† Contact admin for schedule changes</span>' : ''}
+                    </div>
+                    ${isEditable ? `
+                        <div class="text-[10px] text-purple-500">
+                            <i class="fa-regular fa-keyboard mr-1"></i> Click any cell to edit
+                        </div>
+                    ` : ''}
+                </div>
+             </td>
+         </tr>
     `;
     
     html += `
@@ -1510,18 +1547,9 @@ function renderTeacherTimetableMatrix(container, teacherName, schedule, isEditab
         </div>
     `;
     
-    // Add note about Friday for teachers
-    if (!isEditable) {
-        html += `
-            <div class="mt-4 p-3 bg-amber-50 rounded-lg text-xs text-amber-700">
-                <i class="fa-regular fa-bell mr-1"></i>
-                <strong>Note:</strong> Friday has only 4 periods (early dismissal). Periods 5-8 are not applicable on Friday.
-            </div>
-        `;
-    }
-    
     container.innerHTML = html;
 }
+
 
 // Save Teacher Timetable (Admin function)
 window.saveTeacherTimetableMatrix = async () => {
@@ -1532,22 +1560,22 @@ window.saveTeacherTimetableMatrix = async () => {
     }
     
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const fullPeriods = 8;
-    const fridayPeriods = 4;
+    const totalPeriods = 8;
+    const fridayMaxPeriod = 4;
     const schedule = {};
     
-    // Initialize schedule object
+    // Initialize schedule object for each day
     days.forEach(day => {
         schedule[day] = {};
     });
     
     // Collect data for all periods
-    for (let period = 1; period <= fullPeriods; period++) {
+    for (let period = 1; period <= totalPeriods; period++) {
         for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
             const day = days[dayIdx];
             
-            // Skip saving periods > 4 for Friday
-            if (day === 'Friday' && period > fridayPeriods) {
+            // Skip saving for Friday periods 5-8 (they don't exist)
+            if (day === 'Friday' && period > fridayMaxPeriod) {
                 continue;
             }
             
@@ -1564,7 +1592,15 @@ window.saveTeacherTimetableMatrix = async () => {
         schedule: schedule,
         updatedBy: localStorage.getItem('userName'),
         timestamp: firebase.database.ServerValue.TIMESTAMP,
-        format: "matrix_8x6" // Indicate the format
+        format: "matrix_8x6_friday_4periods",
+        periodsPerDay: {
+            "Monday": 8,
+            "Tuesday": 8,
+            "Wednesday": 8,
+            "Thursday": 8,
+            "Friday": 4,
+            "Saturday": 8
+        }
     };
     
     try {
@@ -1574,14 +1610,14 @@ window.saveTeacherTimetableMatrix = async () => {
         // Also save to legacy location for compatibility
         await firebase.database().ref(`timetable/teacher/${teacher}`).set(schedule);
         
-        alert(`Timetable saved successfully for ${teacher}!`);
+        alert(`✅ Timetable saved successfully for ${teacher}!\n\n📅 Monday-Thursday & Saturday: 8 periods\n📅 Friday: 4 periods (Early dismissal)`);
         
         // If the saved teacher is the currently logged-in teacher, refresh their view
         if (teacher === localStorage.getItem('userName')) {
             loadTeacherOwnTimetableMatrix(teacher, false);
         }
     } catch (err) {
-        alert("Error saving: " + err.message);
+        alert("❌ Error saving: " + err.message);
     }
 };
 
