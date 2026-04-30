@@ -374,19 +374,6 @@ if (section === 'home') {
   </div>
 </div>
 
-<div onclick="showFeesDashboard()" class="bg-gradient-to-br from-indigo-600 to-blue-700 p-5 rounded-2xl shadow-lg transform active:scale-95 transition-all cursor-pointer">
-  <div class="flex items-center justify-between text-white">
-    <div>
-      <p class="text-indigo-100 text-[10px] uppercase font-bold tracking-widest">Payments</p>
-      <h3 class="text-xl font-black">My Fees</h3>
-      <p class="text-indigo-200 text-xs mt-1">Receipts & Balance</p>
-    </div>
-    <div class="bg-white/20 p-3 rounded-xl">
-      <span class="text-2xl">💳</span>
-    </div>
-  </div>
-</div>
-
 
         <div onclick="loadSection('view_teacher_timetable')"
              class="mt-6 bg-gradient-to-br from-purple-600 to-indigo-700 p-5 rounded-2xl shadow-lg border-none transform active:scale-95 transition-all cursor-pointer">
