@@ -2,159 +2,183 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Padgha Urdu High School</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#6366f1">
     <link rel="apple-touch-icon" href="Padgha Urdu High School Logo.png">
     <link rel="icon" type="image/png" href="Padgha Urdu High School Logo.png">
+    
+    <!-- Fonts & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&family=Noto+Sans+Devanagari&display=swap" rel="stylesheet">
-    <style>
-/* English default */
-.lang-en {
-    font-family: system-ui, sans-serif;
-}
-
-/* Marathi */
-.lang-mr {
-    font-family: 'Kokila', 'Noto Sans Devanagari', sans-serif;
-}
-
-/* Urdu */
-.lang-ur {
-    font-family: 'Noto Nastaliq Urdu', serif;
-    direction: rtl;
-    text-align: right;
-}
-        body {
-        background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
-        min-height: 100vh;
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* The Glass Effect */
-    .glass-card {
-        background: rgba(255, 255, 255, 0.4);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-    }
-
-    /* Bottom Nav Glass Effect */
-    .glass-nav {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(12px);
-        border-top: 1px solid rgba(255, 255, 255, 0.5);
-    }
-.nav-btn {
-    color: #94a3b8; /* slate-400 */
-}
-
-.nav-btn.active {
-    color: #2563eb; /* blue-600 */
-    transform: translateY(-5px);
-}
-
-.nav-btn i {
-    transition: transform 0.2s ease;
-}
-
-.nav-btn:active i {
-    transform: scale(0.8);
-}
-    </style>
+   
+   
 </head>
-<body class="bg-gray-100 font-sans">
+<body>
 
-    <div id="splash-screen" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50">
-        <img src="Padgha Urdu High School Logo.png" alt="School Logo" class="w-32 h-32 object-contain mb-4">
-        <h1 class="text-2xl font-bold text-gray-800">Padgha Urdu High School</h1>
-        <div class="mt-4 animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-    </div>
-
-    <div id="login-screen" class="hidden min-h-screen flex items-center justify-center p-6">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
-            <input type="tel" id="phone" placeholder="Phone Number" class="w-full p-4 mb-4 border rounded-xl">
-            <input type="text" id="code" placeholder="8-digit Code" class="w-full p-4 mb-6 border rounded-xl">
-            <button onclick="handleLogin()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold text-lg">Login</button>
-            <button class="w-full mt-4 text-blue-600 font-medium">Help (Contact School)</button>
+    <!-- Modern Splash Screen -->
+    <div id="splash-screen" class="fixed inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex flex-col items-center justify-center z-50">
+        <div class="text-center animate-bounce">
+            <img src="Padgha Urdu High School Logo.png" alt="School Logo" class="w-28 h-28 object-contain mx-auto mb-6 splash-logo">
+            <h1 class="text-3xl font-bold text-white mb-2">Padgha Urdu High School</h1>
+            <p class="text-white/80 text-sm">Empowering Education, Enabling Excellence</p>
+        </div>
+        <div class="mt-8">
+            <div class="loading-spinner"></div>
         </div>
     </div>
 
+    <!-- Modern Login Screen -->
+    <div id="login-screen" class="hidden min-h-screen flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md p-8">
+            <div class="text-center mb-8">
+                <img src="Padgha Urdu High School Logo.png" alt="Logo" class="w-20 h-20 mx-auto mb-4">
+                <h2 class="text-2xl font-bold gradient-text">Welcome Back!</h2>
+                <p class="text-gray-500 text-sm mt-2">Login to access your dashboard</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="relative">
+                    <i class="fas fa-phone-alt absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="tel" id="phone" placeholder="Phone Number" 
+                        class="modern-input w-full pl-12">
+                </div>
+                
+                <div class="relative">
+                    <i class="fas fa-key absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="code" placeholder="8-digit Code" 
+                        class="modern-input w-full pl-12">
+                </div>
+                
+                <button onclick="handleLogin()" class="modern-btn w-full">
+                    <i class="fas fa-arrow-right-to-bracket mr-2"></i>Login
+                </button>
+                
+                <button class="w-full text-indigo-600 text-sm font-medium mt-4 hover:text-indigo-700 transition">
+                    <i class="fas fa-headset mr-1"></i>Contact School Support
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
     <div id="main-app" class="hidden pb-20">
-        <header class="bg-blue-600 text-white p-4 sticky top-0">
-            <h1 id="user-role-title" class="text-lg font-bold">Dashboard</h1>
+        <!-- Modern Header -->
+        <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 sticky top-0 z-30 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <img src="Padgha Urdu High School Logo.png" alt="Logo" class="w-10 h-10 rounded-full bg-white/20 p-1">
+                    <div>
+                        <h1 id="user-role-title" class="text-lg font-bold">Dashboard</h1>
+                        <p class="text-xs text-white/80" id="user-name-display"></p>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="showNotifications()" class="relative">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span class="notification-badge hidden" id="notification-count">3</span>
+                    </button>
+                    <button onclick="toggleTheme()">
+                        <i class="fas fa-moon text-xl"></i>
+                    </button>
+                </div>
+            </div>
         </header>
 
-        <main id="content" class="p-4">
-            </main>
+        <!-- Main Content -->
+        <main id="content" class="p-4 pb-24">
+            <!-- Dynamic content loads here -->
+        </main>
 
-<nav class="fixed bottom-0 left-0 right-0 glass-nav flex justify-around p-3 pb-6 z-50">
-    <button onclick="loadSection('home')" class="flex flex-col items-center text-slate-600 active:text-blue-600">
-        <i class="fa-solid fa-house text-xl"></i>
-        <span class="text-[10px] mt-1 font-semibold uppercase tracking-tighter">Home</span>
-    </button>
-
-    <button onclick="loadSection('attendance')" class="flex flex-col items-center text-slate-600 active:text-blue-600">
-        <i class="fa-solid fa-calendar-check text-xl"></i>
-        <span class="text-[10px] mt-1 font-semibold uppercase tracking-tighter">Attendance</span>
-    </button>
-
-    <button onclick="loadSection('homework')" class="flex flex-col items-center text-slate-600 active:text-blue-600">
-        <i class="fa-solid fa-book-open text-xl"></i>
-        <span class="text-[10px] mt-1 font-semibold uppercase tracking-tighter">Homework</span>
-    </button>
-
-    <button onclick="loadSection('notices')" class="flex flex-col items-center text-slate-600 active:text-blue-600">
-        <i class="fa-solid fa-bell text-xl"></i>
-        <span class="text-[10px] mt-1 font-semibold uppercase tracking-tighter">Notices</span>
-    </button>
-
-    <button onclick="loadSection('more')" class="flex flex-col items-center text-slate-600 active:text-blue-600">
-        <i class="fa-solid fa-bars text-xl"></i>
-        <span class="text-[10px] mt-1 font-semibold uppercase tracking-tighter">More</span>
-    </button>
-</nav>
+        <!-- Modern Bottom Navigation -->
+        <nav class="fixed bottom-0 left-0 right-0 glass-nav flex justify-around p-3 pb-5 z-50">
+            <button onclick="setActiveNav(this, 'home')" class="nav-btn flex flex-col items-center">
+                <i class="fas fa-home text-xl"></i>
+                <span class="text-[10px] mt-1 font-medium">Home</span>
+            </button>
+            <button onclick="setActiveNav(this, 'attendance')" class="nav-btn flex flex-col items-center">
+                <i class="fas fa-calendar-check text-xl"></i>
+                <span class="text-[10px] mt-1 font-medium">Attendance</span>
+            </button>
+            <button onclick="setActiveNav(this, 'homework')" class="nav-btn flex flex-col items-center">
+                <i class="fas fa-book-open text-xl"></i>
+                <span class="text-[10px] mt-1 font-medium">Homework</span>
+            </button>
+            <button onclick="setActiveNav(this, 'notices')" class="nav-btn flex flex-col items-center">
+                <i class="fas fa-bell text-xl"></i>
+                <span class="text-[10px] mt-1 font-medium">Notices</span>
+            </button>
+            <button onclick="setActiveNav(this, 'more')" class="nav-btn flex flex-col items-center">
+                <i class="fas fa-user-circle text-xl"></i>
+                <span class="text-[10px] mt-1 font-medium">Profile</span>
+            </button>
+        </nav>
         
+        <!-- Floating Action Button -->
+        <div class="fab" onclick="scrollToTop()">
+            <i class="fas fa-arrow-up text-xl"></i>
+        </div>
     </div>
+
 <script>
-      if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log("PWA Registered", reg))
-            .catch(err => console.log("PWA Failed", err));
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log("PWA Registered", reg))
+                .catch(err => console.log("PWA Failed", err));
         });
-      }
+    }
+    
+    function setActiveNav(element, section) {
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        element.classList.add('active');
+        loadSection(section);
+    }
+    
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    function showNotifications() {
+        loadSection('notices');
+    }
+    
+    function toggleTheme() {
+        document.body.classList.toggle('dark');
+    }
+    
+    // Update user name display
+    function updateUserDisplay() {
+        const userName = localStorage.getItem('userName');
+        const userRole = localStorage.getItem('userRole');
+        if (userName) {
+            document.getElementById('user-name-display').innerText = `${userRole} • ${userName}`;
+        }
+    }
 </script>
 
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
 
 <script>
-  // Use the config you just generated
-  const firebaseConfig = {
-    apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
-    authDomain: "padgha-school-erp.firebaseapp.com",
-    databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "padgha-school-erp",
-    storageBucket: "padgha-school-erp.firebasestorage.app",
-    messagingSenderId: "481255456109",
-    appId: "1:481255456109:web:077e656f3dd03aee43ae64",
-    measurementId: "G-RXBBRWG5SE"
-  };
-
-  // Initialize Firebase for the browser
-  firebase.initializeApp(firebaseConfig);
-  const database = firebase.database();
+    const firebaseConfig = {
+        apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
+        authDomain: "padgha-school-erp.firebaseapp.com",
+        databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "padgha-school-erp",
+        storageBucket: "padgha-school-erp.firebasestorage.app",
+        messagingSenderId: "481255456109",
+        appId: "1:481255456109:web:077e656f3dd03aee43ae64",
+        measurementId: "G-RXBBRWG5SE"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
 </script>
 
-    
-  <script src="app.js"></script>  
+<script src="app.js"></script>
 </body>
 </html>
