@@ -2856,46 +2856,56 @@ window.showFeesDashboard = async () => {
                     <div id="feeListContainer" class="space-y-3">
             `;
 
-            students.forEach(student => {
-                if (role === 'Teacher' && student.Class !== userClass) return;
+students.forEach(student => {
+    // Normalize common header variants so code doesn't crash when CSV header differs
+    const studentName = (student.Name || student.name || student['Full Name'] || student['FullName'] || student['full name'] || '').trim();
+    const studentClassField = (student.Class || student.class || student.ClassName || student['Class '] || student['class'] || '').trim();
+    const studentGR = (student.GR_No || student.GR || student['GR No'] || student['GR_No'] || student.gr || '').trim();
+    const studentContact = (student.Contact || student.ContactNo || student['Contact No.'] || student['Contact'] || student.contact || '').trim();
+    const totalFees = parseFloat(student.TotalFees || student['Total Fees'] || student.totalfees || 0) || 0;
 
-                // 1. Find payments for this student
-                const studentPayments = payments.filter(p => p.Name && p.Name.trim().toLowerCase() === student.Name.trim().toLowerCase());
-                
-                // 2. Calculate Total Paid (will be 0 if no name found in CSV)
-                const totalPaid = studentPayments.reduce((sum, p) => sum + (parseFloat(p.Amount) || 0), 0);
-                
-                // 3. Calculate Balance
-                const feeLimit = parseFloat(student.TotalFees) || 0;
-                const balance = feeLimit - totalPaid;
+    // If teacher role, only show students in teacher's class
+    if (role === 'Teacher' && userClass && studentClassField !== userClass) return;
 
-                // 4. Status Formatting
-                const isUnpaid = studentPayments.length === 0;
-                const cardColor = isUnpaid ? 'border-red-600 bg-red-50/30' : (balance > 0 ? 'border-orange-400' : 'border-green-500');
+    // Skip malformed rows with no name
+    if (!studentName) return;
 
-                html += `
-                    <div class="fee-item bg-white p-4 rounded-2xl shadow-sm border-l-4 ${cardColor}">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <p class="font-bold text-gray-800 text-sm uppercase">${student.Name}</p>
-                                <p class="text-[10px] text-gray-500 font-medium">CLASS: ${student.Class} | GR: ${student.GR_No || 'N/A'}</p>
-                                ${isUnpaid ? 
-                                    `<span class="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold mt-1 inline-block">NO PAYMENT FOUND</span>` : 
-                                    `<p class="text-[10px] text-blue-600 font-bold mt-1">📞 ${student.Contact || ''}</p>`
-                                }
-                            </div>
-                            <div class="text-right">
-                                <p class="text-[10px] font-bold text-gray-400 uppercase">Paid</p>
-                                <p class="text-sm font-black text-gray-800">₹${totalPaid}</p>
-                                ${balance > 0 ? 
-                                    `<p class="text-[10px] font-black text-red-600 mt-1">Pending: ₹${balance}</p>` : 
-                                    `<p class="text-[10px] font-black text-green-600 mt-1">FULL PAID</p>`
-                                }
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
+    // Normalize payment name field similarly
+    const studentPayments = payments.filter(p => {
+        const payName = (p.Name || p.name || p['Payer Name'] || '').trim();
+        return payName && payName.toLowerCase() === studentName.toLowerCase();
+    });
+
+    const totalPaid = studentPayments.reduce((sum, p) => sum + (parseFloat(p.Amount || p.amount || p['Paid'] || 0) || 0), 0);
+    const balance = totalFees - totalPaid;
+    const isUnpaid = studentPayments.length === 0;
+    const cardColor = isUnpaid ? 'border-red-600 bg-red-50/30' : (balance > 0 ? 'border-orange-400' : 'border-green-500');
+
+    html += `
+        <div class="fee-item bg-white p-4 rounded-2xl shadow-sm border-l-4 ${cardColor}">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <p class="font-bold text-gray-800 text-sm uppercase">${studentName}</p>
+                    <p class="text-[10px] text-gray-500 font-medium">CLASS: ${studentClassField || student.Class || ''} | GR: ${studentGR || 'N/A'}</p>
+                    ${isUnpaid ? 
+                        `<span class="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold mt-1 inline-block">NO PAYMENT FOUND</span>` : 
+                        `<p class="text-[10px] text-blue-600 font-bold mt-1">📞 ${studentContact || ''}</p>`
+                    }
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Paid</p>
+                    <p class="text-sm font-black text-gray-800">₹${totalPaid}</p>
+                    ${balance > 0 ? 
+                        `<p class="text-[10px] font-black text-red-600 mt-1">Pending: ₹${balance}</p>` : 
+                        `<p class="text-[10px] font-black text-green-600 mt-1">FULL PAID</p>`
+                    }
+                </div>
+            </div>
+        </div>
+    `;
+});
+
+            
             html += `</div></div>`;
 
         } else if (role === 'Student') {
