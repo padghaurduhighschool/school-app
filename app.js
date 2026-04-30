@@ -502,54 +502,59 @@ if (section === 'teacher_timetable_admin') {
     
 if (section === 'attendance') {
     const role = localStorage.getItem('userRole');
-const filtered = timetableData.filter(t => 
-    normalizeClass(t.class) === normalizeClass(mappedClass)
-);    const name = localStorage.getItem('userName');
+    const mappedClass = localStorage.getItem('mappedClass') || "";
+    const name = localStorage.getItem('userName');
     const now = new Date();
     const day = now.getDay();
-    const dateKey = now.toISOString().split('T')[0];
     const isSunday = day === 0;
 
-    // 1. Common Sunday Check
+    // 1. Sunday Check
     if (isSunday) {
-        content.innerHTML = `<div class="p-10 text-center bg-white rounded-2xl shadow-sm">
-            <p class="text-4xl mb-4">🏠</p>
-            <p class="font-bold text-lg">Today is Sunday</p>
-            <p class="text-gray-500">School is closed.</p>
-        </div>`;
+        content.innerHTML = `
+            <div class="p-10 text-center bg-white rounded-2xl shadow-sm">
+                <p class="text-4xl mb-4">🏠</p>
+                <p class="font-bold text-lg">Today is Sunday</p>
+                <p class="text-gray-500">School is closed.</p>
+            </div>`;
         return;
     }
+
+    // Define who is considered "Staff" (Allowed to Check IN/OUT)
+    const isStaff = ['Admin', 'Super Admin', 'Supervisor', 'Clerk', 'Teacher'].includes(role);
 
     // 2. Prepare Container
     content.innerHTML = `
         <div class="space-y-2">
-            <div id="staff-section" class="${role === 'Student' ? 'hidden' : 'space-y-2'}">
+            <!-- Staff Section: Only visible to Staff Roles -->
+            <div id="staff-section" class="${!isStaff ? 'hidden' : 'space-y-2'}">
                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">My Attendance (Staff)</h3>
                 <div id="staff-controls"></div> 
             </div>
 
-            <hr class="border-gray-100 ${role === 'Student' ? 'hidden' : ''}">
+            <hr class="border-gray-100 ${!isStaff ? 'hidden' : ''}">
 
+            <!-- Student Section: History for Students, Marking Interface for Staff -->
             <div id="student-section" class="space-y-2">
                 <div class="flex justify-between items-center">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Student Attendance</h3>
-                    ${role !== 'Student' ? `
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        ${isStaff ? 'Mark Student Attendance' : 'My Attendance History'}
+                    </h3>
+                    ${isStaff ? `
                         <button onclick="downloadStudentReport()" class="text-blue-600 text-[10px] font-bold">📥 REPORT</button>
                     ` : ''}
                 </div>
-                
                 <div id="student-interface"></div>
             </div>
         </div>
     `;
 
-    // 3. Logic for Staff Controls (Teachers, Supervisor, Admin)
-    if (role !== 'Student') {
+    // 3. Logic for Staff Controls (Check IN/OUT)
+    if (isStaff) {
         const time = now.getHours() * 100 + now.getMinutes();
         const hasCheckedIn = localStorage.getItem('hasCheckedInToday') === 'true';
         
-        const isTooEarly = time < 710;
-        const isShortDay = (day === 5);
+        const isTooEarly = time < 710; // Before 7:10 AM
+        const isShortDay = (day === 5); // Friday
         const closingLabel = isShortDay ? "10:45 AM" : "01:00 PM";
 
         document.getElementById('staff-controls').innerHTML = `
@@ -565,47 +570,45 @@ const filtered = timetableData.filter(t =>
                     class="p-4 rounded-xl font-bold text-sm ${!hasCheckedIn ? 'bg-gray-200 text-gray-400' : 'bg-red-500 text-white shadow-md'}">
                     Check OUT
                 </button>
-                <div id="attendance-feedback" class="mt-2 text-center"></div>
             </div>
+            <div id="attendance-feedback" class="mt-2 text-center text-xs"></div>
         `;
 
-        // Student Marking Interface for Staff
-// Updated Student Marking Interface for both Admin and Teacher
-document.getElementById('student-interface').innerHTML = `
-    <div class="bg-blue-600 p-4 rounded-2xl text-white shadow-lg">
-        <p class="text-[10px] opacity-80 font-bold uppercase">Mark Attendance For:</p>
-        <div class="flex gap-2 mt-2">
-            <select id="target-class" class="flex-1 bg-blue-700 border-none rounded-lg text-sm p-2 focus:ring-0 text-white" 
-                ${role === 'Teacher' ? 'disabled' : ''}>
-                
-                <option value="${mappedClass}">Class ${mappedClass}</option>
-                
-                ${role !== 'Teacher' ? `
-                    <option value="Jr KG">Class Jr KG</option>
-                    <option value="Sr KG">Class Sr KG</option>
-                    ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option value="${n}">${n}</option>`).join('')}                ` : ''}
-            </select>
-            
-            <button onclick="loadAttendanceSheet()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-sm active:scale-95 transition-all">
-                Open List
-            </button>
-        </div>
-    </div>
-    <div id="attendance-sheet-container" class="mt-4"></div>
-`;
+        // Student Marking Interface (Available for Staff to manage students)
+        document.getElementById('student-interface').innerHTML = `
+            <div class="bg-blue-600 p-4 rounded-2xl text-white shadow-lg">
+                <p class="text-[10px] opacity-80 font-bold uppercase">Mark Attendance For:</p>
+                <div class="flex gap-2 mt-2">
+                    <select id="target-class" class="flex-1 bg-blue-700 border-none rounded-lg text-sm p-2 text-white" 
+                        ${role === 'Teacher' ? 'disabled' : ''}>
+                        <option value="${mappedClass}">Class ${mappedClass || 'Select'}</option>
+                        ${role !== 'Teacher' ? `
+                            <option value="Jr KG">Class Jr KG</option>
+                            <option value="Sr KG">Class Sr KG</option>
+                            ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option value="${n}">${n}</option>`).join('')}
+                        ` : ''}
+                    </select>
+                    <button onclick="loadAttendanceSheet()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-sm">
+                        Open List
+                    </button>
+                </div>
+            </div>
+            <div id="attendance-sheet-container" class="mt-4"></div>
+        `;
     } 
     
-    // 4. Logic for Students (View Only)
+    // 4. Logic for Students (View History Only)
     else {
         document.getElementById('student-interface').innerHTML = `
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <p class="text-sm font-bold text-gray-700">My Attendance History</p>
-                <div id="personal-logs" class="mt-3 space-y-2 text-xs">
+                <div id="personal-logs" class="mt-1 space-y-2 text-xs">
                     <p class="text-gray-400 italic">Fetching your records...</p>
                 </div>
             </div>
         `;
-        fetchPersonalStudentLogs(name);
+        if (typeof fetchPersonalStudentLogs === 'function') {
+            fetchPersonalStudentLogs(name);
+        }
     }
 }
     
