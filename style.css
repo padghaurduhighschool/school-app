@@ -267,4 +267,34 @@
             transform: scale(1.1);
             box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
         }
-  
+ /* Dark mode styles */
+body.dark {
+    background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%);
+}
+
+body.dark .bg-white {
+    background-color: #1f2937 !important;
+    color: #f3f4f6;
+}
+
+body.dark .text-gray-800 {
+    color: #f3f4f6;
+}
+
+body.dark .text-gray-600 {
+    color: #9ca3af;
+}
+
+body.dark .border-gray-100 {
+    border-color: #374151;
+}
+
+/* Animation keyframes */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.hover-card {
+    animation: fadeIn 0.3s ease-out;
+} 
