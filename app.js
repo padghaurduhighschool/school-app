@@ -2574,18 +2574,14 @@ function showLocalNotification(title, body) {
 }
 
 // Update notification button UI
-function updateNotificationButtonUI(enabled) {
-    const notifBtn = document.getElementById('enable-notifications-btn');
-    if (!notifBtn) return;
-    
-    if (enabled) {
-        notifBtn.innerHTML = '<i class="fas fa-bell-slash mr-2"></i>Disable Notifications';
-        notifBtn.className = 'flex flex-col items-center p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full';
-        notifBtn.querySelector('.text-sm').className = 'text-sm font-bold text-red-700';
-    } else {
-        notifBtn.innerHTML = '<i class="fas fa-bell mr-2"></i>Enable Notifications';
-        notifBtn.className = 'flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full';
-        notifBtn.querySelector('.text-sm').className = 'text-sm font-bold text-blue-700';
+function updateNotificationButtonUI(isEnabled) {
+    const notifBtn = document.getElementById('your-button-id'); // Whatever your ID is
+    if (!notifBtn) return; // Stop if button doesn't exist
+
+    const icon = notifBtn.querySelector('i'); // Assuming you are looking for an <i> tag
+    if (icon) {
+        // Only change className if the icon was actually found
+        icon.className = isEnabled ? 'fas fa-bell' : 'fas fa-bell-slash';
     }
 }
 
