@@ -2817,7 +2817,7 @@ window.showFeesChart = async () => {
 };
 window.showFeesDashboard = async () => {
     const content = document.getElementById('content');
-    const role = localStorage.getItem('role');
+    const role = localStorage.getItem('userRole');
     const userName = (localStorage.getItem('name') || localStorage.getItem('userName') || "").trim();
     const userClass = localStorage.getItem('mappedClass') || localStorage.getItem('class');
 
