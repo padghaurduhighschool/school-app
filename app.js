@@ -306,7 +306,7 @@ else if (section === 'more') {
                         <i class="fas fa-user-circle text-4xl"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-xl">${name}</h3>
+                        <h3 class="font-bold text-xl">${escapeHtml(name)}</h3>
                         <p class="text-white/80 text-sm">${role}</p>
                         <p class="text-white/60 text-xs mt-1"><i class="fas fa-phone mr-1"></i>${phone || 'Not provided'}</p>
                     </div>
@@ -322,55 +322,41 @@ else if (section === 'more') {
                 <div class="p-4 space-y-3">
                     <!-- Push Notification Toggle Button -->
                     <button id="enable-notifications-btn" onclick="togglePushNotifications()" 
-                        class="flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
-                        <div class="flex items-center justify-center w-full">
-                            <i class="fas fa-bell mr-2 text-blue-600"></i>
-                            <span class="text-sm font-bold text-blue-700">Checking notification status...</span>
-                        </div>
+                        class="w-full p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all flex items-center justify-center">
+                        <i class="fas fa-bell mr-2 text-blue-600"></i>
+                        <span class="text-sm font-bold text-blue-700">Checking notification status...</span>
                     </button>
                     
                     <!-- Install App Button -->
                     <div id="install-button-container" class="${deferredPrompt ? '' : 'hidden'}">
                         <button onclick="triggerInstall()" 
-                            class="flex flex-col items-center p-4 bg-green-50 border border-green-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
-                            <div class="flex items-center justify-center w-full">
-                                <i class="fas fa-download mr-2 text-green-600"></i>
-                                <span class="text-sm font-bold text-green-700">Install App on Device</span>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-2">Add to home screen for quick access</p>
+                            class="w-full p-4 bg-green-50 border border-green-100 rounded-2xl shadow-sm active:scale-95 transition-all flex items-center justify-center">
+                            <i class="fas fa-download mr-2 text-green-600"></i>
+                            <span class="text-sm font-bold text-green-700">Install App on Device</span>
                         </button>
                     </div>
                     
                     <!-- Fees Chart Button -->
                     <button onclick="showFeesChart()" 
-                        class="flex flex-col items-center p-4 bg-purple-50 border border-purple-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
-                        <div class="flex items-center justify-center w-full">
-                            <i class="fas fa-chart-line mr-2 text-purple-600"></i>
-                            <span class="text-sm font-bold text-purple-700">View Fees Chart</span>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-2">Financial overview</p>
+                        class="w-full p-4 bg-purple-50 border border-purple-100 rounded-2xl shadow-sm active:scale-95 transition-all flex items-center justify-center">
+                        <i class="fas fa-chart-line mr-2 text-purple-600"></i>
+                        <span class="text-sm font-bold text-purple-700">View Fees Chart</span>
                     </button>
                     
                     <!-- Monthly Hours (for staff only) -->
                     ${role !== 'Student' ? `
                         <button onclick="calculateMonthlyHours()" 
-                            class="flex flex-col items-center p-4 bg-orange-50 border border-orange-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
-                            <div class="flex items-center justify-center w-full">
-                                <i class="fas fa-clock mr-2 text-orange-600"></i>
-                                <span class="text-sm font-bold text-orange-700">Monthly Working Hours</span>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-2">Track your attendance hours</p>
+                            class="w-full p-4 bg-orange-50 border border-orange-100 rounded-2xl shadow-sm active:scale-95 transition-all flex items-center justify-center">
+                            <i class="fas fa-clock mr-2 text-orange-600"></i>
+                            <span class="text-sm font-bold text-orange-700">Monthly Working Hours</span>
                         </button>
                     ` : ''}
                     
                     <!-- Logout Button -->
                     <button onclick="handleLogout()" 
-                        class="flex flex-col items-center p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
-                        <div class="flex items-center justify-center w-full">
-                            <i class="fas fa-sign-out-alt mr-2 text-red-600"></i>
-                            <span class="text-sm font-bold text-red-700">Logout</span>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-2">Sign out of your account</p>
+                        class="w-full p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm active:scale-95 transition-all flex items-center justify-center">
+                        <i class="fas fa-sign-out-alt mr-2 text-red-600"></i>
+                        <span class="text-sm font-bold text-red-700">Logout</span>
                     </button>
                 </div>
             </div>
@@ -383,7 +369,7 @@ else if (section === 'more') {
         </div>
     `;
     
-    // Initialize notification button state
+    // Initialize notification button state after DOM is ready
     setTimeout(() => {
         checkNotificationStatus();
     }, 100);
@@ -2417,7 +2403,8 @@ async function updateHomeStats() {
     }
 }
 // Push Notification Configuration
-const VAPID_PUBLIC_KEY = BDEMWUO3WUNf6Dk7mDjT-IgeCC-EfEDsLY5XYZHcS2V-Tc9rFIDhQEFU1eO6ItnbB0rKiok5vdg9BH5EbLyFTK4 ; // You'll get this from Firebase Console
+const VAPID_PUBLIC_KEY = "BDEMWUO3WUNf6Dk7mDjT-IgeCC-EfEDsLY5XYZHcS2V-Tc9rFIDhQEFU1eO6ItnbB0rKiok5vdg9BH5EbLyFTK4"
+    ;
 
 // Check if browser supports notifications
 let isPushNotificationSupported = false;
@@ -2744,6 +2731,52 @@ app.post('/api/send-push', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+// Add this to your app.js
+window.setActiveNav = (element, section) => {
+    // Remove active class from all nav buttons
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Add active class to clicked button
+    element.classList.add('active');
+    
+    // Load the section
+    loadSection(section);
+};
+window.scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+window.toggleTheme = () => {
+    document.body.classList.toggle('dark');
+    // Save preference to localStorage
+    const isDark = document.body.classList.contains('dark');
+    localStorage.setItem('darkMode', isDark);
+};
+
+// Apply saved theme on load
+if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark');
+}
+function updateUserDisplay() {
+    const userName = localStorage.getItem('userName');
+    const userRole = localStorage.getItem('userRole');
+    const userNameDisplay = document.getElementById('user-name-display');
+    if (userNameDisplay && userName) {
+        userNameDisplay.innerText = `${userRole} • ${userName}`;
+    }
+}
+
+// Call this after login
+updateUserDisplay();
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+
 
 
 window.handleLogout = () => {
