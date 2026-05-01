@@ -2116,40 +2116,130 @@ window.calculateMonthlyHours = async () => {
 };
 
 // 18. PERSONAL STUDENT LOGS
+// 18. PERSONAL STUDENT LOGS - FIXED VERSION
 async function fetchPersonalStudentLogs(studentName) {
     const logContainer = document.getElementById('personal-logs');
     if (!logContainer) return;
     
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear();
-    const snapshot = await firebase.database().ref('student_attendance').once('value');
-    const allData = snapshot.val();
+    logContainer.innerHTML = '<p class="text-gray-400 italic">Loading your attendance records...</p>';
     
-    let presentDays = 0, absentDays = 0;
-    let records = [];
-    
-    Object.keys(allData || {}).forEach(dateStr => {
-        if (dateStr.startsWith(`${year}-${month.toString().padStart(2, '0')}`)) {
-            Object.values(allData[dateStr] || {}).forEach(classData => {
-                Object.values(classData.records || {}).forEach(record => {
-                    if (record.name === studentName) {
-                        records.push({ date: dateStr, status: record.status });
-                        if (record.status === 'Present') presentDays++;
-                        if (record.status === 'Absent') absentDays++;
-                    }
-                });
+    try {
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        const year = now.getFullYear();
+        const userClass = localStorage.getItem('mappedClass');
+        const userGR = localStorage.getItem('userGR');
+        
+        console.log("Fetching attendance for:", studentName, "Class:", userClass, "GR:", userGR);
+        
+        // Get all attendance records for the current month
+        const snapshot = await firebase.database().ref('student_attendance').once('value');
+        const allData = snapshot.val();
+        
+        let presentDays = 0, absentDays = 0;
+        let records = [];
+        
+        if (allData) {
+            // Loop through each date
+            Object.keys(allData).forEach(dateStr => {
+                // Check if date is in current month
+                if (dateStr.startsWith(`${year}-${month.toString().padStart(2, '0')}`)) {
+                    const dateData = allData[dateStr];
+                    
+                    // Loop through each class on that date
+                    Object.keys(dateData).forEach(className => {
+                        const classData = dateData[className];
+                        
+                        // Check if this class has records
+                        if (classData && classData.records) {
+                            // Look for the student by GR number first, then by name
+                            let studentRecord = null;
+                            
+                            // Try to find by GR number
+                            if (userGR && classData.records[userGR]) {
+                                studentRecord = classData.records[userGR];
+                            } else {
+                                // Fallback: find by name
+                                Object.values(classData.records).forEach(record => {
+                                    if (record.name === studentName) {
+                                        studentRecord = record;
+                                    }
+                                });
+                            }
+                            
+                            if (studentRecord) {
+                                records.push({ 
+                                    date: dateStr, 
+                                    status: studentRecord.status 
+                                });
+                                if (studentRecord.status === 'Present') presentDays++;
+                                if (studentRecord.status === 'Absent') absentDays++;
+                            }
+                        }
+                    });
+                }
             });
         }
-    });
-    
-    logContainer.innerHTML = `
-        <div class="grid grid-cols-2 gap-3 mb-4">
-            <div class="text-center p-3 bg-green-50 rounded-xl"><p class="text-2xl font-bold text-green-600">${presentDays}</p><p class="text-xs text-gray-500">Present</p></div>
-            <div class="text-center p-3 bg-red-50 rounded-xl"><p class="text-2xl font-bold text-red-600">${absentDays}</p><p class="text-xs text-gray-500">Absent</p></div>
-        </div>
-        <div class="max-h-60 overflow-y-auto">${records.map(r => `<div class="flex justify-between p-2 border-b"><span class="text-xs">${r.date}</span><span class="text-xs font-bold ${r.status === 'Present' ? 'text-green-600' : 'text-red-600'}">${r.status}</span></div>`).join('')}</div>
-    `;
+        
+        // Sort records by date (newest first)
+        records.sort((a, b) => b.date.localeCompare(a.date));
+        
+        if (records.length === 0) {
+            logContainer.innerHTML = `
+                <div class="text-center p-6 bg-gray-50 rounded-xl">
+                    <i class="fa-regular fa-calendar-xmark text-4xl text-gray-300 mb-2"></i>
+                    <p class="text-gray-500">No attendance records found for this month.</p>
+                    <p class="text-xs text-gray-400 mt-1">Attendance will appear here once marked.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        logContainer.innerHTML = `
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="text-center p-3 bg-green-50 rounded-xl">
+                    <p class="text-2xl font-bold text-green-600">${presentDays}</p>
+                    <p class="text-xs text-gray-500">Present</p>
+                </div>
+                <div class="text-center p-3 bg-red-50 rounded-xl">
+                    <p class="text-2xl font-bold text-red-600">${absentDays}</p>
+                    <p class="text-xs text-gray-500">Absent</p>
+                </div>
+            </div>
+            <div class="text-center text-xs text-gray-400 mb-2">
+                ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} Records
+            </div>
+            <div class="max-h-60 overflow-y-auto space-y-1">
+                ${records.map(r => `
+                    <div class="flex justify-between items-center p-2 border-b hover:bg-gray-50 rounded">
+                        <span class="text-xs font-medium">${formatDate(r.date)}</span>
+                        <span class="text-xs font-bold px-2 py-1 rounded-full ${r.status === 'Present' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}">
+                            ${r.status === 'Present' ? '✓ Present' : '✗ Absent'}
+                        </span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error("Error fetching student logs:", error);
+        logContainer.innerHTML = `
+            <div class="text-center p-4 text-red-500">
+                <i class="fa-solid fa-exclamation-triangle text-2xl mb-2"></i>
+                <p>Error loading attendance records</p>
+                <p class="text-xs mt-1">Please check your connection</p>
+            </div>
+        `;
+    }
+}
+
+// Helper function to format date
+function formatDate(dateStr) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
 }
 
 // 19. HOME SUMMARY UPDATE
