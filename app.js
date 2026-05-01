@@ -1,45 +1,71 @@
 // Add this at the VERY TOP of app.js after the CSV URLs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, once, remove, update, ServerValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, push, set, update, remove, onValue, off, query, orderByChild, limitToLast, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-// Your Firebase configuration (REPLACE with your actual Firebase config)
+// Your Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
-  authDomain: "padgha-school-erp.firebaseapp.com",
-  databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "padgha-school-erp",
-  storageBucket: "padgha-school-erp.firebasestorage.app",
-  messagingSenderId: "481255456109",
-  appId: "1:481255456109:web:077e656f3dd03aee43ae64",
-  measurementId: "G-RXBBRWG5SE"
+    apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
+    authDomain: "padgha-school-erp.firebaseapp.com",
+    databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "padgha-school-erp",
+    storageBucket: "padgha-school-erp.firebasestorage.app",
+    messagingSenderId: "481255456109",
+    appId: "1:481255456109:web:077e656f3dd03aee43ae64",
+    measurementId: "G-RXBBRWG5SE"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// Make firebase available globally (for your existing code)
+// Create a wrapper to make it work with your existing code
 window.firebase = {
-    database: () => database,
-    database: {
-        ServerValue: { TIMESTAMP: ServerValue.TIMESTAMP },
+    database: () => ({
         ref: (path) => {
-            const db = database;
+            const dbRef = ref(database, path);
             return {
-                ref: (p) => ({
-                    push: (data) => push(ref(db, path + '/' + p), data),
-                    set: (data) => set(ref(db, path + '/' + p), data),
-                    once: (event, callback) => once(ref(db, path + '/' + p)),
-                    on: (event, callback) => onValue(ref(db, path + '/' + p), callback),
-                    remove: () => remove(ref(db, path)),
-                    orderByChild: (child) => ({
-                        on: (event, callback) => onValue(ref(db, path).orderByChild(child), callback),
-                        once: (event, callback) => once(ref(db, path).orderByChild(child), callback)
-                    })
+                push: (data) => push(dbRef, data),
+                set: (data) => set(dbRef, data),
+                once: (eventType, callback) => {
+                    return new Promise((resolve) => {
+                        onValue(dbRef, (snapshot) => {
+                            const result = { val: () => snapshot.val() };
+                            if (callback) callback(result);
+                            resolve(result);
+                            off(dbRef);
+                        }, { onlyOnce: true });
+                    });
+                },
+                on: (eventType, callback) => {
+                    onValue(dbRef, (snapshot) => {
+                        callback({ val: () => snapshot.val() });
+                    });
+                },
+                off: () => off(dbRef),
+                remove: () => remove(dbRef),
+                orderByChild: (child) => ({
+                    on: (eventType, callback) => {
+                        const orderedRef = query(dbRef, orderByChild(child));
+                        onValue(orderedRef, (snapshot) => {
+                            callback({ val: () => snapshot.val() });
+                        });
+                    },
+                    once: (eventType, callback) => {
+                        const orderedRef = query(dbRef, orderByChild(child));
+                        return new Promise((resolve) => {
+                            onValue(orderedRef, (snapshot) => {
+                                const result = { val: () => snapshot.val() };
+                                if (callback) callback(result);
+                                resolve(result);
+                                off(orderedRef);
+                            }, { onlyOnce: true });
+                        });
+                    }
                 })
             };
-        }
-    }
+        },
+        ServerValue: { TIMESTAMP: serverTimestamp() }
+    })
 };
 
 // 1. CONFIGURATION & STATE
