@@ -921,6 +921,7 @@ window.filterStudents = () => {
 };
 
 // 12. ATTENDANCE SHEET LOADING
+// 12. ATTENDANCE SHEET LOADING - Using NAME as key
 window.loadAttendanceSheet = async () => {
     const classVal = document.getElementById('target-class').value;
     const container = document.getElementById('attendance-sheet-container');
@@ -944,7 +945,6 @@ window.loadAttendanceSheet = async () => {
         const classStudents = rows.map(row => {
             const cols = row.split(',');
             return {
-                id: cols[2]?.replace(/"/g, '').trim(),
                 name: cols[7]?.replace(/"/g, '').trim(),
                 class: cols[1]?.replace(/"/g, '').trim()
             };
@@ -956,14 +956,13 @@ window.loadAttendanceSheet = async () => {
         }
 
         let html = `<div class="bg-white rounded-2xl shadow-sm border overflow-hidden"><div class="max-h-96 overflow-y-auto">`;
-        classStudents.forEach((s, index) => {
-            const studentKey = s.id || `UNKNOWN_${index}`;
+        classStudents.forEach((s) => {
+            const studentKey = s.name; // Using NAME as the key instead of GR
             const isPresent = existingRecords[studentKey]?.status === 'Present';
             html += `
                 <div class="flex justify-between items-center p-4 border-b">
                     <div>
                         <p class="text-sm font-bold text-gray-800">${s.name}</p>
-                        <p class="text-[10px] text-gray-400">GR: ${s.id}</p>
                     </div>
                     <input type="checkbox" ${isPresent ? 'checked' : ''} value="${studentKey}" data-name="${s.name}" class="attendance-checkbox w-5 h-5 rounded border-gray-300 text-blue-600">
                 </div>
@@ -972,9 +971,11 @@ window.loadAttendanceSheet = async () => {
         html += `</div><div class="p-4 bg-gray-50"><button onclick="submitStudentAttendance('${classVal}')" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Update Attendance</button></div></div>`;
         container.innerHTML = html;
     } catch (error) {
+        console.error(error);
         container.innerHTML = `<p class="text-red-500 p-4">Error loading attendance.</p>`;
     }
 };
+
 
 window.submitStudentAttendance = (classID) => {
     if (!navigator.onLine) {
@@ -987,8 +988,9 @@ window.submitStudentAttendance = (classID) => {
     const attendanceData = {};
     
     checkboxes.forEach(cb => {
-        attendanceData[cb.value] = {
-            name: cb.getAttribute('data-name'),
+        const studentName = cb.getAttribute('data-name');
+        attendanceData[studentName] = {  // Using NAME as the key
+            name: studentName,
             status: cb.checked ? 'Present' : 'Absent',
             timestamp: firebase.database.ServerValue.TIMESTAMP
         };
@@ -1000,6 +1002,7 @@ window.submitStudentAttendance = (classID) => {
     }).then(() => {
         alert(`Attendance for Class ${classID} saved!`);
         updateHomeSummary();
+        loadSection('attendance'); // Refresh to show updated status
     }).catch(err => alert("Error: " + err.message));
 };
 
@@ -1102,6 +1105,8 @@ function fetchClassAttendanceStatus() {
         container.innerHTML = schoolClasses.map(className => {
             const record = attendanceData[className];
             const isMarked = !!record;
+            const studentCount = record?.records ? Object.keys(record.records).length : 0;
+            
             return `
                 <div class="bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center">
                     <div class="flex items-center gap-3">
@@ -1111,7 +1116,7 @@ function fetchClassAttendanceStatus() {
                         </div>
                         <div>
                             <p class="font-bold text-gray-800">${isMarked ? '✅ Completed' : '⏳ Pending'}</p>
-                            <p class="text-[10px] text-gray-400">${isMarked ? `By: ${record.markedBy}` : 'Waiting for teacher'}</p>
+                            <p class="text-[10px] text-gray-400">${isMarked ? `${studentCount} students marked by: ${record.markedBy}` : 'Waiting for teacher'}</p>
                         </div>
                     </div>
                     <button onclick="loadAttendanceForClass('${className}')" class="px-4 py-2 rounded-lg text-xs font-bold ${isMarked ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}">
@@ -2116,7 +2121,7 @@ window.calculateMonthlyHours = async () => {
 };
 
 // 18. PERSONAL STUDENT LOGS
-// 18. PERSONAL STUDENT LOGS - FIXED VERSION
+// 18. PERSONAL STUDENT LOGS - Using NAME to find records
 async function fetchPersonalStudentLogs(studentName) {
     const logContainer = document.getElementById('personal-logs');
     if (!logContainer) return;
@@ -2127,12 +2132,10 @@ async function fetchPersonalStudentLogs(studentName) {
         const now = new Date();
         const month = now.getMonth() + 1;
         const year = now.getFullYear();
-        const userClass = localStorage.getItem('mappedClass');
-        const userGR = localStorage.getItem('userGR');
         
-        console.log("Fetching attendance for:", studentName, "Class:", userClass, "GR:", userGR);
+        console.log("Fetching attendance for student:", studentName);
         
-        // Get all attendance records for the current month
+        // Get all attendance records
         const snapshot = await firebase.database().ref('student_attendance').once('value');
         const allData = snapshot.val();
         
@@ -2152,20 +2155,8 @@ async function fetchPersonalStudentLogs(studentName) {
                         
                         // Check if this class has records
                         if (classData && classData.records) {
-                            // Look for the student by GR number first, then by name
-                            let studentRecord = null;
-                            
-                            // Try to find by GR number
-                            if (userGR && classData.records[userGR]) {
-                                studentRecord = classData.records[userGR];
-                            } else {
-                                // Fallback: find by name
-                                Object.values(classData.records).forEach(record => {
-                                    if (record.name === studentName) {
-                                        studentRecord = record;
-                                    }
-                                });
-                            }
+                            // Find the student by NAME
+                            const studentRecord = classData.records[studentName];
                             
                             if (studentRecord) {
                                 records.push({ 
@@ -2231,6 +2222,15 @@ async function fetchPersonalStudentLogs(studentName) {
             </div>
         `;
     }
+}
+
+// Helper function to format date
+function formatDate(dateStr) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
 }
 
 // Helper function to format date
