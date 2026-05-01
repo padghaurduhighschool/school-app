@@ -3470,7 +3470,7 @@ let allUsersData = {
     students: []
 };
 
-// Load all staff and student data
+// Load all staff and student data - FIXED column mapping
 async function loadAllUsersData() {
     try {
         // Load Staff Data from Teacher Sheet
@@ -3503,34 +3503,68 @@ async function loadAllUsersData() {
             }
         }
         
-        // Load Student Data from Student Sheet
+        // Load Student Data from Student Sheet with CORRECT column mapping
         const studentRes = await fetch(STUDENT_SHEET_CSV);
         const studentText = await studentRes.text();
-        const rows = studentText.split('\n').slice(1);
         
+        // Parse CSV properly
+        const allRows = studentText.split('\n');
+        const headers = allRows[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
+        
+        console.log("Student CSV Headers:", headers);
+        
+        // Find column indices based on headers
+        const grIndex = headers.findIndex(h => h.includes('gr') || h.includes('gr no') || h.includes('grno'));
+        const nameIndex = headers.findIndex(h => h.includes('name') || h.includes('student name') || h.includes('full name'));
+        const classIndex = headers.findIndex(h => h.includes('class') || h.includes('standard') || h.includes('grade'));
+        const rollIndex = headers.findIndex(h => h.includes('roll') || h.includes('roll no') || h.includes('rollno'));
+        const phoneIndex = headers.findIndex(h => h.includes('contact') || h.includes('phone') || h.includes('mobile') || h.includes('parent phone'));
+        const codeIndex = headers.findIndex(h => h.includes('code') || h.includes('password') || h.includes('pin') || h.includes('login'));
+        
+        console.log("Column indices found:", {
+            gr: grIndex,
+            name: nameIndex,
+            class: classIndex,
+            roll: rollIndex,
+            phone: phoneIndex,
+            code: codeIndex
+        });
+        
+        const rows = allRows.slice(1);
         allUsersData.students = [];
+        
         for (let i = 0; i < rows.length; i++) {
             if (!rows[i].trim()) continue;
-            const cols = rows[i].split(',');
             
-            // Try to find the correct columns based on headers
-            let grNo = cols[2]?.replace(/"/g, '').trim() || '';
-            let name = cols[7]?.replace(/"/g, '').trim() || '';
-            let className = cols[1]?.replace(/"/g, '').trim() || '';
-            let phone = cols[15]?.replace(/"/g, '').trim() || '';
-            let rollNo = cols[3]?.replace(/"/g, '').trim() || '';
-            let code = cols[16]?.replace(/"/g, '').trim() || ''; // Assuming code column is at index 16
+            // Parse CSV row properly
+            const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             
-            // If no code found, try other common positions
+            // Get values using indices
+            let grNo = grIndex >= 0 ? cols[grIndex]?.replace(/"/g, '').trim() : '';
+            let name = nameIndex >= 0 ? cols[nameIndex]?.replace(/"/g, '').trim() : '';
+            let className = classIndex >= 0 ? cols[classIndex]?.replace(/"/g, '').trim() : '';
+            let rollNo = rollIndex >= 0 ? cols[rollIndex]?.replace(/"/g, '').trim() : '';
+            let phone = phoneIndex >= 0 ? cols[phoneIndex]?.replace(/"/g, '').trim() : '';
+            let code = codeIndex >= 0 ? cols[codeIndex]?.replace(/"/g, '').trim() : '';
+            
+            // If code not found by header, try common column positions (for backward compatibility)
             if (!code) {
-                // Try to find any column that might contain the login code
-                for (let j = 0; j < cols.length; j++) {
-                    const val = cols[j]?.replace(/"/g, '').trim();
-                    if (val && val.length <= 8 && /^\d+$/.test(val) && val !== phone && val !== grNo) {
-                        code = val;
-                        break;
+                // Try column 16 (0-indexed) or other common positions
+                const possibleCodeColumns = [16, 17, 18, 19, 20];
+                for (let colIdx of possibleCodeColumns) {
+                    if (cols[colIdx]) {
+                        const val = cols[colIdx]?.replace(/"/g, '').trim();
+                        if (val && val.length <= 10 && /^[a-zA-Z0-9]+$/.test(val)) {
+                            code = val;
+                            break;
+                        }
                     }
                 }
+            }
+            
+            // If no code found, set default
+            if (!code) {
+                code = 'Not set';
             }
             
             if (name) {
@@ -3540,27 +3574,65 @@ async function loadAllUsersData() {
                     phone: phone || 'Not provided',
                     grNo: grNo || 'Pending',
                     rollNo: rollNo || 'N/A',
-                    class: className,
-                    password: code || 'Not set',
+                    class: className || 'N/A',
+                    password: code,
                     searchText: `${name} ${phone} ${className} ${grNo}`.toLowerCase()
                 });
             }
         }
         
+        console.log(`Loaded ${allUsersData.students.length} students and ${allUsersData.staff.length} staff members`);
         renderUsersList();
         
     } catch (error) {
         console.error("Error loading users:", error);
-        document.getElementById('usersListContainer').innerHTML = `
-            <div class="text-center py-10 text-red-500">
-                <i class="fa-solid fa-exclamation-triangle text-3xl mb-2"></i>
-                <p>Error loading user data</p>
-                <p class="text-xs mt-1">${error.message}</p>
-                <button onclick="loadAllUsersData()" class="mt-3 text-blue-600 text-xs underline">Try Again</button>
-            </div>
-        `;
+        const container = document.getElementById('usersListContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="text-center py-10 text-red-500">
+                    <i class="fa-solid fa-exclamation-triangle text-3xl mb-2"></i>
+                    <p>Error loading user data</p>
+                    <p class="text-xs mt-1">${error.message}</p>
+                    <button onclick="loadAllUsersData()" class="mt-3 text-blue-600 text-xs underline">Try Again</button>
+                </div>
+            `;
+        }
     }
 }
+
+// Debug function to check CSV structure - Add this to help identify correct columns
+window.debugStudentCSV = async () => {
+    try {
+        const studentRes = await fetch(STUDENT_SHEET_CSV);
+        const studentText = await studentRes.text();
+        const lines = studentText.split('\n');
+        
+        console.log("=== STUDENT CSV DEBUG ===");
+        console.log("First 5 rows of raw data:");
+        for (let i = 0; i < Math.min(5, lines.length); i++) {
+            console.log(`Row ${i}:`, lines[i]);
+        }
+        
+        // Show headers with indices
+        const headers = lines[0].split(',').map((h, idx) => `${idx}: ${h.replace(/"/g, '').trim()}`);
+        console.log("\nHeaders with indices:");
+        console.log(headers);
+        
+        // Show first student record with all columns
+        if (lines.length > 1) {
+            const firstRow = lines[1].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            console.log("\nFirst student record (all columns):");
+            firstRow.forEach((col, idx) => {
+                console.log(`Column ${idx}: "${col?.replace(/"/g, '').trim()}"`);
+            });
+        }
+        
+        alert("Check the browser console (F12) to see the CSV structure. Look for which column contains the student login codes/passwords.");
+    } catch (error) {
+        console.error("Debug error:", error);
+        alert("Error debugging CSV: " + error.message);
+    }
+};
 
 // Render the filtered users list
 function renderUsersList() {
