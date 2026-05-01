@@ -320,7 +320,7 @@ window.loadSection = (section) => {
                     </div>
                 </div>
             `;
-            updateHomeSummary();
+updateHomeSummary().catch(console.error);
         } else if (role === 'Student') {
             content.innerHTML = `
                 <div class="space-y-4">
@@ -2885,11 +2885,14 @@ window.handleLogout = function() {
 };
 
 // Add this in your registerForPushNotifications function
+// Register service worker
 if ('serviceWorker' in navigator) {
-    try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('Service Worker registered');
-    } catch (error) {
-        console.log('Service Worker registration failed:', error);
-    }
+    (async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('Service Worker registered');
+        } catch (error) {
+            console.log('Service Worker registration failed:', error);
+        }
+    })();
 }
