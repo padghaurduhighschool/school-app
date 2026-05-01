@@ -2372,40 +2372,53 @@ window.saveTeacherTimetable = () => {
 };
 
 // 16. FEES FUNCTIONS
+// Main Fees Dashboard - Entry point
 window.showFeesDashboard = async () => {
-    const content = document.getElementById('content');
     const role = localStorage.getItem('userRole');
-    const userClass = localStorage.getItem('mappedClass');
+    const content = document.getElementById('content');
     
-    content.innerHTML = `<div class="flex justify-center p-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>`;
-    
-    try {
-        const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
-        const [studentRes, paymentRes] = await Promise.all([
-            fetch(STUDENT_SHEET_CSV).then(r => r.text()),
-            fetch(FEES_CSV_URL).then(r => r.text())
-        ]);
-        
-        const students = parseCSV(studentRes);
-        const payments = parseCSV(paymentRes);
-        
-        let html = `<div class="bg-gray-50 min-h-screen pb-20"><div class="sticky top-0 bg-white border-b p-4 flex items-center shadow-sm"><button onclick="loadSection('home')" class="mr-3 text-blue-600"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-lg font-bold">Fees Status</h2></div><div class="p-4"><div class="flex gap-2 mb-3"><input type="text" id="feeSearch" onkeyup="filterFeeList()" placeholder="Search..." class="flex-1 p-3 rounded-xl border text-sm"></div><div id="feeListContainer" class="space-y-3">`;
-        
-        students.forEach(student => {
-            if (role === 'Teacher' && userClass && student.class !== userClass) return;
-            const studentPayments = payments.filter(p => p.name?.toLowerCase() === student.name?.toLowerCase());
-            const totalPaid = studentPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-            const totalFees = parseFloat(student.totalFees) || 0;
-            const balance = totalFees - totalPaid;
-            const cardColor = balance > 0 ? 'border-orange-400' : 'border-green-500';
+    content.innerHTML = `
+        <div class="space-y-4 pb-20">
+            <div class="flex items-center justify-between sticky top-0 bg-white z-10 p-4 border-b">
+                <div class="flex items-center gap-2">
+                    <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h2 class="text-lg font-bold">Fees Dashboard</h2>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="debugFeesCSV()" class="bg-yellow-600 text-white px-3 py-1.5 rounded-lg text-xs">
+                        <i class="fa-solid fa-bug mr-1"></i>Debug
+                    </button>
+                    <button onclick="refreshFeesData()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs">
+                        <i class="fa-solid fa-refresh mr-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
             
-            html += `<div class="fee-item bg-white p-4 rounded-2xl shadow-sm border-l-4 ${cardColor}"><div class="flex justify-between"><div><p class="font-bold text-gray-800">${student.name}</p><p class="text-xs text-gray-500">Class ${student.class} | GR: ${student.gr}</p></div><div class="text-right"><p class="text-xs text-gray-400">Paid: ₹${totalPaid}</p><p class="text-sm font-bold ${balance > 0 ? 'text-red-600' : 'text-green-600'}">${balance > 0 ? `Pending: ₹${balance}` : 'FULL PAID'}</p></div></div></div>`;
-        });
-        
-        html += `</div></div></div>`;
-        content.innerHTML = html;
-    } catch (err) {
-        content.innerHTML = `<p class="p-10 text-center text-red-500">Error loading fees data.</p>`;
+            <div id="feesDashboardContent" class="p-4">
+                <div class="text-center py-10">
+                    <i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i>
+                    <p class="text-gray-400 text-sm mt-2">Loading fees data...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    await loadFeesData();
+    
+    // Check role and render appropriate dashboard
+    const userRole = localStorage.getItem('userRole');
+    
+    if (userRole === 'Student') {
+        renderStudentFeesDashboard();  // Student view with 3 columns
+    } else if (userRole === 'Teacher') {
+        renderTeacherFeesDashboard();   // Teacher view with student list
+    } else if (['Admin', 'Super Admin', 'Supervisor', 'Clerk'].includes(userRole)) {
+        renderAdminFeesDashboard();      // Admin view with search
+    } else {
+        // Default fallback
+        renderStudentFeesDashboard();
     }
 };
 
@@ -4571,6 +4584,7 @@ window.filterTeacherStudentList = () => {
 };
 
 // STUDENT DASHBOARD - Show own payment history
+// STUDENT DASHBOARD - Shows own payment history with Receipt No, Date, Amount
 function renderStudentFeesDashboard() {
     const studentName = localStorage.getItem('userName');
     const studentGR = localStorage.getItem('userGR');
@@ -4581,6 +4595,7 @@ function renderStudentFeesDashboard() {
         p.name.toLowerCase() === studentName.toLowerCase()
     );
     
+    // Sort by date (newest first)
     payments.sort((a, b) => b.date.localeCompare(a.date));
     
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -4593,83 +4608,108 @@ function renderStudentFeesDashboard() {
     
     container.innerHTML = `
         <div class="space-y-4">
-            <!-- Student Info Card -->
-            <div class="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-4 text-white">
+            <!-- Student Info Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 text-white">
                 <div class="flex justify-between items-start">
                     <div>
-                        <h3 class="font-bold text-lg">${studentName}</h3>
+                        <h3 class="font-bold text-lg">${escapeHtml(studentName)}</h3>
                         <p class="text-sm opacity-80">Class ${studentClass}</p>
                         ${studentGR ? `<p class="text-xs opacity-70 mt-1">GR: ${studentGR}</p>` : ''}
                     </div>
-                    <div class="text-right">
+                    <div class="bg-white/20 rounded-lg p-2 text-center">
                         <p class="text-2xl font-bold">₹${totalPaid.toLocaleString()}</p>
-                        <p class="text-xs opacity-80">Total Paid</p>
+                        <p class="text-[10px] opacity-80">Total Paid</p>
                     </div>
                 </div>
             </div>
             
-            <!-- Payment History Table -->
+            <!-- Payment History Table - 3 columns as requested -->
             <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
                 <div class="bg-gray-50 px-4 py-3 border-b">
-                    <h3 class="font-bold text-gray-800"><i class="fa-solid fa-receipt mr-2 text-green-600"></i>Your Payment History</h3>
+                    <h3 class="font-bold text-gray-800">
+                        <i class="fa-solid fa-receipt mr-2 text-green-600"></i>
+                        Your Payment History
+                    </h3>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th class="p-3 text-left text-xs font-bold text-gray-600">Receipt No.</th>
-                                <th class="p-3 text-left text-xs font-bold text-gray-600">Date</th>
-                                <th class="p-3 text-right text-xs font-bold text-gray-600">Amount (₹)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${payments.length === 0 ? `
-                                <tr><td colspan="3" class="p-8 text-center text-gray-400">No payment records found</td></tr>
-                            ` : payments.map(p => `
-                                <tr class="border-b hover:bg-gray-50">
-                                    <td class="p-3 text-sm">${p.receiptNo}</td>
-                                    <td class="p-3 text-sm">${p.date || 'N/A'}</td>
-                                    <td class="p-3 text-right text-sm font-medium text-green-600">₹${p.amount.toLocaleString()}</td>
+                
+                ${payments.length === 0 ? `
+                    <div class="text-center py-10">
+                        <i class="fa-regular fa-credit-card text-5xl text-gray-300 mb-3"></i>
+                        <p class="text-gray-500">No payment records found</p>
+                        <p class="text-xs text-gray-400 mt-1">Your payment history will appear here once fees are paid</p>
+                    </div>
+                ` : `
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="p-3 text-left text-xs font-bold text-gray-600 uppercase">Receipt No.</th>
+                                    <th class="p-3 text-left text-xs font-bold text-gray-600 uppercase">Date</th>
+                                    <th class="p-3 text-right text-xs font-bold text-gray-600 uppercase">Amount (₹)</th>
                                 </tr>
-                            `).join('')}
-                        </tbody>
-                        <tfoot class="bg-gray-50 border-t">
-                            <tr>
-                                <td colspan="2" class="p-3 text-right font-bold">Total Paid:</td>
-                                <td class="p-3 text-right font-bold text-green-600">₹${totalPaid.toLocaleString()}</td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" class="p-3 text-right font-bold">Total Fees:</td>
-                                <td class="p-3 text-right font-bold">₹${totalFees.toLocaleString()}</td>
-                            </tr>
-                            <tr class="border-t">
-                                <td colspan="2" class="p-3 text-right font-bold text-lg">Balance:</td>
-                                <td class="p-3 text-right font-bold text-lg ${balance > 0 ? 'text-red-600' : 'text-green-600'}">
-                                    ${balance > 0 ? `₹${balance.toLocaleString()}` : 'FULL PAID'}
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                            </thead>
+                            <tbody>
+                                ${payments.map(p => `
+                                    <tr class="border-b hover:bg-gray-50 transition-colors">
+                                        <td class="p-3 text-sm font-mono">${escapeHtml(p.receiptNo)}</td>
+                                        <td class="p-3 text-sm">${p.date || 'N/A'}</td>
+                                        <td class="p-3 text-right text-sm font-bold text-green-600">₹${p.amount.toLocaleString()}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot class="bg-gray-50 border-t">
+                                <tr class="border-b">
+                                    <td colspan="2" class="p-3 text-right font-bold text-gray-700">Total Paid:</td>
+                                    <td class="p-3 text-right font-bold text-green-600 text-lg">₹${totalPaid.toLocaleString()}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="p-3 text-right font-bold text-gray-700">Balance:</td>
+                                    <td class="p-3 text-right font-bold ${balance > 0 ? 'text-red-600 text-lg' : 'text-green-600'}">
+                                        ${balance > 0 ? `₹${balance.toLocaleString()}` : 'FULL PAID ✓'}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `}
+            </div>
+            
+            <!-- Fee Structure Info Card -->
+            <div class="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-chart-simple text-blue-600 text-xl"></i>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-700">Total Fees for Class ${studentClass}:</span>
+                            <span class="font-bold text-blue-600">₹${totalFees.toLocaleString()}</span>
+                        </div>
+                        ${balance > 0 ? `
+                            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                <div class="bg-green-500 h-1.5 rounded-full" style="width: ${(totalPaid/totalFees)*100}%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">${Math.round((totalPaid/totalFees)*100)}% paid</p>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
             
             ${balance > 0 ? `
                 <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
                     <div class="flex items-center gap-3">
-                        <i class="fa-solid fa-circle-info text-yellow-600 text-xl"></i>
+                        <i class="fa-solid fa-circle-exclamation text-yellow-600 text-xl"></i>
                         <div>
-                            <p class="text-sm font-bold text-yellow-800">Pending Fee Amount</p>
-                            <p class="text-xs text-yellow-700">Please clear your pending fees of ₹${balance.toLocaleString()} at the school office.</p>
+                            <p class="text-sm font-bold text-yellow-800">Pending Fee Amount: ₹${balance.toLocaleString()}</p>
+                            <p class="text-xs text-yellow-700 mt-1">Please contact the school office to clear your pending fees.</p>
                         </div>
                     </div>
                 </div>
             ` : `
                 <div class="bg-green-50 rounded-xl p-4 border border-green-200">
                     <div class="flex items-center gap-3">
-                        <i class="fa-solid fa-check-circle text-green-600 text-xl"></i>
+                        <i class="fa-solid fa-circle-check text-green-600 text-xl"></i>
                         <div>
-                            <p class="text-sm font-bold text-green-800">Fees Fully Paid</p>
-                            <p class="text-xs text-green-700">Thank you for clearing all your fees!</p>
+                            <p class="text-sm font-bold text-green-800">Fees Fully Paid!</p>
+                            <p class="text-xs text-green-700">Thank you for clearing all your dues.</p>
                         </div>
                     </div>
                 </div>
