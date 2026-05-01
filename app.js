@@ -920,7 +920,7 @@ window.filterStudents = () => {
     renderStudentList(filtered);
 };
 
-// 12. ATTENDANCE SHEET LOADING - Using full name
+// 12. ATTENDANCE SHEET LOADING - GR No optional, works with names
 window.loadAttendanceSheet = async () => {
     const classVal = document.getElementById('target-class').value;
     const container = document.getElementById('attendance-sheet-container');
@@ -939,41 +939,138 @@ window.loadAttendanceSheet = async () => {
 
         const response = await fetch(STUDENT_SHEET_CSV);
         const text = await response.text();
-        const rows = text.split('\n').slice(1);
+        const rows = text.split('\n').filter(row => row.trim()).slice(1);
         
-        // Get students with FULL NAME from CSV (column 7 is name)
-        const classStudents = rows.map(row => {
+        // Get students with or without GR numbers
+        const classStudents = [];
+        for (const row of rows) {
             const cols = row.split(',');
-            return {
-                name: cols[7]?.replace(/"/g, '').trim(),  // Full name
-                class: cols[1]?.replace(/"/g, '').trim()
-            };
-        }).filter(s => s.class === classVal && s.name);
+            const grNo = cols[2]?.replace(/"/g, '').trim();
+            const name = cols[7]?.replace(/"/g, '').trim();
+            const studentClass = cols[1]?.replace(/"/g, '').trim();
+            const rollNo = cols[3]?.replace(/"/g, '').trim();
+            const contact = cols[15]?.replace(/"/g, '').trim();
+            
+            if (studentClass === classVal && name) {
+                classStudents.push({
+                    id: grNo || `temp_${name.replace(/\s/g, '_')}`, // Create temp ID if no GR
+                    grNo: grNo || 'Pending',
+                    name: name,
+                    rollNo: rollNo,
+                    contact: contact
+                });
+            }
+        }
+        
+        // Sort by roll number if available, otherwise by name
+        classStudents.sort((a, b) => {
+            if (a.rollNo && b.rollNo) return parseInt(a.rollNo) - parseInt(b.rollNo);
+            return a.name.localeCompare(b.name);
+        });
 
         if (classStudents.length === 0) {
             container.innerHTML = `<p class="text-center py-5 text-red-500">No students found for "${classVal}".</p>`;
             return;
         }
 
-        let html = `<div class="bg-white rounded-2xl shadow-sm border overflow-hidden"><div class="max-h-96 overflow-y-auto">`;
-        classStudents.forEach((s) => {
-            const studentKey = s.name; // Using FULL NAME as key
+        let html = `<div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+            <div class="bg-gray-50 px-4 py-2 border-b flex justify-between text-xs font-bold text-gray-500">
+                <span>Student Name</span>
+                <span>Present/Absent</span>
+            </div>
+            <div class="max-h-96 overflow-y-auto">`;
+        
+        classStudents.forEach((student) => {
+            // Use GR if exists, otherwise use name as key (with sanitization)
+            const studentKey = student.grNo !== 'Pending' ? student.grNo : student.name;
             const isPresent = existingRecords[studentKey]?.status === 'Present';
+            
             html += `
-                <div class="flex justify-between items-center p-4 border-b">
+                <div class="flex justify-between items-center p-4 border-b hover:bg-gray-50">
                     <div>
-                        <p class="text-sm font-bold text-gray-800">${s.name}</p>
+                        <p class="text-sm font-bold text-gray-800">${escapeHtml(student.name)}</p>
+                        <div class="flex gap-2 text-[10px] text-gray-400">
+                            ${student.grNo !== 'Pending' ? `<span>GR: ${student.grNo}</span>` : '<span class="text-orange-500">⚠️ GR Pending</span>'}
+                            ${student.rollNo ? `<span>Roll: ${student.rollNo}</span>` : ''}
+                        </div>
                     </div>
-                    <input type="checkbox" ${isPresent ? 'checked' : ''} value="${studentKey}" data-name="${s.name}" class="attendance-checkbox w-5 h-5 rounded border-gray-300 text-blue-600">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400">${isPresent ? 'Present' : 'Absent'}</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   ${isPresent ? 'checked' : ''} 
+                                   data-student-key="${studentKey}"
+                                   data-student-name="${student.name}"
+                                   data-gr-no="${student.grNo}"
+                                   class="attendance-checkbox sr-only peer">
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                        </label>
+                    </div>
                 </div>
             `;
         });
-        html += `</div><div class="p-4 bg-gray-50"><button onclick="submitStudentAttendance('${classVal}')" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Update Attendance</button></div></div>`;
+        
+        html += `</div>
+            <div class="p-4 bg-gray-50 border-t flex gap-2">
+                <button onclick="markAllPresent()" class="flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-bold">✓ Mark All Present</button>
+                <button onclick="markAllAbsent()" class="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-bold">✗ Mark All Absent</button>
+                <button onclick="submitStudentAttendance('${classVal}')" class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold">Save</button>
+            </div>
+        </div>`;
+        
         container.innerHTML = html;
     } catch (error) {
         console.error(error);
-        container.innerHTML = `<p class="text-red-500 p-4">Error loading attendance.</p>`;
+        container.innerHTML = `<p class="text-red-500 p-4">Error loading attendance: ${error.message}</p>`;
     }
+};
+
+// Helper functions for mass selection
+window.markAllPresent = () => {
+    document.querySelectorAll('.attendance-checkbox').forEach(cb => {
+        cb.checked = true;
+    });
+};
+
+window.markAllAbsent = () => {
+    document.querySelectorAll('.attendance-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+};
+
+window.submitStudentAttendance = (classID) => {
+    if (!navigator.onLine) {
+        alert("No Internet! Please connect to submit attendance.");
+        return;
+    }
+
+    const dateKey = new Date().toISOString().split('T')[0];
+    const checkboxes = document.querySelectorAll('.attendance-checkbox');
+    const attendanceData = {};
+    
+    checkboxes.forEach(cb => {
+        const studentKey = cb.getAttribute('data-student-key');
+        const studentName = cb.getAttribute('data-student-name');
+        const grNo = cb.getAttribute('data-gr-no');
+        
+        attendanceData[studentKey] = {
+            name: studentName,
+            grNo: grNo || 'Pending',
+            status: cb.checked ? 'Present' : 'Absent',
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        };
+    });
+
+    firebase.database().ref(`student_attendance/${dateKey}/${classID}`).set({
+        markedBy: localStorage.getItem('userName'),
+        records: attendanceData,
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        class: classID
+    }).then(() => {
+        alert(`✅ Attendance for Class ${classID} saved!`);
+        updateHomeSummary();
+        loadSection('attendance');
+    }).catch(err => alert("Error: " + err.message));
 };
 
 window.submitStudentAttendance = (classID) => {
@@ -2120,8 +2217,7 @@ window.calculateMonthlyHours = async () => {
     alert(`Monthly Hours for ${userName}:\nTotal: ${hours} hours ${minutes} minutes\n${totalMinutes} minutes total`);
 };
 
-// 18. PERSONAL STUDENT LOGS 
-// 18. PERSONAL STUDENT LOGS - Using full name
+// 18. PERSONAL STUDENT LOGS - FIXED VERSION
 async function fetchPersonalStudentLogs(studentName) {
     const logContainer = document.getElementById('personal-logs');
     if (!logContainer) return;
@@ -2129,14 +2225,10 @@ async function fetchPersonalStudentLogs(studentName) {
     logContainer.innerHTML = '<p class="text-gray-400 italic">Loading your attendance records...</p>';
     
     try {
-        const now = new Date();
-        const month = now.getMonth() + 1;
-        const year = now.getFullYear();
-        const currentMonth = `${year}-${month.toString().padStart(2, '0')}`;
-        
-        // The student's full name from login
+        const studentGR = localStorage.getItem('userGR');
         const studentFullName = studentName.trim();
-        console.log("Looking for attendance for:", studentFullName);
+        
+        console.log("Looking for attendance for:", studentFullName, "GR:", studentGR);
         
         // Get all attendance records
         const snapshot = await firebase.database().ref('student_attendance').once('value');
@@ -2148,28 +2240,49 @@ async function fetchPersonalStudentLogs(studentName) {
         if (allData) {
             // Loop through each date
             Object.keys(allData).forEach(dateStr => {
-                // Check if date is in current month
-                if (dateStr.startsWith(currentMonth)) {
-                    const dateData = allData[dateStr];
+                const dateData = allData[dateStr];
+                
+                // Loop through each class on that date
+                Object.keys(dateData).forEach(className => {
+                    const classData = dateData[className];
                     
-                    // Loop through each class on that date
-                    Object.keys(dateData).forEach(className => {
-                        const classData = dateData[className];
+                    if (classData && classData.records) {
+                        // Try to find student by GR No FIRST (most reliable)
+                        let studentRecord = null;
+                        let foundKey = null;
                         
-                        if (classData && classData.records) {
-                            // Find by exact full name match
-                            if (classData.records[studentFullName]) {
-                                const studentRecord = classData.records[studentFullName];
-                                records.push({ 
-                                    date: dateStr, 
-                                    status: studentRecord.status 
-                                });
-                                if (studentRecord.status === 'Present') presentDays++;
-                                if (studentRecord.status === 'Absent') absentDays++;
+                        // Check if records use GR numbers as keys
+                        if (studentGR && classData.records[studentGR]) {
+                            studentRecord = classData.records[studentGR];
+                            foundKey = studentGR;
+                        }
+                        // If not found by GR, try by name
+                        else if (classData.records[studentFullName]) {
+                            studentRecord = classData.records[studentFullName];
+                            foundKey = studentFullName;
+                        }
+                        // Try case-insensitive name match
+                        else {
+                            for (const [key, record] of Object.entries(classData.records)) {
+                                if (record.name && record.name.toLowerCase() === studentFullName.toLowerCase()) {
+                                    studentRecord = record;
+                                    foundKey = key;
+                                    break;
+                                }
                             }
                         }
-                    });
-                }
+                        
+                        if (studentRecord) {
+                            records.push({ 
+                                date: dateStr, 
+                                status: studentRecord.status,
+                                markedBy: classData.markedBy
+                            });
+                            if (studentRecord.status === 'Present') presentDays++;
+                            if (studentRecord.status === 'Absent') absentDays++;
+                        }
+                    }
+                });
             });
         }
         
@@ -2180,20 +2293,25 @@ async function fetchPersonalStudentLogs(studentName) {
             logContainer.innerHTML = `
                 <div class="text-center p-6 bg-gray-50 rounded-xl">
                     <i class="fa-regular fa-calendar-xmark text-4xl text-gray-300 mb-2"></i>
-                    <p class="text-gray-500">No attendance records found for this month.</p>
+                    <p class="text-gray-500">No attendance records found.</p>
                     <p class="text-xs text-gray-400 mt-1">Attendance will appear here once marked.</p>
                     <div class="mt-4 text-xs text-left bg-blue-50 p-3 rounded-lg">
                         <p class="font-bold text-blue-700 mb-1">Information:</p>
-                        <p>Your name: <strong>"${studentFullName}"</strong></p>
-                        <p>Please ensure your teacher marks attendance using your full name exactly as above.</p>
+                        <p>Your Name: <strong>"${studentFullName}"</strong></p>
+                        <p>Your GR No: <strong>"${studentGR || 'Not found'}"</strong></p>
+                        <p class="mt-2">Please ensure your teacher marks attendance using either your GR No. or full name exactly as above.</p>
                     </div>
                 </div>
             `;
             return;
         }
         
+        // Calculate attendance percentage
+        const totalDays = records.length;
+        const percentage = Math.round((presentDays / totalDays) * 100);
+        
         logContainer.innerHTML = `
-            <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="grid grid-cols-3 gap-3 mb-4">
                 <div class="text-center p-3 bg-green-50 rounded-xl">
                     <p class="text-2xl font-bold text-green-600">${presentDays}</p>
                     <p class="text-xs text-gray-500">Present</p>
@@ -2202,9 +2320,13 @@ async function fetchPersonalStudentLogs(studentName) {
                     <p class="text-2xl font-bold text-red-600">${absentDays}</p>
                     <p class="text-xs text-gray-500">Absent</p>
                 </div>
+                <div class="text-center p-3 bg-blue-50 rounded-xl">
+                    <p class="text-2xl font-bold text-blue-600">${percentage}%</p>
+                    <p class="text-xs text-gray-500">Attendance</p>
+                </div>
             </div>
             <div class="text-center text-xs text-gray-400 mb-2">
-                ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} Attendance
+                Total Records: ${totalDays}
             </div>
             <div class="max-h-60 overflow-y-auto space-y-1">
                 ${records.map(r => `
