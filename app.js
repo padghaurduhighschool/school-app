@@ -934,21 +934,20 @@ window.loadAttendanceSheet = async () => {
     container.innerHTML = `<div class="text-center py-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i><p class="text-gray-400 text-sm mt-2">Loading students...</p></div>`;
 
     try {
-        // Step 1: Fetch existing attendance records for this class and date
+        // Fetch existing attendance records
         const attendanceRef = firebase.database().ref(`student_attendance/${dateKey}/${classVal}`);
         const snapshot = await attendanceRef.once('value');
         const existingData = snapshot.val();
         const existingRecords = existingData?.records || {};
         
-        console.log("Existing attendance records:", existingRecords);
-        console.log("Date:", dateKey, "Class:", classVal);
+        console.log("Existing records keys:", Object.keys(existingRecords));
 
-        // Step 2: Fetch students from CSV
+        // Fetch students from CSV
         const response = await fetch(STUDENT_SHEET_CSV);
         const text = await response.text();
         const rows = text.split('\n').filter(row => row.trim()).slice(1);
         
-        // Step 3: Get students for this class
+        // Get students for this class
         const classStudents = [];
         for (const row of rows) {
             const cols = row.split(',');
@@ -967,18 +966,17 @@ window.loadAttendanceSheet = async () => {
             }
         }
         
-        // Sort students
-        classStudents.sort((a, b) => {
-            if (a.rollNo && b.rollNo) return parseInt(a.rollNo) - parseInt(b.rollNo);
-            return a.name.localeCompare(b.name);
-        });
+        // Sort students by name
+        classStudents.sort((a, b) => a.name.localeCompare(b.name));
 
         if (classStudents.length === 0) {
             container.innerHTML = `<p class="text-center py-5 text-red-500">No students found for "${classVal}".</p>`;
             return;
         }
 
-        // Step 4: Build the HTML with saved attendance data
+        // Build the HTML with proper checkbox attributes
+        let presentCount = 0;
+        
         let html = `<div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
             <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white">
                 <div class="flex justify-between items-center">
@@ -987,66 +985,56 @@ window.loadAttendanceSheet = async () => {
                         <p class="font-bold text-lg">Class ${classVal}</p>
                         <p class="text-[10px] opacity-70">${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                     </div>
-                    ${existingData?.markedBy ? `<div class="text-right text-[10px] opacity-70">Last marked by:<br>${existingData.markedBy}</div>` : ''}
+                    ${existingData?.markedBy ? `<div class="text-right text-[10px] opacity-70">Last marked by:<br>${existingData.markedBy}<br>${existingData.lastUpdated || ''}</div>` : ''}
                 </div>
             </div>
+            
             <div class="max-h-96 overflow-y-auto">`;
         
-        let presentCount = 0;
-        let totalCount = classStudents.length;
-        
-        classStudents.forEach((student) => {
-            // Determine the key used to store this student's attendance
+        classStudents.forEach((student, index) => {
+            // Determine the key to check for existing attendance
             let studentKey = student.grNo !== 'Pending' ? student.grNo : student.name;
-            
-            // Also check if attendance was saved under a different key (e.g., temp ID)
             let isPresent = false;
-            let savedStatus = null;
+            let savedRecord = null;
             
-            // Check by primary key (GR or name)
-            if (existingRecords[studentKey]?.status === 'Present') {
-                isPresent = true;
-                savedStatus = existingRecords[studentKey];
-            }
-            // Check by GR if available
-            else if (student.grNo !== 'Pending' && existingRecords[student.grNo]?.status === 'Present') {
-                isPresent = true;
-                savedStatus = existingRecords[student.grNo];
+            // Check multiple possible keys
+            if (existingRecords[studentKey]) {
+                isPresent = existingRecords[studentKey].status === 'Present';
+                savedRecord = existingRecords[studentKey];
+            } else if (student.grNo !== 'Pending' && existingRecords[student.grNo]) {
+                isPresent = existingRecords[student.grNo].status === 'Present';
+                savedRecord = existingRecords[student.grNo];
                 studentKey = student.grNo;
-            }
-            // Check by name
-            else if (existingRecords[student.name]?.status === 'Present') {
-                isPresent = true;
-                savedStatus = existingRecords[student.name];
+            } else if (existingRecords[student.name]) {
+                isPresent = existingRecords[student.name].status === 'Present';
+                savedRecord = existingRecords[student.name];
                 studentKey = student.name;
-            }
-            // Check by temp ID
-            else if (existingRecords[student.id]?.status === 'Present') {
-                isPresent = true;
-                savedStatus = existingRecords[student.id];
+            } else if (existingRecords[student.id]) {
+                isPresent = existingRecords[student.id].status === 'Present';
+                savedRecord = existingRecords[student.id];
                 studentKey = student.id;
             }
             
             if (isPresent) presentCount++;
             
             const isPendingGR = student.grNo === 'Pending';
+            const bgColor = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
             
             html += `
-                <div class="flex justify-between items-center p-4 border-b hover:bg-gray-50 transition-colors">
+                <div class="${bgColor} flex justify-between items-center p-4 border-b hover:bg-blue-50 transition-colors" data-student="${student.name}">
                     <div class="flex-1">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <p class="text-sm font-bold text-gray-800">${escapeHtml(student.name)}</p>
                             ${isPendingGR ? '<span class="bg-orange-100 text-orange-600 text-[9px] px-1.5 py-0.5 rounded-full">GR Pending</span>' : ''}
                         </div>
                         <div class="flex gap-3 text-[10px] text-gray-400 mt-0.5">
-                            ${student.grNo !== 'Pending' ? `<span>GR: ${student.grNo}</span>` : '<span>📄 Documentation pending</span>'}
-                            ${student.rollNo ? `<span>Roll: ${student.rollNo}</span>` : ''}
-                            ${savedStatus ? `<span class="text-blue-500">✓ Marked by: ${savedStatus.markedBy || existingData?.markedBy || 'Teacher'}</span>` : ''}
+                            ${student.grNo !== 'Pending' ? `<span>🎫 GR: ${student.grNo}</span>` : '<span>📄 Documentation pending</span>'}
+                            ${student.rollNo ? `<span>🔢 Roll: ${student.rollNo}</span>` : ''}
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="text-xs font-medium ${isPresent ? 'text-green-600' : 'text-gray-400'}">
-                            ${isPresent ? 'Present' : 'Absent'}
+                            ${isPresent ? '✓ Present' : '○ Absent'}
                         </span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" 
@@ -1054,7 +1042,8 @@ window.loadAttendanceSheet = async () => {
                                    data-student-key="${studentKey}"
                                    data-student-name="${student.name}"
                                    data-gr-no="${student.grNo}"
-                                   class="attendance-checkbox sr-only peer">
+                                   class="attendance-checkbox sr-only peer"
+                                   onchange="updateAttendanceSummary()">
                             <div class="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                         </label>
                     </div>
@@ -1062,20 +1051,20 @@ window.loadAttendanceSheet = async () => {
             `;
         });
         
-        const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+        const percentage = classStudents.length > 0 ? Math.round((presentCount / classStudents.length) * 100) : 0;
         
         html += `</div>
             <div class="p-4 bg-gray-50 border-t">
                 <div class="flex justify-between items-center mb-3 pb-2 border-b">
                     <div>
                         <span class="text-xs text-gray-500">Attendance Summary</span>
-                        <p class="text-sm font-bold"><span class="text-green-600">${presentCount}</span> / <span class="text-gray-600">${totalCount}</span> Present</p>
+                        <p class="text-sm font-bold"><span id="summary-present" class="text-green-600">${presentCount}</span> / <span id="summary-total" class="text-gray-600">${classStudents.length}</span> Present</p>
                     </div>
                     <div class="w-32">
                         <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-green-500 h-2 rounded-full" style="width: ${percentage}%"></div>
+                            <div id="summary-bar" class="bg-green-500 h-2 rounded-full" style="width: ${percentage}%"></div>
                         </div>
-                        <p class="text-[10px] text-gray-400 text-center mt-1">${percentage}%</p>
+                        <p id="summary-percent" class="text-[10px] text-gray-400 text-center mt-1">${percentage}%</p>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -1099,7 +1088,7 @@ window.loadAttendanceSheet = async () => {
             const feedbackDiv = document.getElementById('attendance-feedback');
             if (feedbackDiv) {
                 feedbackDiv.innerHTML = `<div class="bg-green-50 text-green-600 p-2 rounded-lg text-xs mt-2">
-                    <i class="fa-solid fa-check-circle mr-1"></i> Attendance already marked by ${existingData.markedBy}. You can update it below.
+                    <i class="fa-solid fa-check-circle mr-1"></i> Attendance already marked by ${existingData.markedBy} on ${existingData.lastUpdated || 'earlier'}. You can update it below.
                 </div>`;
                 setTimeout(() => {
                     if (feedbackDiv) feedbackDiv.innerHTML = '';
@@ -1197,82 +1186,113 @@ window.submitStudentAttendance = async (classID) => {
         }
     }
 };
+window.updateAttendanceSummary = () => {
+    const checkboxes = document.querySelectorAll('#attendance-sheet-container .attendance-checkbox');
+    const presentCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    const totalCount = checkboxes.length;
+    const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+    
+    const summaryPresent = document.getElementById('summary-present');
+    const summaryBar = document.getElementById('summary-bar');
+    const summaryPercent = document.getElementById('summary-percent');
+    
+    if (summaryPresent) summaryPresent.innerText = presentCount;
+    if (summaryBar) summaryBar.style.width = `${percentage}%`;
+    if (summaryPercent) summaryPercent.innerText = `${percentage}%`;
+};
+
+
 
 // Helper functions for mass selection
 window.markAllPresent = () => {
-    document.querySelectorAll('.attendance-checkbox').forEach(cb => {
+    document.querySelectorAll('#attendance-sheet-container .attendance-checkbox').forEach(cb => {
         cb.checked = true;
     });
+    updateAttendanceSummary();
 };
 
 window.markAllAbsent = () => {
-    document.querySelectorAll('.attendance-checkbox').forEach(cb => {
+    document.querySelectorAll('#attendance-sheet-container .attendance-checkbox').forEach(cb => {
         cb.checked = false;
     });
+    updateAttendanceSummary();
 };
 
-window.submitStudentAttendance = (classID) => {
+window.submitStudentAttendance = async (classID) => {
     if (!navigator.onLine) {
         alert("No Internet! Please connect to submit attendance.");
         return;
     }
 
     const dateKey = new Date().toISOString().split('T')[0];
-    const checkboxes = document.querySelectorAll('.attendance-checkbox');
-    const attendanceData = {};
+    
+    // Get ALL checkboxes in the attendance sheet
+    const checkboxes = document.querySelectorAll('#attendance-sheet-container .attendance-checkbox');
+    
+    if (checkboxes.length === 0) {
+        alert("No students found to mark attendance.");
+        return;
+    }
+    
+    const attendanceRecords = {};
+    let presentCount = 0;
+    
+    console.log(`Saving attendance for ${checkboxes.length} students...`);
     
     checkboxes.forEach(cb => {
         const studentKey = cb.getAttribute('data-student-key');
         const studentName = cb.getAttribute('data-student-name');
         const grNo = cb.getAttribute('data-gr-no');
+        const isPresent = cb.checked;
         
-        attendanceData[studentKey] = {
+        if (isPresent) presentCount++;
+        
+        attendanceRecords[studentKey] = {
             name: studentName,
             grNo: grNo || 'Pending',
-            status: cb.checked ? 'Present' : 'Absent',
+            status: isPresent ? 'Present' : 'Absent',
             timestamp: firebase.database.ServerValue.TIMESTAMP
         };
     });
 
-    firebase.database().ref(`student_attendance/${dateKey}/${classID}`).set({
-        markedBy: localStorage.getItem('userName'),
-        records: attendanceData,
-        timestamp: firebase.database.ServerValue.TIMESTAMP,
-        class: classID
-    }).then(() => {
-        alert(`✅ Attendance for Class ${classID} saved!`);
-        updateHomeSummary();
-        loadSection('attendance');
-    }).catch(err => alert("Error: " + err.message));
-};
-
-window.submitStudentAttendance = (classID) => {
-    if (!navigator.onLine) {
-        alert("No Internet! Please connect to submit attendance.");
-        return;
+    // Show saving indicator
+    const saveBtn = document.querySelector('#attendance-sheet-container button[onclick*="submitStudentAttendance"]');
+    let originalText = '💾 Save Changes';
+    if (saveBtn) {
+        originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Saving...';
+        saveBtn.disabled = true;
     }
-
-    const dateKey = new Date().toISOString().split('T')[0];
-    const checkboxes = document.querySelectorAll('.attendance-checkbox');
-    const attendanceData = {};
     
-    checkboxes.forEach(cb => {
-        const studentName = cb.getAttribute('data-name'); // Full name
-        attendanceData[studentName] = {
-            name: studentName,
-            status: cb.checked ? 'Present' : 'Absent',
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        };
-    });
-
-    firebase.database().ref(`student_attendance/${dateKey}/${classID}`).set({
-        markedBy: localStorage.getItem('userName'),
-        records: attendanceData
-    }).then(() => {
-        alert(`Attendance for Class ${classID} saved!`);
-        updateHomeSummary();
-        loadSection('attendance');
-    }).catch(err => alert("Error: " + err.message));
+    try {
+        // Save to Firebase
+        await firebase.database().ref(`student_attendance/${dateKey}/${classID}`).set({
+            markedBy: localStorage.getItem('userName'),
+            records: attendanceRecords,
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            class: classID,
+            totalPresent: presentCount,
+            totalStudents: checkboxes.length,
+            lastUpdated: new Date().toLocaleString()
+        });
+        
+        const percentage = Math.round((presentCount / checkboxes.length) * 100);
+        
+        // Success message
+        alert(`✅ Attendance for Class ${classID} saved successfully!\n\n📊 Summary:\nPresent: ${presentCount}/${checkboxes.length}\nAttendance Rate: ${percentage}%`);
+        
+        // Refresh the attendance sheet to show updated data
+        await loadAttendanceSheet();
+        
+    } catch (err) {
+        console.error("Save error:", err);
+        alert("❌ Error saving attendance: " + err.message);
+    } finally {
+        if (saveBtn) {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
+    }
 };
 
 
