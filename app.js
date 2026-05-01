@@ -2120,20 +2120,22 @@ window.calculateMonthlyHours = async () => {
     alert(`Monthly Hours for ${userName}:\nTotal: ${hours} hours ${minutes} minutes\n${totalMinutes} minutes total`);
 };
 
-// 18. PERSONAL STUDENT LOGS
-// 18. PERSONAL STUDENT LOGS - Using NAME to find records
+// 18. PERSONAL STUDENT LOGS 
 async function fetchPersonalStudentLogs(studentName) {
     const logContainer = document.getElementById('personal-logs');
     if (!logContainer) return;
     
     logContainer.innerHTML = '<p class="text-gray-400 italic">Loading your attendance records...</p>';
-    
+console.log("Student name from localStorage:", localStorage.getItem('userName'));
+console.log("Student GR from localStorage:", localStorage.getItem('userGR'));    
     try {
         const now = new Date();
         const month = now.getMonth() + 1;
         const year = now.getFullYear();
         
-        console.log("Fetching attendance for student:", studentName);
+        // Normalize the logged-in student's name (trim and lowercase for comparison)
+        const normalizedLoginName = studentName.trim().toLowerCase();
+        console.log("Looking for student:", normalizedLoginName);
         
         // Get all attendance records
         const snapshot = await firebase.database().ref('student_attendance').once('value');
@@ -2155,8 +2157,22 @@ async function fetchPersonalStudentLogs(studentName) {
                         
                         // Check if this class has records
                         if (classData && classData.records) {
-                            // Find the student by NAME
-                            const studentRecord = classData.records[studentName];
+                            // Find the student by CASE-INSENSITIVE name matching
+                            let studentRecord = null;
+                            
+                            // Try exact match first
+                            if (classData.records[studentName]) {
+                                studentRecord = classData.records[studentName];
+                            } else {
+                                // Try case-insensitive match
+                                for (const [key, record] of Object.entries(classData.records)) {
+                                    if (key.trim().toLowerCase() === normalizedLoginName ||
+                                        (record.name && record.name.trim().toLowerCase() === normalizedLoginName)) {
+                                        studentRecord = record;
+                                        break;
+                                    }
+                                }
+                            }
                             
                             if (studentRecord) {
                                 records.push({ 
@@ -2172,6 +2188,38 @@ async function fetchPersonalStudentLogs(studentName) {
             });
         }
         
+        // Also check ALL dates (not just current month) for debugging
+        console.log(`Found ${records.length} records for ${studentName} in current month`);
+        
+        // If no records found in current month, check all records to debug
+        if (records.length === 0) {
+            // Debug: Check all dates to see if any records exist at all for this student
+            let allRecords = [];
+            if (allData) {
+                Object.keys(allData).forEach(dateStr => {
+                    const dateData = allData[dateStr];
+                    Object.keys(dateData).forEach(className => {
+                        const classData = dateData[className];
+                        if (classData && classData.records) {
+                            for (const [key, record] of Object.entries(classData.records)) {
+                                if (key.trim().toLowerCase() === normalizedLoginName ||
+                                    (record.name && record.name.trim().toLowerCase() === normalizedLoginName)) {
+                                    allRecords.push({ date: dateStr, status: record.status });
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+            
+            if (allRecords.length > 0) {
+                console.log(`Found ${allRecords.length} records in other months!`);
+                // Show records from all months
+                displayAttendanceRecords(logContainer, allRecords, true);
+                return;
+            }
+        }
+        
         // Sort records by date (newest first)
         records.sort((a, b) => b.date.localeCompare(a.date));
         
@@ -2181,36 +2229,17 @@ async function fetchPersonalStudentLogs(studentName) {
                     <i class="fa-regular fa-calendar-xmark text-4xl text-gray-300 mb-2"></i>
                     <p class="text-gray-500">No attendance records found for this month.</p>
                     <p class="text-xs text-gray-400 mt-1">Attendance will appear here once marked.</p>
+                    <div class="mt-4 text-xs text-gray-400 border-t pt-3">
+                        <p class="font-medium">Debug Info:</p>
+                        <p>Student Name: "${studentName}"</p>
+                        <p>Please contact teacher to ensure your name is spelled correctly in attendance records.</p>
+                    </div>
                 </div>
             `;
             return;
         }
         
-        logContainer.innerHTML = `
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <div class="text-center p-3 bg-green-50 rounded-xl">
-                    <p class="text-2xl font-bold text-green-600">${presentDays}</p>
-                    <p class="text-xs text-gray-500">Present</p>
-                </div>
-                <div class="text-center p-3 bg-red-50 rounded-xl">
-                    <p class="text-2xl font-bold text-red-600">${absentDays}</p>
-                    <p class="text-xs text-gray-500">Absent</p>
-                </div>
-            </div>
-            <div class="text-center text-xs text-gray-400 mb-2">
-                ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} Records
-            </div>
-            <div class="max-h-60 overflow-y-auto space-y-1">
-                ${records.map(r => `
-                    <div class="flex justify-between items-center p-2 border-b hover:bg-gray-50 rounded">
-                        <span class="text-xs font-medium">${formatDate(r.date)}</span>
-                        <span class="text-xs font-bold px-2 py-1 rounded-full ${r.status === 'Present' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}">
-                            ${r.status === 'Present' ? '✓ Present' : '✗ Absent'}
-                        </span>
-                    </div>
-                `).join('')}
-            </div>
-        `;
+        displayAttendanceRecords(logContainer, records, false);
         
     } catch (error) {
         console.error("Error fetching student logs:", error);
@@ -2222,6 +2251,46 @@ async function fetchPersonalStudentLogs(studentName) {
             </div>
         `;
     }
+}
+
+function displayAttendanceRecords(container, records, showAllMonths) {
+    let presentDays = records.filter(r => r.status === 'Present').length;
+    let absentDays = records.filter(r => r.status === 'Absent').length;
+    
+    container.innerHTML = `
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="text-center p-3 bg-green-50 rounded-xl">
+                <p class="text-2xl font-bold text-green-600">${presentDays}</p>
+                <p class="text-xs text-gray-500">Present</p>
+            </div>
+            <div class="text-center p-3 bg-red-50 rounded-xl">
+                <p class="text-2xl font-bold text-red-600">${absentDays}</p>
+                <p class="text-xs text-gray-500">Absent</p>
+            </div>
+        </div>
+        ${showAllMonths ? '<div class="text-center text-xs text-orange-500 mb-2">⚠️ Showing records from all months</div>' : ''}
+        <div class="text-center text-xs text-gray-400 mb-2">
+            Total Records: ${records.length}
+        </div>
+        <div class="max-h-60 overflow-y-auto space-y-1">
+            ${records.map(r => `
+                <div class="flex justify-between items-center p-2 border-b hover:bg-gray-50 rounded">
+                    <span class="text-xs font-medium">${formatDate(r.date)}</span>
+                    <span class="text-xs font-bold px-2 py-1 rounded-full ${r.status === 'Present' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}">
+                        ${r.status === 'Present' ? '✓ Present' : '✗ Absent'}
+                    </span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function formatDate(dateStr) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
 }
 
 // Helper function to format date
