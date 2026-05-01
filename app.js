@@ -2706,12 +2706,6 @@ function scheduleDailyFeeCheck() {
     }, 24 * 60 * 60 * 1000);
 }
 
-// Configure VAPID keys
-webpush.setVapidDetails(
-    'mailto:your-email@school.com',
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-);
 
 
 // Add this to your app.js
