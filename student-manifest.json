@@ -1,0 +1,8 @@
+{
+  "name": "PUHS Student Portal",
+  "short_name": "Student App",
+  "start_url": "/student/",
+  "theme_color": "#059669",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}
