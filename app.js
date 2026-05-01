@@ -2799,7 +2799,6 @@ window.togglePushNotifications = async () => {
 };
 
 
-// Add this to your script
 window.handleLogout = function() {
     if (confirm("Are you sure you want to logout?")) {
         // Clear all user data from local storage
@@ -2810,12 +2809,11 @@ window.handleLogout = function() {
         localStorage.removeItem('userGR');
         localStorage.removeItem('hasCheckedInToday');
 
-        // Redirect to login screen
+        // Redirect to login screen by toggling visibility
         document.getElementById('main-app').classList.add('hidden');
         document.getElementById('login-screen').classList.remove('hidden');
         
-        // Optional: Refresh the page to clear any in-memory states
+        // Refresh the page to clear any in-memory states and reset variables
         window.location.reload();
     }
 };
-
