@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Padgha Urdu High School - Teacher Portal</title>
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="teacher-manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #f3f4f6; padding-bottom: 70px; }
+        .teacher-gradient { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+        .teacher-card { border-left: 4px solid #3b82f6; }
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; display: flex; justify-content: space-around;
+            padding: 12px 16px; border-top: 1px solid #e5e7eb; z-index: 50;
+        }
+        .nav-btn {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 4px; background: none; border: none; color: #9ca3af;
+            font-size: 12px; cursor: pointer;
+        }
+        .nav-btn i { font-size: 22px; }
+        .nav-btn.active { color: #3b82f6; }
+        .hidden { display: none !important; }
+        .splash-screen {
+            position: fixed; inset: 0; background: linear-gradient(135deg, #2563eb, #3b82f6);
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; z-index: 1000; color: white;
+        }
+        .login-container {
+            min-height: 100vh; display: flex; align-items: center;
+            justify-content: center; padding: 20px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+        }
+        .login-card {
+            background: white; border-radius: 32px; padding: 32px 24px;
+            width: 100%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        }
+        input {
+            width: 100%; padding: 14px 16px; border: 2px solid #e5e7eb;
+            border-radius: 16px; font-size: 16px; margin-bottom: 12px;
+        }
+        input:focus { outline: none; border-color: #3b82f6; }
+        button {
+            width: 100%; padding: 14px; background: #3b82f6;
+            color: white; border: none; border-radius: 16px;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+        }
+        .content-card {
+            background: white; border-radius: 20px; padding: 20px;
+            margin: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="splash-screen" class="splash-screen">
+        <i class="fa-solid fa-chalkboard-user" style="font-size: 64px; margin-bottom: 20px;"></i>
+        <h1 style="font-size: 24px;">Teacher Portal</h1>
+        <p style="margin-top: 10px;">Padgha Urdu High School</p>
+    </div>
+
+    <div id="login-screen" class="hidden">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="text-center mb-6">
+                    <i class="fa-solid fa-chalkboard-user" style="font-size: 48px; color: #2563eb;"></i>
+                    <h2 style="margin-top: 16px;">Teacher Login</h2>
+                </div>
+                <input type="text" id="phone" placeholder="Phone Number">
+                <input type="password" id="code" placeholder="Login Code">
+                <button onclick="handleTeacherLogin()">Login →</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-app" class="hidden">
+        <div id="content" style="padding: 16px 0 80px 0;"></div>
+        <div class="bottom-nav">
+            <button class="nav-btn" onclick="loadTeacherSection('home')"><i class="fa-solid fa-house"></i><span>Home</span></button>
+            <button class="nav-btn" onclick="loadTeacherSection('attendance')"><i class="fa-solid fa-fingerprint"></i><span>My Attendance</span></button>
+            <button class="nav-btn" onclick="loadTeacherSection('student-attendance')"><i class="fa-solid fa-users"></i><span>Student Attendance</span></button>
+            <button class="nav-btn" onclick="loadTeacherSection('homework')"><i class="fa-solid fa-book-open"></i><span>Homework</span></button>
+            <button class="nav-btn" onclick="loadTeacherSection('students')"><i class="fa-solid fa-address-card"></i><span>Students</span></button>
+        </div>
+    </div>
+
+    <script>
+        // ============ TEACHER APP CONFIGURATION ============
+        const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
+        const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv";
+        const OFFICE_LAT = 19.3709;
+        const OFFICE_LON = 73.1757;
+        
+        let currentTeacher = null;
+        
+        const firebaseConfig = { /* Your Firebase config */ };
+        firebase.initializeApp(firebaseConfig);
+        
+        window.onload = () => {
+            setTimeout(() => {
+                document.getElementById('splash-screen').classList.add('hidden');
+                if (localStorage.getItem('teacherLoggedIn') === 'true') {
+                    currentTeacher = JSON.parse(localStorage.getItem('currentTeacher'));
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    loadTeacherSection('home');
+                } else {
+                    document.getElementById('login-screen').classList.remove('hidden');
+                }
+            }, 1500);
+        };
+        
+        window.handleTeacherLogin = async () => {
+            const phone = document.getElementById('phone').value.trim();
+            const code = document.getElementById('code').value.trim();
+            
+            try {
+                const response = await fetch(TEACHER_SHEET_CSV);
+                const text = await response.text();
+                const rows = text.split('\n').slice(1);
+                
+                let found = null;
+                for (let row of rows) {
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    const teacherPhone = cols[0]?.replace(/"/g, '').trim();
+                    const teacherCode = cols[1]?.replace(/"/g, '').trim();
+                    const name = cols[2]?.replace(/"/g, '').trim();
+                    const role = cols[3]?.replace(/"/g, '').trim();
+                    const mappedClass = cols[5]?.replace(/"/g, '').trim();
+                    
+                    if (teacherPhone === phone && teacherCode === code) {
+                        found = { name, phone, role, mappedClass };
+                        break;
+                    }
+                }
+                
+                if (found) {
+                    currentTeacher = found;
+                    localStorage.setItem('teacherLoggedIn', 'true');
+                    localStorage.setItem('currentTeacher', JSON.stringify(found));
+                    
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    loadTeacherSection('home');
+                } else {
+                    alert("Invalid credentials");
+                }
+            } catch (error) {
+                alert("Login failed");
+            }
+        };
+        
+        window.teacherLogout = () => {
+            localStorage.removeItem('teacherLoggedIn');
+            localStorage.removeItem('currentTeacher');
+            currentTeacher = null;
+            location.reload();
+        };
+        
+        window.loadTeacherSection = (section) => {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            if (event?.target) event.target.closest('.nav-btn')?.classList.add('active');
+            
+            const content = document.getElementById('content');
+            
+            if (section === 'home') {
+                content.innerHTML = `
+                    <div class="content-card">
+                        <div class="teacher-gradient" style="padding: 24px; border-radius: 20px; color: white; margin: -20px -20px 20px -20px;">
+                            <h2>Welcome, ${currentTeacher.name}!</h2>
+                            <p style="opacity: 0.9; margin-top: 8px;">${currentTeacher.role} | Class: ${currentTeacher.mappedClass || 'Not Assigned'}</p>
+                        </div>
+                        <div style="display: grid; gap: 12px;">
+                            <div onclick="loadTeacherSection('attendance')" style="padding: 16px; background: #eff6ff; border-radius: 16px; cursor: pointer;">
+                                📍 Mark My Attendance
+                            </div>
+                            <div onclick="loadTeacherSection('student-attendance')" style="padding: 16px; background: #eff6ff; border-radius: 16px; cursor: pointer;">
+                                📋 Mark Student Attendance
+                            </div>
+                            <div onclick="loadTeacherSection('homework')" style="padding: 16px; background: #eff6ff; border-radius: 16px; cursor: pointer;">
+                                📝 Post Homework
+                            </div>
+                            <div onclick="teacherLogout()" style="padding: 16px; background: #fee2e2; border-radius: 16px; text-align: center; color: #dc2626;">
+                                🚪 Logout
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (section === 'attendance') {
+                loadTeacherAttendanceUI();
+            } else if (section === 'student-attendance') {
+                loadStudentAttendanceUI();
+            } else if (section === 'homework') {
+                loadHomeworkUI();
+            } else if (section === 'students') {
+                loadStudentList();
+            }
+        };
+        
+        function loadTeacherAttendanceUI() {
+            const content = document.getElementById('content');
+            const now = new Date();
+            const hour = now.getHours();
+            const isTooEarly = hour < 7;
+            const hasCheckedIn = localStorage.getItem('teacherCheckedIn') === 'true';
+            
+            content.innerHTML = `
+                <div class="content-card">
+                    <h3 style="font-weight: bold; margin-bottom: 16px;">My Attendance</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <button id="checkInBtn" ${hasCheckedIn || isTooEarly ? 'disabled' : ''} 
+                            style="background: ${hasCheckedIn ? '#9ca3af' : '#10b981'};">
+                            ${isTooEarly ? 'Too Early' : (hasCheckedIn ? 'Checked In ✓' : 'Check IN')}
+                        </button>
+                        <button id="checkOutBtn" ${!hasCheckedIn ? 'disabled' : ''}
+                            style="background: ${!hasCheckedIn ? '#9ca3af' : '#ef4444'};">
+                            Check OUT
+                        </button>
+                    </div>
+                    <div id="attendanceStatus" style="margin-top: 16px; text-align: center;"></div>
+                </div>
+            `;
+            
+            document.getElementById('checkInBtn')?.addEventListener('click', () => markTeacherAttendance('IN'));
+            document.getElementById('checkOutBtn')?.addEventListener('click', () => markTeacherAttendance('OUT'));
+        }
+        
+        function markTeacherAttendance(type) {
+            if (!navigator.geolocation) {
+                alert("Geolocation not supported");
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition((position) => {
+                const distance = calculateDistance(position.coords.latitude, position.coords.longitude, OFFICE_LAT, OFFICE_LON);
+                
+                if (distance > 50 && !confirm(`You are ${Math.round(distance)}m from school. Mark anyway?`)) {
+                    return;
+                }
+                
+                const dateKey = new Date().toISOString().split('T')[0];
+                firebase.database().ref(`teacher_attendance/${dateKey}`).push({
+                    name: currentTeacher.name,
+                    type: type,
+                    time: new Date().toLocaleTimeString(),
+                    distance: Math.round(distance) + 'm',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                }).then(() => {
+                    if (type === 'IN') {
+                        localStorage.setItem('teacherCheckedIn', 'true');
+                        alert(`Checked IN successfully!\nDistance: ${Math.round(distance)}m`);
+                    } else {
+                        localStorage.removeItem('teacherCheckedIn');
+                        alert("Checked OUT successfully!");
+                    }
+                    loadTeacherSection('attendance');
+                });
+            }, () => alert("Please enable GPS"));
+        }
+        
+        async function loadStudentAttendanceUI() {
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div class="content-card">
+                    <h3 style="font-weight: bold; margin-bottom: 16px;">Mark Student Attendance</h3>
+                    <select id="attendanceClass" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 12px;">
+                        <option value="${currentTeacher.mappedClass}">Class ${currentTeacher.mappedClass}</option>
+                    </select>
+                    <button onclick="loadStudentListForAttendance()" style="background: #3b82f6; margin-bottom: 16px;">Load Students</button>
+                    <div id="studentAttendanceList"></div>
+                    <button id="saveAttendanceBtn" style="background: #10b981; margin-top: 16px; display: none;" onclick="saveStudentAttendance()">Save Attendance</button>
+                </div>
+            `;
+        }
+        
+        async function loadStudentListForAttendance() {
+            const className = document.getElementById('attendanceClass').value;
+            const container = document.getElementById('studentAttendanceList');
+            container.innerHTML = '<p>Loading...</p>';
+            
+            try {
+                const response = await fetch(STUDENT_SHEET_CSV);
+                const text = await response.text();
+                const rows = text.split('\n').slice(1);
+                const students = [];
+                
+                for (let row of rows) {
+                    const cols = row.split(',');
+                    const studentClass = cols[1]?.replace(/"/g, '').trim();
+                    const name = cols[7]?.replace(/"/g, '').trim();
+                    const gr = cols[2]?.replace(/"/g, '').trim();
+                    
+                    if (studentClass === className && name) {
+                        students.push({ name, gr });
+                    }
+                }
+                
+                if (students.length === 0) {
+                    container.innerHTML = '<p>No students found</p>';
+                    return;
+                }
+                
+                container.innerHTML = students.map(s => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #e5e7eb;">
+                        <div>
+                            <span style="font-weight: 500;">${s.name}</span>
+                            <span style="font-size: 10px; color: #6b7280; margin-left: 8px;">GR: ${s.gr}</span>
+                        </div>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <span>Present</span>
+                            <input type="checkbox" data-student="${s.name}" data-gr="${s.gr}" class="attendance-cb">
+                        </label>
+                    </div>
+                `).join('');
+                
+                document.getElementById('saveAttendanceBtn').style.display = 'block';
+            } catch (error) {
+                container.innerHTML = '<p>Error loading students</p>';
+            }
+        }
+        
+        async function saveStudentAttendance() {
+            const className = document.getElementById('attendanceClass').value;
+            const dateKey = new Date().toISOString().split('T')[0];
+            const checkboxes = document.querySelectorAll('.attendance-cb');
+            const records = {};
+            
+            checkboxes.forEach(cb => {
+                const studentName = cb.getAttribute('data-student');
+                const gr = cb.getAttribute('data-gr');
+                records[gr] = {
+                    name: studentName,
+                    status: cb.checked ? 'Present' : 'Absent',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+            });
+            
+            await firebase.database().ref(`student_attendance/${dateKey}/${className}`).set({
+                markedBy: currentTeacher.name,
+                records: records,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            
+            alert("Attendance saved successfully!");
+            loadTeacherSection('student-attendance');
+        }
+        
+        function loadHomeworkUI() {
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div class="content-card">
+                    <h3 style="font-weight: bold; margin-bottom: 16px;">Post Homework</h3>
+                    <input type="text" id="subject" placeholder="Subject" style="margin-bottom: 12px;">
+                    <textarea id="description" placeholder="Homework details" rows="4" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 12px;"></textarea>
+                    <button onclick="postHomework()" style="background: #3b82f6;">Post Homework</button>
+                    <div id="homeworkList" style="margin-top: 24px;"></div>
+                </div>
+            `;
+            loadHomeworkList();
+        }
+        
+        async function postHomework() {
+            const subject = document.getElementById('subject').value;
+            const description = document.getElementById('description').value;
+            
+            if (!subject || !description) {
+                alert("Please fill all fields");
+                return;
+            }
+            
+            await firebase.database().ref('homework').push({
+                class: currentTeacher.mappedClass,
+                subject: subject,
+                description: description,
+                sender: currentTeacher.name,
+                date: new Date().toLocaleDateString(),
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            
+            document.getElementById('subject').value = '';
+            document.getElementById('description').value = '';
+            loadHomeworkList();
+            alert("Homework posted!");
+        }
+        
+        function loadHomeworkList() {
+            firebase.database().ref('homework').orderByChild('timestamp').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+                
+                const homework = Object.values(data).filter(h => h.class === currentTeacher.mappedClass).reverse();
+                const container = document.getElementById('homeworkList');
+                
+                container.innerHTML = `
+                    <h4 style="font-weight: bold; margin-bottom: 12px;">Recent Homework</h4>
+                    ${homework.map(h => `
+                        <div style="background: #f9fafb; padding: 12px; border-radius: 12px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="font-weight: bold;">${h.subject}</span>
+                                <span style="font-size: 10px; color: #6b7280;">${h.date}</span>
+                            </div>
+                            <p style="font-size: 14px; margin-top: 8px;">${h.description}</p>
+                        </div>
+                    `).join('')}
+                `;
+            });
+        }
+        
+        async function loadStudentList() {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="content-card"><p>Loading students...</p></div>';
+            
+            try {
+                const response = await fetch(STUDENT_SHEET_CSV);
+                const text = await response.text();
+                const rows = text.split('\n').slice(1);
+                const students = [];
+                
+                for (let row of rows) {
+                    const cols = row.split(',');
+                    const studentClass = cols[1]?.replace(/"/g, '').trim();
+                    const name = cols[7]?.replace(/"/g, '').trim();
+                    const gr = cols[2]?.replace(/"/g, '').trim();
+                    const phone = cols[15]?.replace(/"/g, '').trim();
+                    
+                    if (studentClass === currentTeacher.mappedClass && name) {
+                        students.push({ name, gr, phone });
+                    }
+                }
+                
+                content.innerHTML = `
+                    <div class="content-card">
+                        <h3 style="font-weight: bold; margin-bottom: 16px;">My Students (Class ${currentTeacher.mappedClass})</h3>
+                        ${students.map(s => `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #e5e7eb;">
+                                <div>
+                                    <p style="font-weight: 500;">${s.name}</p>
+                                    <p style="font-size: 10px; color: #6b7280;">GR: ${s.gr}</p>
+                                </div>
+                                ${s.phone ? `<a href="tel:${s.phone}" style="background: #10b981; color: white; padding: 6px 12px; border-radius: 8px; text-decoration: none; font-size: 12px;">Call</a>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = '<div class="content-card"><p>Error loading students</p></div>';
+            }
+        }
+        
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2)**2;
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+        }
+        
+        window.loadStudentListForAttendance = loadStudentListForAttendance;
+        window.saveStudentAttendance = saveStudentAttendance;
+        window.postHomework = postHomework;
+    </script>
+</body>
+</html>
