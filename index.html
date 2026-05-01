@@ -15,8 +15,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&family=Noto+Sans+Devanagari&display=swap" rel="stylesheet">
-   
-   
 </head>
 <body>
 
@@ -124,61 +122,71 @@
         </div>
     </div>
 
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log("PWA Registered", reg))
-                .catch(err => console.log("PWA Failed", err));
-        });
-    }
-    
-    function setActiveNav(element, section) {
-        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-        element.classList.add('active');
-        loadSection(section);
-    }
-    
-    function scrollToTop() {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    
-    function showNotifications() {
-        loadSection('notices');
-    }
-    
-    function toggleTheme() {
-        document.body.classList.toggle('dark');
-    }
-    
-    // Update user name display
-    function updateUserDisplay() {
-        const userName = localStorage.getItem('userName');
-        const userRole = localStorage.getItem('userRole');
-        if (userName) {
-            document.getElementById('user-name-display').innerText = `${userRole} • ${userName}`;
+    <!-- Load Firebase FIRST (only once) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+
+    <!-- Then initialize Firebase -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
+            authDomain: "padgha-school-erp.firebaseapp.com",
+            databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "padgha-school-erp",
+            storageBucket: "padgha-school-erp.firebasestorage.app",
+            messagingSenderId: "481255456109",
+            appId: "1:481255456109:web:077e656f3dd03aee43ae64",
+            measurementId: "G-RXBBRWG5SE"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        console.log("Firebase initialized");
+    </script>
+
+    <!-- Then load app.js (without Firebase initialization inside) -->
+    <script src="app.js"></script>
+
+    <!-- Navigation functions -->
+    <script>
+        function setActiveNav(element, section) {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            if (typeof loadSection === 'function') {
+                loadSection(section);
+            }
         }
-    }
-</script>
-
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
-        authDomain: "padgha-school-erp.firebaseapp.com",
-        databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "padgha-school-erp",
-        storageBucket: "padgha-school-erp.firebasestorage.app",
-        messagingSenderId: "481255456109",
-        appId: "1:481255456109:web:077e656f3dd03aee43ae64",
-        measurementId: "G-RXBBRWG5SE"
-    };
-    
-    firebase.initializeApp(firebaseConfig);
-</script>
-
-<script src="app.js"></script>
+        
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        function showNotifications() {
+            if (typeof loadSection === 'function') {
+                loadSection('notices');
+            }
+        }
+        
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+        }
+        
+        function updateUserDisplay() {
+            const userName = localStorage.getItem('userName');
+            const userRole = localStorage.getItem('userRole');
+            const displayEl = document.getElementById('user-name-display');
+            if (displayEl && userName) {
+                displayEl.innerText = `${userRole} • ${userName}`;
+            }
+        }
+        
+        // Service worker registration (after page load)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log("PWA Registered", reg))
+                    .catch(err => console.log("PWA Failed", err));
+            });
+        }
+    </script>
 </body>
 </html>
