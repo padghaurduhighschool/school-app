@@ -73,9 +73,9 @@
         .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
         .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .cursor-pointer { cursor: pointer; }
-        .hover\\:bg-gray-50:hover { background: #f9fafb; }
+        .hover\:bg-gray-50:hover { background: #f9fafb; }
         .transition-all { transition: all 0.2s; }
-        .active\\:scale-95:active { transform: scale(0.95); }
+        .active\:scale-95:active { transform: scale(0.95); }
         .grid { display: grid; }
         .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -87,7 +87,7 @@
         .w-16 { width: 64px; }
         .w-32 { width: 128px; }
         .h-1 { height: 4px; }
-        .h-1\\.5 { height: 6px; }
+        .h-1\.5 { height: 6px; }
         .h-2 { height: 8px; }
         .bg-gradient-to-r { background-image: linear-gradient(to right, var(--tw-gradient-stops)); }
         .from-blue-600 { --tw-gradient-from: #2563eb; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent); }
@@ -99,18 +99,6 @@
         .tracking-widest { letter-spacing: 0.1em; }
         .tracking-wider { letter-spacing: 0.05em; }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
-        .peer:checked ~ .peer-checked\\:bg-green-500 { background: #10b981; }
-        .peer-checked:after { transform: translateX(100%); }
-        .after\\:absolute::after { content: var(--tw-content); position: absolute; }
-        .after\\:top-[2px]::after { top: 2px; }
-        .after\\:left-[2px]::after { left: 2px; }
-        .after\\:bg-white::after { background: white; }
-        .after\\:rounded-full::after { border-radius: 9999px; }
-        .after\\:h-4::after { height: 16px; }
-        .after\\:w-4::after { width: 16px; }
-        .after\\:transition-all::after { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
-        .peer-checked:after { transform: translateX(100%); }
-        .peer-checked ~ .peer-checked\\:bg-green-500 { background: #10b981; }
         .fixed { position: fixed; }
         .inset-0 { inset: 0; }
         .bottom-20 { bottom: 80px; }
@@ -120,7 +108,7 @@
         .bg-opacity-50 { background-opacity: 0.5; }
         .justify-center { justify-content: center; }
         .max-w-md { max-width: 448px; }
-        .max-h-\\[80vh\\] { max-height: 80vh; }
+        .max-h-\[80vh\] { max-height: 80vh; }
         .sticky { position: sticky; }
         .top-0 { top: 0; }
         .z-10 { z-index: 10; }
@@ -131,8 +119,8 @@
         .pl-9 { padding-left: 36px; }
         .absolute { position: absolute; }
         .left-3 { left: 12px; }
-        .top-1\\/2 { top: 50%; }
-        .-translate-y-1\\/2 { transform: translateY(-50%); }
+        .top-1\/2 { top: 50%; }
+        .-translate-y-1\/2 { transform: translateY(-50%); }
         .pb-10 { padding-bottom: 40px; }
         .pb-20 { padding-bottom: 80px; }
         .mx-4 { margin-left: 16px; margin-right: 16px; }
@@ -142,10 +130,8 @@
         .text-yellow-600 { color: #d97706; }
         .text-yellow-800 { color: #92400e; }
         .font-mono { font-family: monospace; }
-        .animate-bounce { animation: bounce 0.5s ease-out; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeInUp { animation: fadeInUp 0.3s ease-out; }
     </style>
 </head>
 <body>
@@ -185,24 +171,14 @@
 
     <script>
         // ============================================
-        // STUDENT APP - EXACT SAME CODE FROM app.js
-        // Only STUDENT role is allowed
+        // PURE STUDENT APP
+        // Removed all Teacher, Supervisor, and Admin Logic
         // ============================================
         
         // 1. CONFIGURATION & STATE
-        const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
         const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv"; 
-        const OFFICE_LAT = 19.3709; 
-        const OFFICE_LON = 73.1757; 
-
-        const schoolClasses = [
-            "Jr KG", "Sr KG", 
-            "1", "2", "3", "4", 
-            "5", "6", "7", "8", "9", "10"
-        ];
 
         let deferredPrompt;
-        let allStudents = [];
 
         // Firebase Config
         const firebaseConfig = {
@@ -218,17 +194,9 @@
 
         // 2. STARTUP LOGIC
         window.onload = () => {
-            const today = new Date();
-            const dateKey = today.toISOString().split('T')[0];
-            
-            if (localStorage.getItem('lastActivityDate') !== dateKey) {
-                localStorage.setItem('hasCheckedInToday', 'false');
-                localStorage.setItem('lastActivityDate', dateKey);
-            }
-
             setTimeout(() => {
                 document.getElementById('splash-screen').classList.add('hidden');
-                if (localStorage.getItem('userRole')) {
+                if (localStorage.getItem('userRole') === 'Student') {
                     document.getElementById('main-app').classList.remove('hidden');
                     loadSection('home');
                 } else {
@@ -237,13 +205,25 @@
             }, 2000);
         };
 
+        // 3. PWA INSTALLATION
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installBtn = document.getElementById('install-button-container');
+            if (installBtn) installBtn.classList.remove('hidden');
+        });
+
         // 4. LOGIN LOGIC - STUDENT ONLY
         window.handleLogin = async function() {
             const phone = document.getElementById('phone').value.trim();
             const code = document.getElementById('code').value.trim();
 
+            if (!phone || !code) {
+                alert("Please enter both phone number and code.");
+                return;
+            }
+
             try {
-                // Check STUDENT sheet only (no teacher check for student app)
                 const studentRes = await fetch(STUDENT_SHEET_CSV);
                 const studentText = await studentRes.text();
                 const rows = studentText.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
@@ -260,6 +240,7 @@
                     const row = rows[i];
                     const studentPhone = row[phoneIndex]?.replace(/"/g, '').trim();
                     const studentCode = row[codeIndex]?.replace(/"/g, '').trim();
+                    
                     if (studentPhone === phone && studentCode === code) {
                         student = {
                             gr: row[grIndex]?.replace(/"/g, '').trim(),
@@ -290,7 +271,7 @@
 
             } catch (error) {
                 console.error(error);
-                alert("Login failed. Check internet or CSV access.");
+                alert("Login failed. Check your internet connection.");
             }
         };
 
@@ -309,60 +290,54 @@
             }
         }
 
-        // 6. DASHBOARD NAVIGATION - STUDENT ONLY
+        // 6. DASHBOARD NAVIGATION
         window.loadSection = (section) => {
             const content = document.getElementById('content');
-            const role = localStorage.getItem('userRole');
             const name = localStorage.getItem('userName');
-            document.getElementById('user-role-title')?.innerHTML = `<i class="fa-solid fa-school mr-2"></i>${role} Dashboard`;
+            const mappedClass = localStorage.getItem('mappedClass');
             
             if (section === 'home') {
-                if (role === 'Student') {
-                    const mappedClass = localStorage.getItem('mappedClass');
-                    
-                    content.innerHTML = `
-                        <div class="space-y-4">
-                            <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-2xl text-white shadow-lg">
-                                <h2 class="text-2xl font-bold">Hello, ${escapeHtml(name)}! 👋</h2>
-                                <p class="text-sm opacity-80 mt-1">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                                <p class="text-xs opacity-70 mt-2">Class: ${mappedClass}</p>
-                            </div>
+                content.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-2xl text-white shadow-lg">
+                            <h2 class="text-2xl font-bold">Hello, ${escapeHtml(name)}! 👋</h2>
+                            <p class="text-sm opacity-80 mt-1">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                            <p class="text-xs opacity-70 mt-2">Class: ${mappedClass}</p>
+                        </div>
 
-                            <div onclick="openDailyTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500 cursor-pointer active:scale-95 transition-all">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-gray-500 text-[10px] uppercase font-bold">Schedule</p>
-                                        <p class="text-lg font-bold text-green-600">Daily Time Table</p>
-                                        <p class="text-xs text-gray-400 mt-1">Class: ${mappedClass}</p>
-                                    </div>
-                                    <i class="fa-regular fa-calendar text-green-400 text-2xl"></i>
+                        <div onclick="openDailyTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500 cursor-pointer active:scale-95 transition-all">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-[10px] uppercase font-bold">Schedule</p>
+                                    <p class="text-lg font-bold text-green-600">Daily Time Table</p>
+                                    <p class="text-xs text-gray-400 mt-1">Class: ${mappedClass}</p>
                                 </div>
-                            </div>
-
-                            <div onclick="openExamTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-500 cursor-pointer active:scale-95 transition-all">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-gray-500 text-[10px] uppercase font-bold">Assessments</p>
-                                        <p class="text-lg font-bold text-orange-600">Exam Time Table</p>
-                                    </div>
-                                    <i class="fa-regular fa-clock text-orange-400 text-2xl"></i>
-                                </div>
-                            </div>
-
-                            <div onclick="showFeesDashboard()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 cursor-pointer active:scale-95 transition-all">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-gray-500 text-[10px] uppercase font-bold">Payments</p>
-                                        <p class="text-lg font-bold text-emerald-600">Fees Dashboard</p>
-                                        <p class="text-xs text-gray-400 mt-1">View payment history</p>
-                                    </div>
-                                    <i class="fa-regular fa-credit-card text-emerald-400 text-2xl"></i>
-                                </div>
+                                <i class="fa-regular fa-calendar text-green-400 text-2xl"></i>
                             </div>
                         </div>
-                    `;
-                    loadStudentHomeStats();   
-                }
+
+                        <div onclick="openExamTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-500 cursor-pointer active:scale-95 transition-all">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-[10px] uppercase font-bold">Assessments</p>
+                                    <p class="text-lg font-bold text-orange-600">Exam Time Table</p>
+                                </div>
+                                <i class="fa-regular fa-clock text-orange-400 text-2xl"></i>
+                            </div>
+                        </div>
+
+                        <div onclick="showFeesDashboard()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 cursor-pointer active:scale-95 transition-all">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-[10px] uppercase font-bold">Payments</p>
+                                    <p class="text-lg font-bold text-emerald-600">Fees Dashboard</p>
+                                    <p class="text-xs text-gray-400 mt-1">View payment history</p>
+                                </div>
+                                <i class="fa-regular fa-credit-card text-emerald-400 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
             } 
             else if (section === 'attendance') {
                 loadAttendanceSection();
@@ -375,7 +350,6 @@
             }
             else if (section === 'more') {
                 const role = localStorage.getItem('userRole');
-                const name = localStorage.getItem('userName');
                 const phone = localStorage.getItem('userPhone');
                 
                 content.innerHTML = `
@@ -387,7 +361,7 @@
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-xl">${escapeHtml(name)}</h3>
-                                    <p class="text-white/80 text-sm">${escapeHtml(role)}</p>
+                                    <p class="text-white/80 text-sm">Student Account</p>
                                     <p class="text-white/60 text-xs mt-1"><i class="fas fa-phone mr-1"></i>${escapeHtml(phone) || 'Not provided'}</p>
                                 </div>
                             </div>
@@ -454,11 +428,8 @@
         // 7. ATTENDANCE SECTION
         function loadAttendanceSection() {
             const content = document.getElementById('content');
-            const role = localStorage.getItem('userRole');
-            const mappedClass = localStorage.getItem('mappedClass') || "";
             const now = new Date();
-            const day = now.getDay();
-            const isSunday = day === 0;
+            const isSunday = now.getDay() === 0;
 
             if (isSunday) {
                 content.innerHTML = `
@@ -476,25 +447,20 @@
                         <div class="flex justify-between items-center">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">My Attendance History</h3>
                         </div>
-                        <div id="student-interface"></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm">
+                            <div id="personal-logs" class="space-y-2 text-xs">
+                                <p class="text-gray-400 italic">Fetching your records...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
-
-            document.getElementById('student-interface').innerHTML = `
-                <div class="bg-white p-4 rounded-xl shadow-sm">
-                    <div id="personal-logs" class="space-y-2 text-xs">
-                        <p class="text-gray-400 italic">Fetching your records...</p>
-                    </div>
-                </div>
-            `;
+            
             fetchPersonalStudentLogs(localStorage.getItem('userName'));
         }
 
-        // 9. HOMEWORK SECTION
+        // 8. HOMEWORK SECTION
         function loadHomeworkSection() {
-            const role = localStorage.getItem('userRole');
-            const userClass = localStorage.getItem('mappedClass');
             const content = document.getElementById('content');
             
             content.innerHTML = `
@@ -509,7 +475,6 @@
         }
 
         function fetchHomework() {
-            const role = localStorage.getItem('userRole');
             const userClass = localStorage.getItem('mappedClass');
             const container = document.getElementById('homework-list');
 
@@ -521,28 +486,31 @@
                 }
 
                 const hwArray = Object.keys(data).map(key => ({ id: key, ...data[key] })).reverse();
+                let outputHtml = '';
 
-                container.innerHTML = hwArray.map(hw => {
-                    if (role === 'Student' && hw.class !== userClass) return '';
-
-                    return `
-                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative">
-                            <div class="flex justify-between items-start mb-2">
-                                <span class="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">
-                                    ${hw.subject}
-                                </span>
-                                <span class="text-[10px] text-gray-400">${hw.date}</span>
+                hwArray.forEach(hw => {
+                    if (hw.class === userClass) {
+                        outputHtml += `
+                            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">
+                                        ${escapeHtml(hw.subject)}
+                                    </span>
+                                    <span class="text-[10px] text-gray-400">${escapeHtml(hw.date)}</span>
+                                </div>
+                                <h3 class="font-bold text-gray-800">Class ${escapeHtml(hw.class)}</h3>
+                                <p class="text-sm text-gray-600 mt-2">${escapeHtml(hw.description)}</p>
+                                <p class="text-[9px] text-gray-400 mt-4 pt-2 border-t">Posted by ${escapeHtml(hw.sender)}</p>
                             </div>
-                            <h3 class="font-bold text-gray-800">Class ${hw.class}</h3>
-                            <p class="text-sm text-gray-600 mt-2">${hw.description}</p>
-                            <p class="text-[9px] text-gray-400 mt-4 pt-2 border-t">Posted by ${hw.sender}</p>
-                        </div>
-                    `;
-                }).join('');
+                        `;
+                    }
+                });
+
+                container.innerHTML = outputHtml || `<p class="text-center py-10 text-gray-400">No homework posted for your class yet.</p>`;
             });
         }
 
-        // 10. NOTICES SECTION
+        // 9. NOTICES SECTION
         function loadNoticesSection() {
             const content = document.getElementById('content');
             
@@ -558,7 +526,6 @@
         }
 
         function fetchNotices() {
-            const role = localStorage.getItem('userRole');
             const userClass = localStorage.getItem('mappedClass');
             const userGR = localStorage.getItem('userGR');
             const container = document.getElementById('notices-list');
@@ -571,33 +538,37 @@
                 }
 
                 const notices = Object.keys(data).map(key => ({ id: key, ...data[key] })).reverse();
+                let outputHtml = '';
 
-                container.innerHTML = notices.map(n => {
+                notices.forEach(n => {
                     let visible = false;
                     if (n.targetType === 'school') visible = true;
                     if (n.targetType === 'class' && n.targetValue === userClass) visible = true;
                     if (n.targetType === 'student' && n.targetValue === userGR) visible = true;
-                    if (!visible) return '';
-
-                    return `
-                        <div class="bg-white p-5 rounded-2xl border-l-4 border-orange-500 shadow-sm">
-                            <div class="flex justify-between items-start mb-1">
-                                <span class="text-[9px] font-black text-orange-600 uppercase">📢 ${n.targetType === 'school' ? 'Public' : n.targetValue}</span>
-                                <span class="text-[10px] text-gray-400">${n.date}</span>
-                            </div>
-                            <h3 class="font-black text-gray-800 text-sm">${n.title}</h3>
-                            <div class="mt-2">
-                                <div class="flex gap-2 mb-2 text-[10px]">
-                                    <button onclick="switchLangNotice('${n.id}','en')" class="lang-tab px-2 py-1 rounded bg-gray-100">EN</button>
-                                    <button onclick="switchLangNotice('${n.id}','mr')" class="lang-tab px-2 py-1 rounded bg-gray-100">MR</button>
-                                    <button onclick="switchLangNotice('${n.id}','ur')" class="lang-tab px-2 py-1 rounded bg-gray-100">UR</button>
+                    
+                    if (visible) {
+                        outputHtml += `
+                            <div class="bg-white p-5 rounded-2xl border-l-4 border-orange-500 shadow-sm">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="text-[9px] font-black text-orange-600 uppercase">📢 ${n.targetType === 'school' ? 'Public' : escapeHtml(n.targetValue)}</span>
+                                    <span class="text-[10px] text-gray-400">${escapeHtml(n.date)}</span>
                                 </div>
-                                <p id="msg-${n.id}" class="text-xs text-gray-600 leading-relaxed lang-en">${n.message?.en || "No content"}</p>
+                                <h3 class="font-black text-gray-800 text-sm">${escapeHtml(n.title)}</h3>
+                                <div class="mt-2">
+                                    <div class="flex gap-2 mb-2 text-[10px]">
+                                        <button onclick="switchLangNotice('${n.id}','en')" class="lang-tab px-2 py-1 rounded bg-gray-100">EN</button>
+                                        <button onclick="switchLangNotice('${n.id}','mr')" class="lang-tab px-2 py-1 rounded bg-gray-100">MR</button>
+                                        <button onclick="switchLangNotice('${n.id}','ur')" class="lang-tab px-2 py-1 rounded bg-gray-100">UR</button>
+                                    </div>
+                                    <p id="msg-${n.id}" class="text-xs text-gray-600 leading-relaxed lang-en">${escapeHtml(n.message?.en) || "No content"}</p>
+                                </div>
+                                <p class="text-[8px] text-gray-400 mt-3">Authored by: ${escapeHtml(n.sender)}</p>
                             </div>
-                            <p class="text-[8px] text-gray-400 mt-3">Authored by: ${n.sender}</p>
-                        </div>
-                    `;
-                }).join('');
+                        `;
+                    }
+                });
+
+                container.innerHTML = outputHtml || `<p class="text-center py-10 text-gray-400">No active notices.</p>`;
             });
         }
 
@@ -612,10 +583,9 @@
             });
         };
 
-        // 15. TIME TABLE FUNCTIONS
+        // 10. TIME TABLE FUNCTIONS
         window.openDailyTimeTable = () => {
             const content = document.getElementById('content');
-            const role = localStorage.getItem('userRole');
             const mappedClass = localStorage.getItem('mappedClass');
             
             content.innerHTML = `
@@ -637,7 +607,6 @@
 
         window.loadClassTimetable = async (className) => {
             const grid = document.getElementById('tt-display-grid');
-            
             if (!className) return;
             
             try {
@@ -648,7 +617,6 @@
                 const fridayMaxPeriod = 4;
 
                 let html = '<div class="overflow-x-auto"><table class="w-full border-collapse text-sm">';
-                
                 html += `<thead><tr class="bg-green-600 text-white">
                     <th class="p-3 border border-green-500 text-center font-bold w-16">Period</th>
                     ${days.map(d => `<th class="p-3 border border-green-500 text-center font-bold">${d}</th>`).join('')}
@@ -678,7 +646,7 @@
                         }
                         
                         const value = (data[day] && data[day][period]) ? data[day][period] : "";
-                        html += `<td class="p-3 border text-gray-700 text-xs">${value || '—'}</td>`;
+                        html += `<td class="p-3 border text-gray-700 text-xs">${escapeHtml(value) || '—'}</td>`;
                     }
                     html += `</tr>`;
                 }
@@ -727,10 +695,10 @@
                 for (let i = 1; i <= 10; i++) {
                     const rowData = data[i] || { date: "", day: "", time: "", sub: "" };
                     html += `<tr>
-                        <td class="p-2 border"><span class="text-xs">${rowData.date || '-'}</span></td>
-                        <td class="p-2 border"><span class="text-xs">${rowData.day || '-'}</span></td>
-                        <td class="p-2 border"><span class="text-xs">${rowData.time || '-'}</span></td>
-                        <td class="p-2 border"><span class="text-xs font-bold text-blue-600">${rowData.sub || '-'}</span></td>
+                        <td class="p-2 border"><span class="text-xs">${escapeHtml(rowData.date) || '-'}</span></td>
+                        <td class="p-2 border"><span class="text-xs">${escapeHtml(rowData.day) || '-'}</span></td>
+                        <td class="p-2 border"><span class="text-xs">${escapeHtml(rowData.time) || '-'}</span></td>
+                        <td class="p-2 border"><span class="text-xs font-bold text-blue-600">${escapeHtml(rowData.sub) || '-'}</span></td>
                     </tr>`;
                 }
                 html += `</tbody></table></div>`;
@@ -740,7 +708,7 @@
             }
         };
 
-        // 16. FEES FUNCTIONS
+        // 11. FEES FUNCTIONS
         let feesDataCache = { payments: [], feeStructure: {}, students: [] };
 
         window.showFeesDashboard = async () => {
@@ -798,11 +766,6 @@
                     let date = dateIndex >= 0 ? cols[dateIndex]?.replace(/"/g, '').trim() : '';
                     let amount = amountIndex >= 0 ? parseFloat(cols[amountIndex]?.replace(/"/g, '').trim()) || 0 : 0;
                     
-                    if (!studentName && cols[1]) studentName = cols[1]?.replace(/"/g, '').trim();
-                    if (!receiptNo && cols[0]) receiptNo = cols[0]?.replace(/"/g, '').trim();
-                    if (!date && cols[2]) date = cols[2]?.replace(/"/g, '').trim();
-                    if (!amount && cols[3]) amount = parseFloat(cols[3]?.replace(/"/g, '').trim()) || 0;
-                    
                     if (studentName) {
                         feesDataCache.payments.push({ name: studentName, receiptNo, date, amount });
                     }
@@ -820,8 +783,6 @@
                     const cols = chartLines[i].split(',');
                     let className = classIndex >= 0 ? cols[classIndex]?.replace(/"/g, '').trim() : '';
                     let totalFees = totalFeesIndex >= 0 ? parseFloat(cols[totalFeesIndex]?.replace(/"/g, '').trim()) || 0 : 0;
-                    if (!className && cols[0]) className = cols[0]?.replace(/"/g, '').trim();
-                    if (!totalFees && cols[1]) totalFees = parseFloat(cols[1]?.replace(/"/g, '').trim()) || 0;
                     if (className) feesDataCache.feeStructure[className] = totalFees;
                 }
                 
@@ -891,7 +852,7 @@
                             <div class="overflow-x-auto">
                                 <table class="w-full">
                                     <thead class="bg-gray-100"><tr><th class="p-3 text-left text-xs font-bold text-gray-600">Receipt No.</th><th class="p-3 text-left text-xs font-bold text-gray-600">Date</th><th class="p-3 text-right text-xs font-bold text-gray-600">Amount (₹)</th></tr></thead>
-                                    <tbody>${payments.map(p => `<tr class="border-b"><td class="p-3 text-sm font-mono">${escapeHtml(p.receiptNo)}</td><td class="p-3 text-sm">${p.date || 'N/A'}</td><td class="p-3 text-right text-sm font-bold text-green-600">₹${p.amount.toLocaleString()}</td></tr>`).join('')}</tbody>
+                                    <tbody>${payments.map(p => `<tr class="border-b"><td class="p-3 text-sm font-mono">${escapeHtml(p.receiptNo)}</td><td class="p-3 text-sm">${escapeHtml(p.date) || 'N/A'}</td><td class="p-3 text-right text-sm font-bold text-green-600">₹${p.amount.toLocaleString()}</td></tr>`).join('')}</tbody>
                                     <tfoot class="bg-gray-50 border-t"><tr><td colspan="2" class="p-3 text-right font-bold">Total Paid:</td><td class="p-3 text-right font-bold text-green-600">₹${totalPaid.toLocaleString()}</td></tr>
                                     <tr><td colspan="2" class="p-3 text-right font-bold">Balance:</td><td class="p-3 text-right font-bold ${balance > 0 ? 'text-red-600' : 'text-green-600'}">${balance > 0 ? `₹${balance.toLocaleString()}` : 'FULL PAID ✓'}</td></tr></tfoot>
                                 </table>
@@ -921,14 +882,14 @@
                         </div>
                     </div>
                     <div class="p-4 space-y-3">
-                        ${Object.entries(feesDataCache.feeStructure).map(([className, totalFees]) => `<div class="bg-white rounded-xl shadow-sm border p-4 flex justify-between items-center"><div><p class="font-bold text-gray-800">Class ${className}</p><p class="text-xs text-gray-500">Annual Fees</p></div><div class="text-right"><p class="text-xl font-bold text-blue-600">₹${totalFees.toLocaleString()}</p><p class="text-[10px] text-gray-400">per student</p></div></div>`).join('')}
+                        ${Object.entries(feesDataCache.feeStructure).map(([className, totalFees]) => `<div class="bg-white rounded-xl shadow-sm border p-4 flex justify-between items-center"><div><p class="font-bold text-gray-800">Class ${escapeHtml(className)}</p><p class="text-xs text-gray-500">Annual Fees</p></div><div class="text-right"><p class="text-xl font-bold text-blue-600">₹${totalFees.toLocaleString()}</p><p class="text-[10px] text-gray-400">per student</p></div></div>`).join('')}
                         ${Object.keys(feesDataCache.feeStructure).length === 0 ? '<div class="text-center py-10 text-gray-400">No fee structure data available</div>' : ''}
                     </div>
                 </div>
             `;
         };
 
-        // 18. PERSONAL STUDENT LOGS
+        // 12. PERSONAL STUDENT LOGS
         async function fetchPersonalStudentLogs(studentName) {
             const logContainer = document.getElementById('personal-logs');
             if (!logContainer) return;
@@ -1006,36 +967,7 @@
             return dateStr;
         }
 
-        async function loadStudentHomeStats() {
-            const studentName = localStorage.getItem('userName');
-            const currentMonth = new Date().toISOString().slice(0, 7);
-            try {
-                const snapshot = await firebase.database().ref('student_attendance').once('value');
-                const allData = snapshot.val();
-                let presentCount = 0;
-                if (allData) {
-                    Object.keys(allData).forEach(dateStr => {
-                        if (dateStr.startsWith(currentMonth)) {
-                            const dateData = allData[dateStr];
-                            Object.keys(dateData).forEach(className => {
-                                const classData = dateData[className];
-                                if (classData && classData.records) {
-                                    for (const [key, record] of Object.entries(classData.records)) {
-                                        if (record.name === studentName && record.status === 'Present') presentCount++;
-                                    }
-                                }
-                            });
-                        }
-                    });
-                }
-                const presentSpan = document.getElementById('studentHomePresent');
-                if (presentSpan) presentSpan.innerText = presentCount;
-            } catch (error) {
-                console.error("Error loading student stats:", error);
-            }
-        }
-
-        // PUSH NOTIFICATION FUNCTIONS
+        // 13. PUSH NOTIFICATION HELPERS
         let isPushNotificationEnabled = false;
 
         async function initPushNotifications() {
@@ -1135,7 +1067,7 @@
             }
         };
 
-        // UTILITIES
+        // 14. UTILITIES
         window.triggerInstall = async () => {
             if (!deferredPrompt) return;
             deferredPrompt.prompt();
@@ -1148,13 +1080,7 @@
 
         window.handleLogout = function() {
             if (confirm("Are you sure you want to logout?")) {
-                localStorage.removeItem('userRole');
-                localStorage.removeItem('userName');
-                localStorage.removeItem('mappedClass');
-                localStorage.removeItem('userPhone');
-                localStorage.removeItem('userGR');
-                localStorage.removeItem('hasCheckedInToday');
-                localStorage.removeItem('lastActivityDate');
+                localStorage.clear();
                 const mainApp = document.getElementById('main-app');
                 const loginScreen = document.getElementById('login-screen');
                 if (mainApp) mainApp.classList.add('hidden');
@@ -1171,15 +1097,7 @@
             return div.innerHTML;
         }
 
-        // PWA Installation
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            const installBtn = document.getElementById('install-button-container');
-            if (installBtn) installBtn.classList.remove('hidden');
-        });
-
-        // Service Worker
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
         }
