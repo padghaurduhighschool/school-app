@@ -265,19 +265,6 @@ updateHomeSummary().catch(console.error);
                     <p class="text-xs opacity-70 mt-2">Class: ${mappedClass}</p>
                 </div>
 
-                <!-- Quick Stats Row -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-green-50 rounded-xl p-4 text-center">
-                        <i class="fa-regular fa-calendar-check text-green-600 text-2xl mb-2"></i>
-                        <p class="text-2xl font-bold text-green-600" id="studentHomePresent">0</p>
-                        <p class="text-[10px] text-gray-500">Days Present</p>
-                    </div>
-                    <div class="bg-orange-50 rounded-xl p-4 text-center">
-                        <i class="fa-regular fa-clock text-orange-600 text-2xl mb-2"></i>
-                        <p class="text-2xl font-bold text-orange-600" id="studentHomeExams">0</p>
-                        <p class="text-[10px] text-gray-500">Upcoming Exams</p>
-                    </div>
-                </div>
                 
                 <!-- Daily Time Table Card -->
                 <div onclick="openDailyTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500 cursor-pointer active:scale-95 transition-all">
@@ -302,27 +289,7 @@ updateHomeSummary().catch(console.error);
                     </div>
                 </div>
 
-                <!-- Homework Card -->
-                <div onclick="loadSection('homework')" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500 cursor-pointer active:scale-95 transition-all">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-500 text-[10px] uppercase font-bold">Assignments</p>
-                            <p class="text-lg font-bold text-blue-600">Homework</p>
-                        </div>
-                        <i class="fa-solid fa-book-open text-blue-400 text-2xl"></i>
-                    </div>
-                </div>
 
-                <!-- Notices Card -->
-                <div onclick="loadSection('notices')" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-500 cursor-pointer active:scale-95 transition-all">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-500 text-[10px] uppercase font-bold">Updates</p>
-                            <p class="text-lg font-bold text-red-600">School Notices</p>
-                        </div>
-                        <i class="fa-regular fa-bell text-red-400 text-2xl"></i>
-                    </div>
-                </div>
 
                 <!-- FEES DASHBOARD CARD - ADDED FOR STUDENTS -->
                 <div onclick="showFeesDashboard()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 cursor-pointer active:scale-95 transition-all">
@@ -336,17 +303,7 @@ updateHomeSummary().catch(console.error);
                     </div>
                 </div>
 
-                <!-- My Attendance Card -->
-                <div onclick="loadSection('attendance')" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-purple-500 cursor-pointer active:scale-95 transition-all">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-500 text-[10px] uppercase font-bold">Records</p>
-                            <p class="text-lg font-bold text-purple-600">My Attendance</p>
-                        </div>
-                        <i class="fa-regular fa-calendar-check text-purple-400 text-2xl"></i>
-                    </div>
-                </div>
-            </div>
+           </div>
         `;
                  loadStudentHomeStats();   
         }
