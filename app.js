@@ -254,35 +254,101 @@ window.loadSection = (section) => {
             `;
 updateHomeSummary().catch(console.error);
         } else if (role === 'Student') {
-            content.innerHTML = `
-                <div class="space-y-4">
-                    <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-2xl text-white shadow-lg">
-                        <h2 class="text-2xl font-bold">Hello, ${name}</h2>
-                        <p class="text-sm opacity-80 mt-1">Welcome to your Dashboard</p>
-                    </div>
+        const mappedClass = localStorage.getItem('mappedClass');
+        
+        content.innerHTML = `
+            <div class="space-y-4">
+                <!-- Welcome Card -->
+                <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-2xl text-white shadow-lg">
+                    <h2 class="text-2xl font-bold">Hello, ${escapeHtml(name)}! 👋</h2>
+                    <p class="text-sm opacity-80 mt-1">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    <p class="text-xs opacity-70 mt-2">Class: ${mappedClass}</p>
+                </div>
 
-                    <div onclick="openDailyTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500 cursor-pointer active:scale-95 transition-all">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-[10px] uppercase font-bold">Schedule</p>
-                                <p class="text-lg font-bold text-green-600">Daily Time Table</p>
-                                <p class="text-xs text-gray-400 mt-1">Class: ${localStorage.getItem('mappedClass')}</p>
-                            </div>
-                            <i class="fa-regular fa-calendar text-green-400 text-2xl"></i>
-                        </div>
+                <!-- Quick Stats Row -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-green-50 rounded-xl p-4 text-center">
+                        <i class="fa-regular fa-calendar-check text-green-600 text-2xl mb-2"></i>
+                        <p class="text-2xl font-bold text-green-600" id="studentHomePresent">0</p>
+                        <p class="text-[10px] text-gray-500">Days Present</p>
                     </div>
-
-                    <div onclick="openExamTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-500 cursor-pointer active:scale-95 transition-all">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-[10px] uppercase font-bold">Assessments</p>
-                                <p class="text-lg font-bold text-orange-600">Exam Time Table</p>
-                            </div>
-                            <i class="fa-regular fa-clock text-orange-400 text-2xl"></i>
-                        </div>
+                    <div class="bg-orange-50 rounded-xl p-4 text-center">
+                        <i class="fa-regular fa-clock text-orange-600 text-2xl mb-2"></i>
+                        <p class="text-2xl font-bold text-orange-600" id="studentHomeExams">0</p>
+                        <p class="text-[10px] text-gray-500">Upcoming Exams</p>
                     </div>
                 </div>
-            `;
+                
+                <!-- Daily Time Table Card -->
+                <div onclick="openDailyTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500 cursor-pointer active:scale-95 transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-[10px] uppercase font-bold">Schedule</p>
+                            <p class="text-lg font-bold text-green-600">Daily Time Table</p>
+                            <p class="text-xs text-gray-400 mt-1">Class: ${mappedClass}</p>
+                        </div>
+                        <i class="fa-regular fa-calendar text-green-400 text-2xl"></i>
+                    </div>
+                </div>
+
+                <!-- Exam Time Table Card -->
+                <div onclick="openExamTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-500 cursor-pointer active:scale-95 transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-[10px] uppercase font-bold">Assessments</p>
+                            <p class="text-lg font-bold text-orange-600">Exam Time Table</p>
+                        </div>
+                        <i class="fa-regular fa-clock text-orange-400 text-2xl"></i>
+                    </div>
+                </div>
+
+                <!-- Homework Card -->
+                <div onclick="loadSection('homework')" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500 cursor-pointer active:scale-95 transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-[10px] uppercase font-bold">Assignments</p>
+                            <p class="text-lg font-bold text-blue-600">Homework</p>
+                        </div>
+                        <i class="fa-solid fa-book-open text-blue-400 text-2xl"></i>
+                    </div>
+                </div>
+
+                <!-- Notices Card -->
+                <div onclick="loadSection('notices')" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-500 cursor-pointer active:scale-95 transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-[10px] uppercase font-bold">Updates</p>
+                            <p class="text-lg font-bold text-red-600">School Notices</p>
+                        </div>
+                        <i class="fa-regular fa-bell text-red-400 text-2xl"></i>
+                    </div>
+                </div>
+
+                <!-- FEES DASHBOARD CARD - ADDED FOR STUDENTS -->
+                <div onclick="showFeesDashboard()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 cursor-pointer active:scale-95 transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-[10px] uppercase font-bold">Payments</p>
+                            <p class="text-lg font-bold text-emerald-600">Fees Dashboard</p>
+                            <p class="text-xs text-gray-400 mt-1">View payment history</p>
+                        </div>
+                        <i class="fa-regular fa-credit-card text-emerald-400 text-2xl"></i>
+                    </div>
+                </div>
+
+                <!-- My Attendance Card -->
+                <div onclick="loadSection('attendance')" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-purple-500 cursor-pointer active:scale-95 transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-[10px] uppercase font-bold">Records</p>
+                            <p class="text-lg font-bold text-purple-600">My Attendance</p>
+                        </div>
+                        <i class="fa-regular fa-calendar-check text-purple-400 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        `;
+                 loadStudentHomeStats();   
         }
     } 
     else if (section === 'attendance') {
@@ -4716,4 +4782,60 @@ function renderStudentFeesDashboard() {
             `}
         </div>
     `;
+}
+
+// Load student attendance stats for home screen
+async function loadStudentHomeStats() {
+    const studentName = localStorage.getItem('userName');
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    
+    try {
+        const snapshot = await firebase.database().ref('student_attendance').once('value');
+        const allData = snapshot.val();
+        let presentCount = 0;
+        
+        if (allData) {
+            Object.keys(allData).forEach(dateStr => {
+                if (dateStr.startsWith(currentMonth)) {
+                    const dateData = allData[dateStr];
+                    Object.keys(dateData).forEach(className => {
+                        const classData = dateData[className];
+                        if (classData && classData.records) {
+                            // Find by name
+                            for (const [key, record] of Object.entries(classData.records)) {
+                                if (record.name === studentName && record.status === 'Present') {
+                                    presentCount++;
+                                    break;
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        const presentSpan = document.getElementById('studentHomePresent');
+        if (presentSpan) presentSpan.innerText = presentCount;
+        
+        // Count upcoming exams (simple count)
+        const examSnapshot = await firebase.database().ref('exam_timetable').once('value');
+        const examData = examSnapshot.val();
+        let examCount = 0;
+        if (examData) {
+            Object.keys(examData).forEach(className => {
+                if (className === localStorage.getItem('mappedClass')) {
+                    const exams = examData[className];
+                    if (exams) {
+                        examCount = Object.keys(exams).length;
+                    }
+                }
+            });
+        }
+        
+        const examSpan = document.getElementById('studentHomeExams');
+        if (examSpan) examSpan.innerText = examCount || '0';
+        
+    } catch (error) {
+        console.error("Error loading student stats:", error);
+    }
 }
