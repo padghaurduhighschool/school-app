@@ -2121,25 +2121,28 @@ window.calculateMonthlyHours = async () => {
 };
 
 // 18. PERSONAL STUDENT LOGS 
+// 18. PERSONAL STUDENT LOGS - DEBUG VERSION
 async function fetchPersonalStudentLogs(studentName) {
     const logContainer = document.getElementById('personal-logs');
     if (!logContainer) return;
     
     logContainer.innerHTML = '<p class="text-gray-400 italic">Loading your attendance records...</p>';
-console.log("Student name from localStorage:", localStorage.getItem('userName'));
-console.log("Student GR from localStorage:", localStorage.getItem('userGR'));    
+    
     try {
         const now = new Date();
         const month = now.getMonth() + 1;
         const year = now.getFullYear();
+        const currentMonth = `${year}-${month.toString().padStart(2, '0')}`;
         
-        // Normalize the logged-in student's name (trim and lowercase for comparison)
-        const normalizedLoginName = studentName.trim().toLowerCase();
-        console.log("Looking for student:", normalizedLoginName);
+        console.log("=== DEBUG ATTENDANCE ===");
+        console.log("Student Name from localStorage:", studentName);
+        console.log("Current Month:", currentMonth);
         
-        // Get all attendance records
+        // Get ALL attendance records
         const snapshot = await firebase.database().ref('student_attendance').once('value');
         const allData = snapshot.val();
+        
+        console.log("Full Firebase Data:", JSON.stringify(allData, null, 2));
         
         let presentDays = 0, absentDays = 0;
         let records = [];
@@ -2147,78 +2150,52 @@ console.log("Student GR from localStorage:", localStorage.getItem('userGR'));
         if (allData) {
             // Loop through each date
             Object.keys(allData).forEach(dateStr => {
-                // Check if date is in current month
-                if (dateStr.startsWith(`${year}-${month.toString().padStart(2, '0')}`)) {
-                    const dateData = allData[dateStr];
+                console.log(`Checking date: ${dateStr}`);
+                const dateData = allData[dateStr];
+                
+                // Loop through each class on that date
+                Object.keys(dateData).forEach(className => {
+                    const classData = dateData[className];
+                    console.log(`  Class: ${className}, Has records:`, !!classData.records);
                     
-                    // Loop through each class on that date
-                    Object.keys(dateData).forEach(className => {
-                        const classData = dateData[className];
+                    if (classData && classData.records) {
+                        console.log(`    Record keys:`, Object.keys(classData.records));
                         
-                        // Check if this class has records
-                        if (classData && classData.records) {
-                            // Find the student by CASE-INSENSITIVE name matching
-                            let studentRecord = null;
-                            
-                            // Try exact match first
-                            if (classData.records[studentName]) {
-                                studentRecord = classData.records[studentName];
-                            } else {
-                                // Try case-insensitive match
-                                for (const [key, record] of Object.entries(classData.records)) {
-                                    if (key.trim().toLowerCase() === normalizedLoginName ||
-                                        (record.name && record.name.trim().toLowerCase() === normalizedLoginName)) {
-                                        studentRecord = record;
-                                        break;
-                                    }
+                        // Try to find student by exact name match
+                        if (classData.records[studentName]) {
+                            console.log(`    Found by exact name match!`);
+                            const studentRecord = classData.records[studentName];
+                            records.push({ 
+                                date: dateStr, 
+                                status: studentRecord.status 
+                            });
+                            if (studentRecord.status === 'Present') presentDays++;
+                            if (studentRecord.status === 'Absent') absentDays++;
+                        } else {
+                            // Check case-insensitive
+                            const lowerStudentName = studentName.toLowerCase();
+                            for (const [key, record] of Object.entries(classData.records)) {
+                                console.log(`      Comparing: "${key}" with "${studentName}"`);
+                                if (key.toLowerCase() === lowerStudentName || 
+                                    (record.name && record.name.toLowerCase() === lowerStudentName)) {
+                                    console.log(`      Found by case-insensitive match!`);
+                                    records.push({ 
+                                        date: dateStr, 
+                                        status: record.status 
+                                    });
+                                    if (record.status === 'Present') presentDays++;
+                                    if (record.status === 'Absent') absentDays++;
+                                    break;
                                 }
                             }
-                            
-                            if (studentRecord) {
-                                records.push({ 
-                                    date: dateStr, 
-                                    status: studentRecord.status 
-                                });
-                                if (studentRecord.status === 'Present') presentDays++;
-                                if (studentRecord.status === 'Absent') absentDays++;
-                            }
                         }
-                    });
-                }
+                    }
+                });
             });
         }
         
-        // Also check ALL dates (not just current month) for debugging
-        console.log(`Found ${records.length} records for ${studentName} in current month`);
-        
-        // If no records found in current month, check all records to debug
-        if (records.length === 0) {
-            // Debug: Check all dates to see if any records exist at all for this student
-            let allRecords = [];
-            if (allData) {
-                Object.keys(allData).forEach(dateStr => {
-                    const dateData = allData[dateStr];
-                    Object.keys(dateData).forEach(className => {
-                        const classData = dateData[className];
-                        if (classData && classData.records) {
-                            for (const [key, record] of Object.entries(classData.records)) {
-                                if (key.trim().toLowerCase() === normalizedLoginName ||
-                                    (record.name && record.name.trim().toLowerCase() === normalizedLoginName)) {
-                                    allRecords.push({ date: dateStr, status: record.status });
-                                }
-                            }
-                        }
-                    });
-                });
-            }
-            
-            if (allRecords.length > 0) {
-                console.log(`Found ${allRecords.length} records in other months!`);
-                // Show records from all months
-                displayAttendanceRecords(logContainer, allRecords, true);
-                return;
-            }
-        }
+        console.log(`Total records found: ${records.length}`);
+        console.log("Records:", records);
         
         // Sort records by date (newest first)
         records.sort((a, b) => b.date.localeCompare(a.date));
@@ -2229,17 +2206,43 @@ console.log("Student GR from localStorage:", localStorage.getItem('userGR'));
                     <i class="fa-regular fa-calendar-xmark text-4xl text-gray-300 mb-2"></i>
                     <p class="text-gray-500">No attendance records found for this month.</p>
                     <p class="text-xs text-gray-400 mt-1">Attendance will appear here once marked.</p>
-                    <div class="mt-4 text-xs text-gray-400 border-t pt-3">
-                        <p class="font-medium">Debug Info:</p>
-                        <p>Student Name: "${studentName}"</p>
-                        <p>Please contact teacher to ensure your name is spelled correctly in attendance records.</p>
+                    <div class="mt-4 text-xs text-left bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                        <p class="font-bold text-yellow-700 mb-2">Debug Information:</p>
+                        <p><strong>Your Name:</strong> "${studentName}"</p>
+                        <p><strong>Current Month:</strong> ${currentMonth}</p>
+                        <p><strong>Check Firebase:</strong> Look for your exact name in the database</p>
+                        <p class="mt-2 text-gray-500">If your name doesn't match exactly, please contact the admin to fix the attendance records.</p>
                     </div>
                 </div>
             `;
             return;
         }
         
-        displayAttendanceRecords(logContainer, records, false);
+        logContainer.innerHTML = `
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="text-center p-3 bg-green-50 rounded-xl">
+                    <p class="text-2xl font-bold text-green-600">${presentDays}</p>
+                    <p class="text-xs text-gray-500">Present</p>
+                </div>
+                <div class="text-center p-3 bg-red-50 rounded-xl">
+                    <p class="text-2xl font-bold text-red-600">${absentDays}</p>
+                    <p class="text-xs text-gray-500">Absent</p>
+                </div>
+            </div>
+            <div class="text-center text-xs text-gray-400 mb-2">
+                Records found for ${currentMonth}
+            </div>
+            <div class="max-h-60 overflow-y-auto space-y-1">
+                ${records.map(r => `
+                    <div class="flex justify-between items-center p-2 border-b hover:bg-gray-50 rounded">
+                        <span class="text-xs font-medium">${formatDate(r.date)}</span>
+                        <span class="text-xs font-bold px-2 py-1 rounded-full ${r.status === 'Present' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}">
+                            ${r.status === 'Present' ? '✓ Present' : '✗ Absent'}
+                        </span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
         
     } catch (error) {
         console.error("Error fetching student logs:", error);
@@ -2247,10 +2250,18 @@ console.log("Student GR from localStorage:", localStorage.getItem('userGR'));
             <div class="text-center p-4 text-red-500">
                 <i class="fa-solid fa-exclamation-triangle text-2xl mb-2"></i>
                 <p>Error loading attendance records</p>
-                <p class="text-xs mt-1">Please check your connection</p>
+                <p class="text-xs mt-1">${error.message}</p>
             </div>
         `;
     }
+}
+
+function formatDate(dateStr) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
 }
 
 function displayAttendanceRecords(container, records, showAllMonths) {
