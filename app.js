@@ -2773,8 +2773,6 @@ function scheduleDailyFeeCheck() {
         checkDueFeesAndNotify();
     }, 24 * 60 * 60 * 1000);
 }
-// Example Cloud Function (Node.js)
-const webpush = require('web-push');
 
 // Configure VAPID keys
 webpush.setVapidDetails(
@@ -2783,26 +2781,7 @@ webpush.setVapidDetails(
     process.env.VAPID_PRIVATE_KEY
 );
 
-// API endpoint to send notification
-app.post('/api/send-push', async (req, res) => {
-    const { subscription, title, body, type, data } = req.body;
-    
-    const payload = JSON.stringify({
-        title: title,
-        body: body,
-        type: type,
-        data: data,
-        timestamp: Date.now()
-    });
-    
-    try {
-        await webpush.sendNotification(subscription, payload);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Push notification error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
+
 // Add this to your app.js
 window.setActiveNav = (element, section) => {
     // Remove active class from all nav buttons
@@ -2857,13 +2836,6 @@ window.togglePushNotifications = async () => {
         }
     } else {
         await enablePushNotifications();
-    }
-};
-
-window.handleLogout = () => {
-    if (confirm("Sign out?")) {
-        localStorage.clear();
-        location.reload();
     }
 };
 window.handleLogout = function() {
