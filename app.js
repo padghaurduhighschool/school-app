@@ -1,4 +1,46 @@
+// Add this at the VERY TOP of app.js after the CSV URLs
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, set, push, onValue, once, remove, update, ServerValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+// Your Firebase configuration (REPLACE with your actual Firebase config)
+const firebaseConfig = {
+  apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
+  authDomain: "padgha-school-erp.firebaseapp.com",
+  databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "padgha-school-erp",
+  storageBucket: "padgha-school-erp.firebasestorage.app",
+  messagingSenderId: "481255456109",
+  appId: "1:481255456109:web:077e656f3dd03aee43ae64",
+  measurementId: "G-RXBBRWG5SE"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+// Make firebase available globally (for your existing code)
+window.firebase = {
+    database: () => database,
+    database: {
+        ServerValue: { TIMESTAMP: ServerValue.TIMESTAMP },
+        ref: (path) => {
+            const db = database;
+            return {
+                ref: (p) => ({
+                    push: (data) => push(ref(db, path + '/' + p), data),
+                    set: (data) => set(ref(db, path + '/' + p), data),
+                    once: (event, callback) => once(ref(db, path + '/' + p)),
+                    on: (event, callback) => onValue(ref(db, path + '/' + p), callback),
+                    remove: () => remove(ref(db, path)),
+                    orderByChild: (child) => ({
+                        on: (event, callback) => onValue(ref(db, path).orderByChild(child), callback),
+                        once: (event, callback) => once(ref(db, path).orderByChild(child), callback)
+                    })
+                })
+            };
+        }
+    }
+};
 
 // 1. CONFIGURATION & STATE
 const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
