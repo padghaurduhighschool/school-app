@@ -920,7 +920,7 @@ window.filterStudents = () => {
     renderStudentList(filtered);
 };
 
-// 12. ATTENDANCE SHEET LOADING - GR No optional, works with names
+// 12. ATTENDANCE SHEET LOADING - Properly reflects saved data
 window.loadAttendanceSheet = async () => {
     const classVal = document.getElementById('target-class').value;
     const container = document.getElementById('attendance-sheet-container');
@@ -931,17 +931,24 @@ window.loadAttendanceSheet = async () => {
         return;
     }
 
-    container.innerHTML = `<p class="text-center py-5 text-gray-400">Loading students...</p>`;
+    container.innerHTML = `<div class="text-center py-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i><p class="text-gray-400 text-sm mt-2">Loading students...</p></div>`;
 
     try {
-        const snapshot = await firebase.database().ref(`student_attendance/${dateKey}/${classVal}/records`).once('value');
-        const existingRecords = snapshot.val() || {};
+        // Step 1: Fetch existing attendance records for this class and date
+        const attendanceRef = firebase.database().ref(`student_attendance/${dateKey}/${classVal}`);
+        const snapshot = await attendanceRef.once('value');
+        const existingData = snapshot.val();
+        const existingRecords = existingData?.records || {};
+        
+        console.log("Existing attendance records:", existingRecords);
+        console.log("Date:", dateKey, "Class:", classVal);
 
+        // Step 2: Fetch students from CSV
         const response = await fetch(STUDENT_SHEET_CSV);
         const text = await response.text();
         const rows = text.split('\n').filter(row => row.trim()).slice(1);
         
-        // Get students with or without GR numbers
+        // Step 3: Get students for this class
         const classStudents = [];
         for (const row of rows) {
             const cols = row.split(',');
@@ -949,20 +956,18 @@ window.loadAttendanceSheet = async () => {
             const name = cols[7]?.replace(/"/g, '').trim();
             const studentClass = cols[1]?.replace(/"/g, '').trim();
             const rollNo = cols[3]?.replace(/"/g, '').trim();
-            const contact = cols[15]?.replace(/"/g, '').trim();
             
             if (studentClass === classVal && name) {
                 classStudents.push({
-                    id: grNo || `temp_${name.replace(/\s/g, '_')}`, // Create temp ID if no GR
+                    id: grNo || `temp_${name.replace(/\s/g, '_')}`,
                     grNo: grNo || 'Pending',
                     name: name,
-                    rollNo: rollNo,
-                    contact: contact
+                    rollNo: rollNo
                 });
             }
         }
         
-        // Sort by roll number if available, otherwise by name
+        // Sort students
         classStudents.sort((a, b) => {
             if (a.rollNo && b.rollNo) return parseInt(a.rollNo) - parseInt(b.rollNo);
             return a.name.localeCompare(b.name);
@@ -973,29 +978,76 @@ window.loadAttendanceSheet = async () => {
             return;
         }
 
+        // Step 4: Build the HTML with saved attendance data
         let html = `<div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-            <div class="bg-gray-50 px-4 py-2 border-b flex justify-between text-xs font-bold text-gray-500">
-                <span>Student Name</span>
-                <span>Present/Absent</span>
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-xs opacity-80">Attendance for</p>
+                        <p class="font-bold text-lg">Class ${classVal}</p>
+                        <p class="text-[10px] opacity-70">${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    </div>
+                    ${existingData?.markedBy ? `<div class="text-right text-[10px] opacity-70">Last marked by:<br>${existingData.markedBy}</div>` : ''}
+                </div>
             </div>
             <div class="max-h-96 overflow-y-auto">`;
         
+        let presentCount = 0;
+        let totalCount = classStudents.length;
+        
         classStudents.forEach((student) => {
-            // Use GR if exists, otherwise use name as key (with sanitization)
-            const studentKey = student.grNo !== 'Pending' ? student.grNo : student.name;
-            const isPresent = existingRecords[studentKey]?.status === 'Present';
+            // Determine the key used to store this student's attendance
+            let studentKey = student.grNo !== 'Pending' ? student.grNo : student.name;
+            
+            // Also check if attendance was saved under a different key (e.g., temp ID)
+            let isPresent = false;
+            let savedStatus = null;
+            
+            // Check by primary key (GR or name)
+            if (existingRecords[studentKey]?.status === 'Present') {
+                isPresent = true;
+                savedStatus = existingRecords[studentKey];
+            }
+            // Check by GR if available
+            else if (student.grNo !== 'Pending' && existingRecords[student.grNo]?.status === 'Present') {
+                isPresent = true;
+                savedStatus = existingRecords[student.grNo];
+                studentKey = student.grNo;
+            }
+            // Check by name
+            else if (existingRecords[student.name]?.status === 'Present') {
+                isPresent = true;
+                savedStatus = existingRecords[student.name];
+                studentKey = student.name;
+            }
+            // Check by temp ID
+            else if (existingRecords[student.id]?.status === 'Present') {
+                isPresent = true;
+                savedStatus = existingRecords[student.id];
+                studentKey = student.id;
+            }
+            
+            if (isPresent) presentCount++;
+            
+            const isPendingGR = student.grNo === 'Pending';
             
             html += `
-                <div class="flex justify-between items-center p-4 border-b hover:bg-gray-50">
-                    <div>
-                        <p class="text-sm font-bold text-gray-800">${escapeHtml(student.name)}</p>
-                        <div class="flex gap-2 text-[10px] text-gray-400">
-                            ${student.grNo !== 'Pending' ? `<span>GR: ${student.grNo}</span>` : '<span class="text-orange-500">⚠️ GR Pending</span>'}
+                <div class="flex justify-between items-center p-4 border-b hover:bg-gray-50 transition-colors">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <p class="text-sm font-bold text-gray-800">${escapeHtml(student.name)}</p>
+                            ${isPendingGR ? '<span class="bg-orange-100 text-orange-600 text-[9px] px-1.5 py-0.5 rounded-full">GR Pending</span>' : ''}
+                        </div>
+                        <div class="flex gap-3 text-[10px] text-gray-400 mt-0.5">
+                            ${student.grNo !== 'Pending' ? `<span>GR: ${student.grNo}</span>` : '<span>📄 Documentation pending</span>'}
                             ${student.rollNo ? `<span>Roll: ${student.rollNo}</span>` : ''}
+                            ${savedStatus ? `<span class="text-blue-500">✓ Marked by: ${savedStatus.markedBy || existingData?.markedBy || 'Teacher'}</span>` : ''}
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-400">${isPresent ? 'Present' : 'Absent'}</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-medium ${isPresent ? 'text-green-600' : 'text-gray-400'}">
+                            ${isPresent ? 'Present' : 'Absent'}
+                        </span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" 
                                    ${isPresent ? 'checked' : ''} 
@@ -1003,25 +1055,146 @@ window.loadAttendanceSheet = async () => {
                                    data-student-name="${student.name}"
                                    data-gr-no="${student.grNo}"
                                    class="attendance-checkbox sr-only peer">
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                            <div class="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                         </label>
                     </div>
                 </div>
             `;
         });
         
+        const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+        
         html += `</div>
-            <div class="p-4 bg-gray-50 border-t flex gap-2">
-                <button onclick="markAllPresent()" class="flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-bold">✓ Mark All Present</button>
-                <button onclick="markAllAbsent()" class="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-bold">✗ Mark All Absent</button>
-                <button onclick="submitStudentAttendance('${classVal}')" class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold">Save</button>
+            <div class="p-4 bg-gray-50 border-t">
+                <div class="flex justify-between items-center mb-3 pb-2 border-b">
+                    <div>
+                        <span class="text-xs text-gray-500">Attendance Summary</span>
+                        <p class="text-sm font-bold"><span class="text-green-600">${presentCount}</span> / <span class="text-gray-600">${totalCount}</span> Present</p>
+                    </div>
+                    <div class="w-32">
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: ${percentage}%"></div>
+                        </div>
+                        <p class="text-[10px] text-gray-400 text-center mt-1">${percentage}%</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="markAllPresent()" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm font-bold transition-all">
+                        ✓ Mark All Present
+                    </button>
+                    <button onclick="markAllAbsent()" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-bold transition-all">
+                        ✗ Mark All Absent
+                    </button>
+                    <button onclick="submitStudentAttendance('${classVal}')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-bold transition-all shadow-md">
+                        💾 Save Changes
+                    </button>
+                </div>
             </div>
         </div>`;
         
         container.innerHTML = html;
+        
+        // Show feedback if attendance was already marked
+        if (existingData?.markedBy) {
+            const feedbackDiv = document.getElementById('attendance-feedback');
+            if (feedbackDiv) {
+                feedbackDiv.innerHTML = `<div class="bg-green-50 text-green-600 p-2 rounded-lg text-xs mt-2">
+                    <i class="fa-solid fa-check-circle mr-1"></i> Attendance already marked by ${existingData.markedBy}. You can update it below.
+                </div>`;
+                setTimeout(() => {
+                    if (feedbackDiv) feedbackDiv.innerHTML = '';
+                }, 5000);
+            }
+        }
+        
     } catch (error) {
         console.error(error);
-        container.innerHTML = `<p class="text-red-500 p-4">Error loading attendance: ${error.message}</p>`;
+        container.innerHTML = `<div class="text-center py-8 text-red-500">
+            <i class="fa-solid fa-exclamation-triangle text-3xl mb-2"></i>
+            <p>Error loading attendance</p>
+            <p class="text-xs mt-1">${error.message}</p>
+            <button onclick="loadAttendanceSheet()" class="mt-3 text-blue-600 text-xs underline">Try Again</button>
+        </div>`;
+    }
+};
+
+// Helper functions for bulk actions
+window.markAllPresent = () => {
+    document.querySelectorAll('.attendance-checkbox').forEach(cb => {
+        cb.checked = true;
+    });
+};
+
+window.markAllAbsent = () => {
+    document.querySelectorAll('.attendance-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+};
+
+// Updated submit function that preserves existing data structure
+window.submitStudentAttendance = async (classID) => {
+    if (!navigator.onLine) {
+        alert("No Internet! Please connect to submit attendance.");
+        return;
+    }
+
+    const dateKey = new Date().toISOString().split('T')[0];
+    const checkboxes = document.querySelectorAll('.attendance-checkbox');
+    const attendanceRecords = {};
+    let savedCount = 0;
+    
+    checkboxes.forEach(cb => {
+        const studentKey = cb.getAttribute('data-student-key');
+        const studentName = cb.getAttribute('data-student-name');
+        const grNo = cb.getAttribute('data-gr-no');
+        const isPresent = cb.checked;
+        
+        if (isPresent) savedCount++;
+        
+        attendanceRecords[studentKey] = {
+            name: studentName,
+            grNo: grNo || 'Pending',
+            status: isPresent ? 'Present' : 'Absent',
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            markedBy: localStorage.getItem('userName')
+        };
+    });
+
+    // Show saving indicator
+    const saveBtn = document.querySelector('button[onclick*="submitStudentAttendance"]');
+    const originalText = saveBtn?.innerHTML;
+    if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Saving...';
+        saveBtn.disabled = true;
+    }
+    
+    try {
+        await firebase.database().ref(`student_attendance/${dateKey}/${classID}`).set({
+            markedBy: localStorage.getItem('userName'),
+            records: attendanceRecords,
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            class: classID,
+            totalPresent: savedCount,
+            totalStudents: checkboxes.length
+        });
+        
+        // Show success message with summary
+        const totalStudents = checkboxes.length;
+        const percentage = Math.round((savedCount / totalStudents) * 100);
+        
+        alert(`✅ Attendance for Class ${classID} saved successfully!\n\n📊 Summary:\nPresent: ${savedCount}/${totalStudents}\nAttendance Rate: ${percentage}%`);
+        
+        // Refresh the attendance sheet to show updated data
+        await loadAttendanceSheet();
+        
+    } catch (err) {
+        alert("❌ Error saving attendance: " + err.message);
+        console.error(err);
+    } finally {
+        if (saveBtn) {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
     }
 };
 
@@ -1192,6 +1365,7 @@ function loadClassAttendanceStatus() {
     fetchClassAttendanceStatus();
 }
 
+// 14. CLASS ATTENDANCE STATUS - Shows saved status correctly
 function fetchClassAttendanceStatus() {
     const dateKey = new Date().toISOString().split('T')[0];
     const container = document.getElementById('class-status-container');
@@ -1199,29 +1373,94 @@ function fetchClassAttendanceStatus() {
     firebase.database().ref(`student_attendance/${dateKey}`).on('value', (snapshot) => {
         const attendanceData = snapshot.val() || {};
         
-        container.innerHTML = schoolClasses.map(className => {
-            const record = attendanceData[className];
-            const isMarked = !!record;
-            const studentCount = record?.records ? Object.keys(record.records).length : 0;
+        // Also fetch student counts from CSV
+        fetch(STUDENT_SHEET_CSV).then(response => response.text()).then(text => {
+            const rows = text.split('\n').filter(row => row.trim()).slice(1);
+            const classCounts = {};
             
-            return `
-                <div class="bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl ${isMarked ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'} flex flex-col items-center justify-center">
-                            <span class="text-[10px] font-bold">Class</span>
-                            <span class="text-lg font-black">${className}</span>
+            rows.forEach(row => {
+                const cols = row.split(',');
+                const studentClass = cols[1]?.replace(/"/g, '').trim();
+                if (studentClass) {
+                    classCounts[studentClass] = (classCounts[studentClass] || 0) + 1;
+                }
+            });
+            
+            container.innerHTML = schoolClasses.map(className => {
+                const record = attendanceData[className];
+                const isMarked = !!record;
+                const studentCount = classCounts[className] || 0;
+                const markedCount = record?.records ? Object.keys(record.records).length : 0;
+                const presentCount = record?.records ? Object.values(record.records).filter(r => r.status === 'Present').length : 0;
+                const absentCount = markedCount - presentCount;
+                const pendingCount = studentCount - markedCount;
+                
+                let statusColor = 'bg-gray-100 text-gray-600';
+                let statusText = 'Not Started';
+                
+                if (isMarked) {
+                    if (markedCount === studentCount) {
+                        statusColor = 'bg-green-100 text-green-600';
+                        statusText = '✅ Complete';
+                    } else if (markedCount > 0) {
+                        statusColor = 'bg-yellow-100 text-yellow-600';
+                        statusText = '⚠️ Partial';
+                    } else {
+                        statusColor = 'bg-orange-100 text-orange-600';
+                        statusText = '📝 Marked (No Students)';
+                    }
+                } else {
+                    statusColor = 'bg-gray-100 text-gray-600';
+                    statusText = '⏳ Pending';
+                }
+                
+                return `
+                    <div class="bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md transition-all">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-xl ${isMarked ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'} flex flex-col items-center justify-center">
+                                    <span class="text-[10px] font-bold">Class</span>
+                                    <span class="text-lg font-black">${className}</span>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-gray-800">${className}</p>
+                                    <p class="text-[10px] text-gray-400">Total: ${studentCount} students</p>
+                                </div>
+                            </div>
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold ${statusColor}">${statusText}</span>
                         </div>
-                        <div>
-                            <p class="font-bold text-gray-800">${isMarked ? '✅ Completed' : '⏳ Pending'}</p>
-                            <p class="text-[10px] text-gray-400">${isMarked ? `${studentCount} students marked by: ${record.markedBy}` : 'Waiting for teacher'}</p>
-                        </div>
+                        
+                        ${isMarked ? `
+                            <div class="grid grid-cols-3 gap-2 mb-3 text-center">
+                                <div class="bg-green-50 rounded-lg p-2">
+                                    <p class="text-lg font-bold text-green-600">${presentCount}</p>
+                                    <p class="text-[9px] text-gray-500">Present</p>
+                                </div>
+                                <div class="bg-red-50 rounded-lg p-2">
+                                    <p class="text-lg font-bold text-red-600">${absentCount}</p>
+                                    <p class="text-[9px] text-gray-500">Absent</p>
+                                </div>
+                                <div class="bg-gray-50 rounded-lg p-2">
+                                    <p class="text-lg font-bold text-gray-600">${pendingCount}</p>
+                                    <p class="text-[9px] text-gray-500">Pending</p>
+                                </div>
+                            </div>
+                            <div class="text-[10px] text-gray-400 text-center mb-3">
+                                <i class="fa-regular fa-user-check mr-1"></i>Marked by: ${record.markedBy}
+                            </div>
+                        ` : ''}
+                        
+                        <button onclick="loadAttendanceForClass('${className}')" 
+                            class="w-full py-2 rounded-lg text-xs font-bold transition-all ${isMarked ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">
+                            ${isMarked ? '📋 View / Edit' : '✏️ Mark Attendance'}
+                        </button>
                     </div>
-                    <button onclick="loadAttendanceForClass('${className}')" class="px-4 py-2 rounded-lg text-xs font-bold ${isMarked ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}">
-                        ${isMarked ? 'VIEW' : 'MARK'}
-                    </button>
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join('');
+        }).catch(err => {
+            console.error("Error loading class counts:", err);
+            container.innerHTML = `<p class="text-center py-10 text-red-500">Error loading class data</p>`;
+        });
     });
 }
 
