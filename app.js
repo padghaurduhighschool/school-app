@@ -2410,9 +2410,6 @@ window.showFeesDashboard = async () => {
                     <h2 class="text-lg font-bold">Fees Dashboard</h2>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="debugFeesCSV()" class="bg-yellow-600 text-white px-3 py-1.5 rounded-lg text-xs">
-                        <i class="fa-solid fa-bug mr-1"></i>Debug
-                    </button>
                     <button onclick="refreshFeesData()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs">
                         <i class="fa-solid fa-refresh mr-1"></i>Refresh
                     </button>
