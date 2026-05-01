@@ -322,6 +322,18 @@ else if (section === 'more') {
                 </div>
                 
                 <div class="p-4 space-y-3">
+                    <!-- User Management - Only for Admin/Super Admin/Supervisor -->
+                    ${['Admin', 'Super Admin', 'Supervisor'].includes(role) ? `
+                        <button onclick="loadUserManagement()" 
+                            class="flex flex-col items-center p-4 bg-purple-50 border border-purple-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                            <div class="flex items-center justify-center w-full">
+                                <i class="fas fa-users-cog mr-2 text-purple-600"></i>
+                                <span class="text-sm font-bold text-purple-700">User Management</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">View all staff & student credentials</p>
+                        </button>
+                    ` : ''}
+                    
                     <!-- Push Notification Toggle Button -->
                     <button id="enable-notifications-btn" onclick="togglePushNotifications()" 
                         class="flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
@@ -390,8 +402,6 @@ else if (section === 'more') {
         checkNotificationStatus();
     }, 100);
 }
-
-
 
    else if (section === 'students') {
         loadStudentsSection();
@@ -3370,4 +3380,571 @@ if ('serviceWorker' in navigator) {
             console.log('Service Worker registration failed:', error);
         }
     })();
+}
+
+// Add this function to load the User Management section
+window.loadUserManagement = async () => {
+    const content = document.getElementById('content');
+    const role = localStorage.getItem('userRole');
+    
+    // Check if user has admin权限
+    if (!['Admin', 'Super Admin', 'Supervisor'].includes(role)) {
+        content.innerHTML = `
+            <div class="p-10 text-center">
+                <i class="fa-solid fa-lock text-5xl text-red-400 mb-4"></i>
+                <p class="font-bold text-gray-800">Access Denied</p>
+                <p class="text-sm text-gray-500">You don't have permission to view this page.</p>
+                <button onclick="loadSection('more')" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg text-sm">Go Back</button>
+            </div>
+        `;
+        return;
+    }
+    
+    content.innerHTML = `
+        <div class="space-y-4 pb-20">
+            <div class="flex items-center justify-between sticky top-0 bg-white z-10 p-4 border-b">
+                <div class="flex items-center gap-2">
+                    <button onclick="loadSection('more')" class="p-2 bg-gray-100 rounded-full">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h2 class="text-lg font-bold">User Management</h2>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportAllUsersData()" class="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs">
+                        <i class="fa-solid fa-download mr-1"></i>Export CSV
+                    </button>
+                    <button onclick="refreshUserData()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs">
+                        <i class="fa-solid fa-refresh mr-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Search and Filter -->
+            <div class="bg-white p-4 rounded-xl shadow-sm mx-4">
+                <div class="space-y-3">
+                    <input type="text" id="userSearchInput" 
+                        onkeyup="filterUsers()" 
+                        placeholder="🔍 Search by name, phone, or role..." 
+                        class="w-full p-3 bg-gray-50 rounded-xl text-sm border focus:ring-2 focus:ring-blue-500">
+                    
+                    <div class="flex gap-2">
+                        <select id="userRoleFilter" onchange="filterUsers()" class="flex-1 p-3 bg-gray-50 rounded-xl text-sm border">
+                            <option value="all">All Users</option>
+                            <option value="staff">Staff Only</option>
+                            <option value="student">Students Only</option>
+                        </select>
+                        
+                        <select id="userClassFilter" onchange="filterUsers()" class="flex-1 p-3 bg-gray-50 rounded-xl text-sm border">
+                            <option value="all">All Classes</option>
+                            ${schoolClasses.map(c => `<option value="${c}">Class ${c}</option>`).join('')}
+                        </select>
+                    </div>
+                    
+                    <div class="text-xs text-gray-500 flex justify-between items-center">
+                        <span id="userCount">Loading...</span>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" id="showPasswords" onchange="togglePasswordVisibility()">
+                            <span>Show Passwords</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Users List -->
+            <div id="usersListContainer" class="space-y-2 px-4">
+                <div class="text-center py-10">
+                    <i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i>
+                    <p class="text-gray-400 text-sm mt-2">Loading users...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Load all users data
+    await loadAllUsersData();
+};
+
+// Store all users data globally
+let allUsersData = {
+    staff: [],
+    students: []
+};
+
+// Load all staff and student data
+async function loadAllUsersData() {
+    try {
+        // Load Staff Data from Teacher Sheet
+        const teacherRes = await fetch(TEACHER_SHEET_CSV);
+        const teacherText = await teacherRes.text();
+        const teacherRows = teacherText.split('\n').slice(1);
+        
+        allUsersData.staff = [];
+        for (let i = 0; i < teacherRows.length; i++) {
+            if (!teacherRows[i].trim()) continue;
+            const cols = teacherRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            if (cols.length >= 4) {
+                const phone = cols[0]?.replace(/"/g, '').trim();
+                const code = cols[1]?.replace(/"/g, '').trim();
+                const name = cols[2]?.replace(/"/g, '').trim();
+                const role = cols[3]?.replace(/"/g, '').trim();
+                const mappedClass = cols[5]?.replace(/"/g, '').trim();
+                
+                if (phone && name) {
+                    allUsersData.staff.push({
+                        type: 'staff',
+                        name: name,
+                        phone: phone,
+                        password: code,
+                        role: role || 'Teacher',
+                        class: mappedClass || 'N/A',
+                        searchText: `${name} ${phone} ${role}`.toLowerCase()
+                    });
+                }
+            }
+        }
+        
+        // Load Student Data from Student Sheet
+        const studentRes = await fetch(STUDENT_SHEET_CSV);
+        const studentText = await studentRes.text();
+        const rows = studentText.split('\n').slice(1);
+        
+        allUsersData.students = [];
+        for (let i = 0; i < rows.length; i++) {
+            if (!rows[i].trim()) continue;
+            const cols = rows[i].split(',');
+            
+            // Try to find the correct columns based on headers
+            let grNo = cols[2]?.replace(/"/g, '').trim() || '';
+            let name = cols[7]?.replace(/"/g, '').trim() || '';
+            let className = cols[1]?.replace(/"/g, '').trim() || '';
+            let phone = cols[15]?.replace(/"/g, '').trim() || '';
+            let rollNo = cols[3]?.replace(/"/g, '').trim() || '';
+            let code = cols[16]?.replace(/"/g, '').trim() || ''; // Assuming code column is at index 16
+            
+            // If no code found, try other common positions
+            if (!code) {
+                // Try to find any column that might contain the login code
+                for (let j = 0; j < cols.length; j++) {
+                    const val = cols[j]?.replace(/"/g, '').trim();
+                    if (val && val.length <= 8 && /^\d+$/.test(val) && val !== phone && val !== grNo) {
+                        code = val;
+                        break;
+                    }
+                }
+            }
+            
+            if (name) {
+                allUsersData.students.push({
+                    type: 'student',
+                    name: name,
+                    phone: phone || 'Not provided',
+                    grNo: grNo || 'Pending',
+                    rollNo: rollNo || 'N/A',
+                    class: className,
+                    password: code || 'Not set',
+                    searchText: `${name} ${phone} ${className} ${grNo}`.toLowerCase()
+                });
+            }
+        }
+        
+        renderUsersList();
+        
+    } catch (error) {
+        console.error("Error loading users:", error);
+        document.getElementById('usersListContainer').innerHTML = `
+            <div class="text-center py-10 text-red-500">
+                <i class="fa-solid fa-exclamation-triangle text-3xl mb-2"></i>
+                <p>Error loading user data</p>
+                <p class="text-xs mt-1">${error.message}</p>
+                <button onclick="loadAllUsersData()" class="mt-3 text-blue-600 text-xs underline">Try Again</button>
+            </div>
+        `;
+    }
+}
+
+// Render the filtered users list
+function renderUsersList() {
+    const searchTerm = document.getElementById('userSearchInput')?.value.toLowerCase() || '';
+    const roleFilter = document.getElementById('userRoleFilter')?.value || 'all';
+    const classFilter = document.getElementById('userClassFilter')?.value || 'all';
+    const showPasswords = document.getElementById('showPasswords')?.checked || false;
+    
+    let filteredUsers = [];
+    
+    // Filter staff
+    if (roleFilter === 'all' || roleFilter === 'staff') {
+        const filteredStaff = allUsersData.staff.filter(user => 
+            (searchTerm === '' || user.searchText.includes(searchTerm))
+        );
+        filteredUsers.push(...filteredStaff);
+    }
+    
+    // Filter students
+    if (roleFilter === 'all' || roleFilter === 'student') {
+        let filteredStudents = allUsersData.students.filter(user => 
+            (searchTerm === '' || user.searchText.includes(searchTerm))
+        );
+        
+        // Apply class filter for students
+        if (classFilter !== 'all') {
+            filteredStudents = filteredStudents.filter(user => user.class === classFilter);
+        }
+        
+        filteredUsers.push(...filteredStudents);
+    }
+    
+    // Update count
+    const countSpan = document.getElementById('userCount');
+    if (countSpan) {
+        countSpan.innerHTML = `<i class="fa-solid fa-users mr-1"></i>${filteredUsers.length} users found`;
+    }
+    
+    if (filteredUsers.length === 0) {
+        document.getElementById('usersListContainer').innerHTML = `
+            <div class="text-center py-10 bg-white rounded-xl">
+                <i class="fa-solid fa-user-slash text-4xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500">No users found matching your search.</p>
+                <button onclick="clearUserFilters()" class="mt-3 text-blue-600 text-sm underline">Clear Filters</button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Group users by role for better display
+    const staffUsers = filteredUsers.filter(u => u.type === 'staff');
+    const studentUsers = filteredUsers.filter(u => u.type === 'student');
+    
+    let html = '';
+    
+    // Staff Section
+    if (staffUsers.length > 0 && (roleFilter === 'all' || roleFilter === 'staff')) {
+        html += `
+            <div class="bg-blue-50 rounded-xl p-3 mb-2">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-chalkboard-user text-blue-600"></i>
+                    <h3 class="font-bold text-blue-800 text-sm">Staff Members (${staffUsers.length})</h3>
+                </div>
+            </div>
+        `;
+        
+        staffUsers.forEach(user => {
+            html += createUserCard(user, showPasswords);
+        });
+    }
+    
+    // Students Section
+    if (studentUsers.length > 0 && (roleFilter === 'all' || roleFilter === 'student')) {
+        html += `
+            <div class="bg-green-50 rounded-xl p-3 mb-2 mt-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-graduation-cap text-green-600"></i>
+                    <h3 class="font-bold text-green-800 text-sm">Students (${studentUsers.length})</h3>
+                </div>
+            </div>
+        `;
+        
+        studentUsers.forEach(user => {
+            html += createUserCard(user, showPasswords);
+        });
+    }
+    
+    document.getElementById('usersListContainer').innerHTML = html;
+}
+
+// Create individual user card
+function createUserCard(user, showPasswords) {
+    const isStaff = user.type === 'staff';
+    const cardColor = isStaff ? 'border-l-blue-500' : 'border-l-green-500';
+    const roleColor = isStaff ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700';
+    
+    // Mask password if not showing
+    const passwordDisplay = showPasswords ? user.password : '••••••';
+    const passwordIcon = showPasswords ? 'fa-eye' : 'fa-eye-slash';
+    
+    // Format phone number
+    const phoneDisplay = user.phone && user.phone !== 'Not provided' ? user.phone : 'Not provided';
+    
+    return `
+        <div class="bg-white rounded-xl border-l-4 ${cardColor} shadow-sm overflow-hidden hover:shadow-md transition-all">
+            <div class="p-4">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 flex-wrap mb-2">
+                            <h3 class="font-bold text-gray-800">${escapeHtml(user.name)}</h3>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full ${roleColor} font-bold">
+                                ${isStaff ? user.role || 'Staff' : 'Student'}
+                            </span>
+                            ${isStaff && user.class !== 'N/A' ? `<span class="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">Class: ${user.class}</span>` : ''}
+                            ${!isStaff && user.grNo !== 'Pending' ? `<span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">GR: ${user.grNo}</span>` : ''}
+                            ${!isStaff && user.grNo === 'Pending' ? `<span class="text-[10px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">⚠️ GR Pending</span>` : ''}
+                        </div>
+                        
+                        <div class="space-y-1 text-sm">
+                            <div class="flex items-center gap-2 text-gray-600">
+                                <i class="fa-solid fa-phone text-xs w-4"></i>
+                                <span class="text-xs">${phoneDisplay}</span>
+                                ${user.phone && user.phone !== 'Not provided' ? `
+                                    <button onclick="copyToClipboard('${user.phone}')" class="text-blue-500 text-[10px] hover:text-blue-700">
+                                        <i class="fa-regular fa-copy"></i> Copy
+                                    </button>
+                                    <a href="tel:${user.phone}" class="text-green-500 text-[10px] hover:text-green-700">
+                                        <i class="fa-solid fa-phone"></i> Call
+                                    </a>
+                                ` : ''}
+                            </div>
+                            
+                            ${!isStaff && user.rollNo !== 'N/A' ? `
+                                <div class="flex items-center gap-2 text-gray-600">
+                                    <i class="fa-solid fa-hashtag text-xs w-4"></i>
+                                    <span class="text-xs">Roll No: ${user.rollNo}</span>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="flex items-center gap-2 text-gray-600">
+                                <i class="fa-solid fa-lock text-xs w-4"></i>
+                                <span class="text-xs">Password: ${passwordDisplay}</span>
+                                <button onclick="togglePasswordForUser('${user.name.replace(/'/g, "\\'")}', '${user.password.replace(/'/g, "\\'")}')" 
+                                    class="text-gray-400 text-[10px] hover:text-gray-600">
+                                    <i class="fa-regular ${passwordIcon}"></i>
+                                </button>
+                                <button onclick="copyPassword('${user.password}')" 
+                                    class="text-blue-500 text-[10px] hover:text-blue-700">
+                                    <i class="fa-regular fa-copy"></i> Copy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col gap-1">
+                        <button onclick="showUserDetails('${escapeHtml(user.name).replace(/'/g, "\\'")}', ${JSON.stringify(user).replace(/'/g, "\\'")})" 
+                            class="text-blue-600 text-xs hover:text-blue-800 p-1">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Filter users based on search and filters
+window.filterUsers = () => {
+    renderUsersList();
+};
+
+// Clear all filters
+window.clearUserFilters = () => {
+    const searchInput = document.getElementById('userSearchInput');
+    const roleFilter = document.getElementById('userRoleFilter');
+    const classFilter = document.getElementById('userClassFilter');
+    
+    if (searchInput) searchInput.value = '';
+    if (roleFilter) roleFilter.value = 'all';
+    if (classFilter) classFilter.value = 'all';
+    
+    renderUsersList();
+};
+
+// Toggle password visibility for all users
+window.togglePasswordVisibility = () => {
+    renderUsersList();
+};
+
+// Toggle password for a specific user
+let currentUserPassword = null;
+window.togglePasswordForUser = (userName, password) => {
+    const showPasswordsCheckbox = document.getElementById('showPasswords');
+    if (showPasswordsCheckbox) {
+        // Temporarily toggle just for this user by showing an alert
+        alert(`Password for ${userName} is: ${password}`);
+    } else {
+        alert(`Password for ${userName} is: ${password}`);
+    }
+};
+
+// Copy password to clipboard
+window.copyPassword = async (password) => {
+    try {
+        await navigator.clipboard.writeText(password);
+        showToast('Password copied to clipboard!', 'success');
+    } catch (err) {
+        alert('Failed to copy password');
+    }
+};
+
+// Copy phone number to clipboard
+window.copyToClipboard = async (text) => {
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard!', 'success');
+    } catch (err) {
+        alert('Failed to copy');
+    }
+};
+
+// Show user details modal
+window.showUserDetails = (userName, userData) => {
+    // Parse user data if it's a string
+    let user = userData;
+    if (typeof userData === 'string') {
+        try {
+            user = JSON.parse(userData);
+        } catch(e) {
+            user = userData;
+        }
+    }
+    
+    const isStaff = user.type === 'staff';
+    
+    const modalHtml = `
+        <div id="userDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onclick="if(event.target===this) closeModal()">
+            <div class="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
+                    <h3 class="font-bold text-lg">User Details</h3>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa-solid fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-5 space-y-4">
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto text-white text-3xl">
+                            ${user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <h4 class="font-bold text-xl mt-3">${escapeHtml(user.name)}</h4>
+                        <p class="text-sm text-gray-500">${isStaff ? (user.role || 'Staff Member') : 'Student'}</p>
+                    </div>
+                    
+                    <div class="space-y-3 border-t pt-4">
+                        <div class="flex justify-between items-center py-2 border-b">
+                            <span class="text-sm text-gray-500">Phone Number</span>
+                            <span class="text-sm font-medium">${user.phone || 'Not provided'}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b">
+                            <span class="text-sm text-gray-500">Password</span>
+                            <span class="text-sm font-mono font-medium">${user.password}</span>
+                            <button onclick="copyPassword('${user.password}')" class="text-blue-500 text-xs">Copy</button>
+                        </div>
+                        ${!isStaff ? `
+                            <div class="flex justify-between items-center py-2 border-b">
+                                <span class="text-sm text-gray-500">Class</span>
+                                <span class="text-sm font-medium">${user.class}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b">
+                                <span class="text-sm text-gray-500">GR Number</span>
+                                <span class="text-sm font-medium">${user.grNo || 'Pending'}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b">
+                                <span class="text-sm text-gray-500">Roll Number</span>
+                                <span class="text-sm font-medium">${user.rollNo || 'N/A'}</span>
+                            </div>
+                        ` : `
+                            <div class="flex justify-between items-center py-2 border-b">
+                                <span class="text-sm text-gray-500">Designation</span>
+                                <span class="text-sm font-medium">${user.role || 'Teacher'}</span>
+                            </div>
+                            ${user.class !== 'N/A' ? `
+                                <div class="flex justify-between items-center py-2 border-b">
+                                    <span class="text-sm text-gray-500">Assigned Class</span>
+                                    <span class="text-sm font-medium">${user.class}</span>
+                                </div>
+                            ` : ''}
+                        `}
+                    </div>
+                    
+                    <div class="flex gap-2 pt-2">
+                        ${user.phone && user.phone !== 'Not provided' ? `
+                            <a href="tel:${user.phone}" class="flex-1 bg-green-500 text-white py-2 rounded-lg text-center text-sm">
+                                <i class="fa-solid fa-phone mr-1"></i> Call
+                            </a>
+                            <button onclick="copyToClipboard('${user.phone}')" class="flex-1 bg-gray-500 text-white py-2 rounded-lg text-center text-sm">
+                                <i class="fa-regular fa-copy mr-1"></i> Copy Phone
+                            </button>
+                        ` : ''}
+                        <button onclick="closeModal()" class="flex-1 bg-blue-500 text-white py-2 rounded-lg text-center text-sm">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('userDetailsModal');
+    if (existingModal) existingModal.remove();
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+};
+
+// Close modal
+window.closeModal = () => {
+    const modal = document.getElementById('userDetailsModal');
+    if (modal) modal.remove();
+};
+
+// Export all users data as CSV
+window.exportAllUsersData = () => {
+    const allUsers = [...allUsersData.staff, ...allUsersData.students];
+    
+    if (allUsers.length === 0) {
+        alert('No data to export');
+        return;
+    }
+    
+    // Create CSV content
+    let csvContent = "Type,Name,Phone,Password,Role/Class,Additional Info\n";
+    
+    allUsers.forEach(user => {
+        const type = user.type === 'staff' ? 'Staff' : 'Student';
+        const additionalInfo = user.type === 'staff' 
+            ? `Role: ${user.role || 'Teacher'}, Class: ${user.class || 'N/A'}`
+            : `GR: ${user.grNo || 'Pending'}, Roll: ${user.rollNo || 'N/A'}, Class: ${user.class}`;
+        
+        csvContent += `"${type}","${user.name}","${user.phone}","${user.password}","${user.type === 'staff' ? (user.role || 'Teacher') : user.class}","${additionalInfo}"\n`;
+    });
+    
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    showToast('Export complete!', 'success');
+};
+
+// Refresh user data
+window.refreshUserData = async () => {
+    const refreshBtn = event?.target;
+    if (refreshBtn) {
+        const originalText = refreshBtn.innerHTML;
+        refreshBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Loading...';
+        refreshBtn.disabled = true;
+        
+        await loadAllUsersData();
+        
+        refreshBtn.innerHTML = originalText;
+        refreshBtn.disabled = false;
+        showToast('Data refreshed!', 'success');
+    } else {
+        await loadAllUsersData();
+    }
+};
+
+// Show toast notification
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-20 left-4 right-4 bg-${type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue'}-500 text-white px-4 py-2 rounded-lg text-sm shadow-lg z-50 animate-bounce`;
+    toast.innerHTML = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
 }
