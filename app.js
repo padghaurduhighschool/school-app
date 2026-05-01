@@ -2217,18 +2217,18 @@ window.calculateMonthlyHours = async () => {
     alert(`Monthly Hours for ${userName}:\nTotal: ${hours} hours ${minutes} minutes\n${totalMinutes} minutes total`);
 };
 
-// 18. PERSONAL STUDENT LOGS - FIXED VERSION
+// 18. PERSONAL STUDENT LOGS - Works with or without GR numbers
 async function fetchPersonalStudentLogs(studentName) {
     const logContainer = document.getElementById('personal-logs');
     if (!logContainer) return;
     
-    logContainer.innerHTML = '<p class="text-gray-400 italic">Loading your attendance records...</p>';
+    logContainer.innerHTML = '<div class="text-center py-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i><p class="text-gray-400 text-sm mt-2">Loading your records...</p></div>';
     
     try {
         const studentGR = localStorage.getItem('userGR');
         const studentFullName = studentName.trim();
         
-        console.log("Looking for attendance for:", studentFullName, "GR:", studentGR);
+        console.log("Fetching attendance for:", studentFullName, "GR:", studentGR || "No GR (Pending)");
         
         // Get all attendance records
         const snapshot = await firebase.database().ref('student_attendance').once('value');
@@ -2247,26 +2247,32 @@ async function fetchPersonalStudentLogs(studentName) {
                     const classData = dateData[className];
                     
                     if (classData && classData.records) {
-                        // Try to find student by GR No FIRST (most reliable)
+                        // Try to find student by various methods
                         let studentRecord = null;
-                        let foundKey = null;
                         
-                        // Check if records use GR numbers as keys
-                        if (studentGR && classData.records[studentGR]) {
+                        // Method 1: Try by GR number (if student has one)
+                        if (studentGR && studentGR !== 'Pending' && classData.records[studentGR]) {
                             studentRecord = classData.records[studentGR];
-                            foundKey = studentGR;
                         }
-                        // If not found by GR, try by name
+                        // Method 2: Try by name (exact match)
                         else if (classData.records[studentFullName]) {
                             studentRecord = classData.records[studentFullName];
-                            foundKey = studentFullName;
                         }
-                        // Try case-insensitive name match
+                        // Method 3: Try case-insensitive name match on stored records
                         else {
                             for (const [key, record] of Object.entries(classData.records)) {
                                 if (record.name && record.name.toLowerCase() === studentFullName.toLowerCase()) {
                                     studentRecord = record;
-                                    foundKey = key;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Method 4: Try partial name match (for names with extra spaces)
+                        if (!studentRecord) {
+                            for (const [key, record] of Object.entries(classData.records)) {
+                                if (record.name && record.name.toLowerCase().includes(studentFullName.toLowerCase())) {
+                                    studentRecord = record;
                                     break;
                                 }
                             }
@@ -2276,7 +2282,8 @@ async function fetchPersonalStudentLogs(studentName) {
                             records.push({ 
                                 date: dateStr, 
                                 status: studentRecord.status,
-                                markedBy: classData.markedBy
+                                markedBy: classData.markedBy,
+                                className: className
                             });
                             if (studentRecord.status === 'Present') presentDays++;
                             if (studentRecord.status === 'Absent') absentDays++;
@@ -2289,17 +2296,23 @@ async function fetchPersonalStudentLogs(studentName) {
         // Sort records by date (newest first)
         records.sort((a, b) => b.date.localeCompare(a.date));
         
+        // Get current month records only
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const currentMonthRecords = records.filter(r => r.date.startsWith(currentMonth));
+        const currentMonthPresent = currentMonthRecords.filter(r => r.status === 'Present').length;
+        
         if (records.length === 0) {
             logContainer.innerHTML = `
                 <div class="text-center p-6 bg-gray-50 rounded-xl">
-                    <i class="fa-regular fa-calendar-xmark text-4xl text-gray-300 mb-2"></i>
-                    <p class="text-gray-500">No attendance records found.</p>
-                    <p class="text-xs text-gray-400 mt-1">Attendance will appear here once marked.</p>
-                    <div class="mt-4 text-xs text-left bg-blue-50 p-3 rounded-lg">
-                        <p class="font-bold text-blue-700 mb-1">Information:</p>
-                        <p>Your Name: <strong>"${studentFullName}"</strong></p>
-                        <p>Your GR No: <strong>"${studentGR || 'Not found'}"</strong></p>
-                        <p class="mt-2">Please ensure your teacher marks attendance using either your GR No. or full name exactly as above.</p>
+                    <i class="fa-regular fa-calendar-xmark text-5xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500 font-medium">No attendance records found</p>
+                    <p class="text-xs text-gray-400 mt-1">Your attendance will appear here once marked.</p>
+                    <div class="mt-4 text-xs text-left bg-amber-50 p-3 rounded-lg border border-amber-200">
+                        <p class="font-bold text-amber-700 mb-1">ℹ️ Information for Teacher:</p>
+                        <p>Student Name: <strong>"${studentFullName}"</strong></p>
+                        ${studentGR && studentGR !== 'Pending' ? `<p>GR Number: "${studentGR}"</p>` : '<p class="text-orange-600">⚠️ No GR Number assigned (Documentation Pending)</p>'}
+                        <p class="mt-2 text-gray-600">Please mark attendance by searching for the student's <strong>full name</strong> exactly as shown above.</p>
                     </div>
                 </div>
             `;
@@ -2309,34 +2322,59 @@ async function fetchPersonalStudentLogs(studentName) {
         // Calculate attendance percentage
         const totalDays = records.length;
         const percentage = Math.round((presentDays / totalDays) * 100);
+        const currentMonthPercentage = currentMonthRecords.length > 0 ? 
+            Math.round((currentMonthPresent / currentMonthRecords.length) * 100) : 0;
         
         logContainer.innerHTML = `
-            <div class="grid grid-cols-3 gap-3 mb-4">
-                <div class="text-center p-3 bg-green-50 rounded-xl">
-                    <p class="text-2xl font-bold text-green-600">${presentDays}</p>
-                    <p class="text-xs text-gray-500">Present</p>
-                </div>
-                <div class="text-center p-3 bg-red-50 rounded-xl">
-                    <p class="text-2xl font-bold text-red-600">${absentDays}</p>
-                    <p class="text-xs text-gray-500">Absent</p>
-                </div>
-                <div class="text-center p-3 bg-blue-50 rounded-xl">
-                    <p class="text-2xl font-bold text-blue-600">${percentage}%</p>
-                    <p class="text-xs text-gray-500">Attendance</p>
-                </div>
-            </div>
-            <div class="text-center text-xs text-gray-400 mb-2">
-                Total Records: ${totalDays}
-            </div>
-            <div class="max-h-60 overflow-y-auto space-y-1">
-                ${records.map(r => `
-                    <div class="flex justify-between items-center p-2 border-b hover:bg-gray-50 rounded">
-                        <span class="text-xs font-medium">${formatDate(r.date)}</span>
-                        <span class="text-xs font-bold px-2 py-1 rounded-full ${r.status === 'Present' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}">
-                            ${r.status === 'Present' ? '✓ Present' : '✗ Absent'}
-                        </span>
+            <div class="space-y-4">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="text-center p-3 bg-green-50 rounded-xl">
+                        <p class="text-2xl font-bold text-green-600">${presentDays}</p>
+                        <p class="text-xs text-gray-500">Total Present</p>
                     </div>
-                `).join('')}
+                    <div class="text-center p-3 bg-red-50 rounded-xl">
+                        <p class="text-2xl font-bold text-red-600">${absentDays}</p>
+                        <p class="text-xs text-gray-500">Total Absent</p>
+                    </div>
+                </div>
+                
+                <!-- Attendance Percentage -->
+                <div class="bg-blue-50 rounded-xl p-3">
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-600">Overall Attendance</span>
+                        <span class="font-bold text-blue-600">${percentage}%</span>
+                    </div>
+                    <div class="w-full bg-blue-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full" style="width: ${percentage}%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs mt-2">
+                        <span class="text-gray-500">This Month: ${currentMonthPresent}/${currentMonthRecords.length}</span>
+                        <span class="text-gray-500">${currentMonthPercentage}%</span>
+                    </div>
+                </div>
+                
+                <!-- Records List -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Attendance History</p>
+                        <p class="text-[10px] text-gray-400">${records.length} records</p>
+                    </div>
+                    <div class="max-h-60 overflow-y-auto space-y-1 border rounded-lg divide-y">
+                        ${records.slice(0, 30).map(r => `
+                            <div class="flex justify-between items-center p-2 hover:bg-gray-50">
+                                <div>
+                                    <span class="text-xs font-medium">${formatDate(r.date)}</span>
+                                    <span class="text-[10px] text-gray-400 ml-2">(${r.className})</span>
+                                </div>
+                                <span class="text-xs font-bold px-2 py-0.5 rounded-full ${r.status === 'Present' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}">
+                                    ${r.status === 'Present' ? '✓ Present' : '✗ Absent'}
+                                </span>
+                            </div>
+                        `).join('')}
+                        ${records.length > 30 ? `<div class="text-center text-[10px] text-gray-400 p-2">+ ${records.length - 30} more records</div>` : ''}
+                    </div>
+                </div>
             </div>
         `;
         
@@ -2344,9 +2382,10 @@ async function fetchPersonalStudentLogs(studentName) {
         console.error("Error fetching student logs:", error);
         logContainer.innerHTML = `
             <div class="text-center p-4 text-red-500">
-                <i class="fa-solid fa-exclamation-triangle text-2xl mb-2"></i>
+                <i class="fa-solid fa-exclamation-triangle text-3xl mb-2"></i>
                 <p>Error loading attendance records</p>
                 <p class="text-xs mt-1">${error.message}</p>
+                <button onclick="fetchPersonalStudentLogs('${studentName}')" class="mt-3 text-blue-600 text-xs underline">Try Again</button>
             </div>
         `;
     }
