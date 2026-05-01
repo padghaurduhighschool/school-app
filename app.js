@@ -2799,12 +2799,23 @@ window.togglePushNotifications = async () => {
 };
 
 
+// Add this to your script
+window.handleLogout = function() {
+    if (confirm("Are you sure you want to logout?")) {
+        // Clear all user data from local storage
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('mappedClass');
+        localStorage.removeItem('userPhone');
+        localStorage.removeItem('userGR');
+        localStorage.removeItem('hasCheckedInToday');
 
-window.handleLogout = () => {
-    if (confirm("Sign out?")) {
-        localStorage.clear();
-        location.reload();
+        // Redirect to login screen
+        document.getElementById('main-app').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+        
+        // Optional: Refresh the page to clear any in-memory states
+        window.location.reload();
     }
 };
-
 
