@@ -2798,6 +2798,12 @@ window.togglePushNotifications = async () => {
     }
 };
 
+window.handleLogout = () => {
+    if (confirm("Sign out?")) {
+        localStorage.clear();
+        location.reload();
+    }
+};
 
 window.handleLogout = function() => {
     if (confirm("Are you sure you want to logout?")) {
