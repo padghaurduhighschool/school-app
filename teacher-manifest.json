@@ -1,0 +1,8 @@
+{
+  "name": "PUHS Teacher Portal", 
+  "short_name": "Teacher App",
+  "start_url": "/teacher/",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}
