@@ -920,8 +920,7 @@ window.filterStudents = () => {
     renderStudentList(filtered);
 };
 
-// 12. ATTENDANCE SHEET LOADING
-// 12. ATTENDANCE SHEET LOADING - Using NAME as key
+// 12. ATTENDANCE SHEET LOADING - Using full name
 window.loadAttendanceSheet = async () => {
     const classVal = document.getElementById('target-class').value;
     const container = document.getElementById('attendance-sheet-container');
@@ -942,10 +941,11 @@ window.loadAttendanceSheet = async () => {
         const text = await response.text();
         const rows = text.split('\n').slice(1);
         
+        // Get students with FULL NAME from CSV (column 7 is name)
         const classStudents = rows.map(row => {
             const cols = row.split(',');
             return {
-                name: cols[7]?.replace(/"/g, '').trim(),
+                name: cols[7]?.replace(/"/g, '').trim(),  // Full name
                 class: cols[1]?.replace(/"/g, '').trim()
             };
         }).filter(s => s.class === classVal && s.name);
@@ -957,7 +957,7 @@ window.loadAttendanceSheet = async () => {
 
         let html = `<div class="bg-white rounded-2xl shadow-sm border overflow-hidden"><div class="max-h-96 overflow-y-auto">`;
         classStudents.forEach((s) => {
-            const studentKey = s.name; // Using NAME as the key instead of GR
+            const studentKey = s.name; // Using FULL NAME as key
             const isPresent = existingRecords[studentKey]?.status === 'Present';
             html += `
                 <div class="flex justify-between items-center p-4 border-b">
@@ -976,7 +976,6 @@ window.loadAttendanceSheet = async () => {
     }
 };
 
-
 window.submitStudentAttendance = (classID) => {
     if (!navigator.onLine) {
         alert("No Internet! Please connect to submit attendance.");
@@ -988,8 +987,8 @@ window.submitStudentAttendance = (classID) => {
     const attendanceData = {};
     
     checkboxes.forEach(cb => {
-        const studentName = cb.getAttribute('data-name');
-        attendanceData[studentName] = {  // Using NAME as the key
+        const studentName = cb.getAttribute('data-name'); // Full name
+        attendanceData[studentName] = {
             name: studentName,
             status: cb.checked ? 'Present' : 'Absent',
             timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -1002,9 +1001,10 @@ window.submitStudentAttendance = (classID) => {
     }).then(() => {
         alert(`Attendance for Class ${classID} saved!`);
         updateHomeSummary();
-        loadSection('attendance'); // Refresh to show updated status
+        loadSection('attendance');
     }).catch(err => alert("Error: " + err.message));
 };
+
 
 // 13. STAFF LOGS
 function loadStaffLogsDetail() {
@@ -2121,7 +2121,7 @@ window.calculateMonthlyHours = async () => {
 };
 
 // 18. PERSONAL STUDENT LOGS 
-// 18. PERSONAL STUDENT LOGS - DEBUG VERSION
+// 18. PERSONAL STUDENT LOGS - Using full name
 async function fetchPersonalStudentLogs(studentName) {
     const logContainer = document.getElementById('personal-logs');
     if (!logContainer) return;
@@ -2134,15 +2134,13 @@ async function fetchPersonalStudentLogs(studentName) {
         const year = now.getFullYear();
         const currentMonth = `${year}-${month.toString().padStart(2, '0')}`;
         
-        console.log("=== DEBUG ATTENDANCE ===");
-        console.log("Student Name from localStorage:", studentName);
-        console.log("Current Month:", currentMonth);
+        // The student's full name from login
+        const studentFullName = studentName.trim();
+        console.log("Looking for attendance for:", studentFullName);
         
-        // Get ALL attendance records
+        // Get all attendance records
         const snapshot = await firebase.database().ref('student_attendance').once('value');
         const allData = snapshot.val();
-        
-        console.log("Full Firebase Data:", JSON.stringify(allData, null, 2));
         
         let presentDays = 0, absentDays = 0;
         let records = [];
@@ -2150,52 +2148,30 @@ async function fetchPersonalStudentLogs(studentName) {
         if (allData) {
             // Loop through each date
             Object.keys(allData).forEach(dateStr => {
-                console.log(`Checking date: ${dateStr}`);
-                const dateData = allData[dateStr];
-                
-                // Loop through each class on that date
-                Object.keys(dateData).forEach(className => {
-                    const classData = dateData[className];
-                    console.log(`  Class: ${className}, Has records:`, !!classData.records);
+                // Check if date is in current month
+                if (dateStr.startsWith(currentMonth)) {
+                    const dateData = allData[dateStr];
                     
-                    if (classData && classData.records) {
-                        console.log(`    Record keys:`, Object.keys(classData.records));
+                    // Loop through each class on that date
+                    Object.keys(dateData).forEach(className => {
+                        const classData = dateData[className];
                         
-                        // Try to find student by exact name match
-                        if (classData.records[studentName]) {
-                            console.log(`    Found by exact name match!`);
-                            const studentRecord = classData.records[studentName];
-                            records.push({ 
-                                date: dateStr, 
-                                status: studentRecord.status 
-                            });
-                            if (studentRecord.status === 'Present') presentDays++;
-                            if (studentRecord.status === 'Absent') absentDays++;
-                        } else {
-                            // Check case-insensitive
-                            const lowerStudentName = studentName.toLowerCase();
-                            for (const [key, record] of Object.entries(classData.records)) {
-                                console.log(`      Comparing: "${key}" with "${studentName}"`);
-                                if (key.toLowerCase() === lowerStudentName || 
-                                    (record.name && record.name.toLowerCase() === lowerStudentName)) {
-                                    console.log(`      Found by case-insensitive match!`);
-                                    records.push({ 
-                                        date: dateStr, 
-                                        status: record.status 
-                                    });
-                                    if (record.status === 'Present') presentDays++;
-                                    if (record.status === 'Absent') absentDays++;
-                                    break;
-                                }
+                        if (classData && classData.records) {
+                            // Find by exact full name match
+                            if (classData.records[studentFullName]) {
+                                const studentRecord = classData.records[studentFullName];
+                                records.push({ 
+                                    date: dateStr, 
+                                    status: studentRecord.status 
+                                });
+                                if (studentRecord.status === 'Present') presentDays++;
+                                if (studentRecord.status === 'Absent') absentDays++;
                             }
                         }
-                    }
-                });
+                    });
+                }
             });
         }
-        
-        console.log(`Total records found: ${records.length}`);
-        console.log("Records:", records);
         
         // Sort records by date (newest first)
         records.sort((a, b) => b.date.localeCompare(a.date));
@@ -2206,12 +2182,10 @@ async function fetchPersonalStudentLogs(studentName) {
                     <i class="fa-regular fa-calendar-xmark text-4xl text-gray-300 mb-2"></i>
                     <p class="text-gray-500">No attendance records found for this month.</p>
                     <p class="text-xs text-gray-400 mt-1">Attendance will appear here once marked.</p>
-                    <div class="mt-4 text-xs text-left bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                        <p class="font-bold text-yellow-700 mb-2">Debug Information:</p>
-                        <p><strong>Your Name:</strong> "${studentName}"</p>
-                        <p><strong>Current Month:</strong> ${currentMonth}</p>
-                        <p><strong>Check Firebase:</strong> Look for your exact name in the database</p>
-                        <p class="mt-2 text-gray-500">If your name doesn't match exactly, please contact the admin to fix the attendance records.</p>
+                    <div class="mt-4 text-xs text-left bg-blue-50 p-3 rounded-lg">
+                        <p class="font-bold text-blue-700 mb-1">Information:</p>
+                        <p>Your name: <strong>"${studentFullName}"</strong></p>
+                        <p>Please ensure your teacher marks attendance using your full name exactly as above.</p>
                     </div>
                 </div>
             `;
@@ -2230,7 +2204,7 @@ async function fetchPersonalStudentLogs(studentName) {
                 </div>
             </div>
             <div class="text-center text-xs text-gray-400 mb-2">
-                Records found for ${currentMonth}
+                ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} Attendance
             </div>
             <div class="max-h-60 overflow-y-auto space-y-1">
                 ${records.map(r => `
@@ -2254,6 +2228,14 @@ async function fetchPersonalStudentLogs(studentName) {
             </div>
         `;
     }
+}
+
+function formatDate(dateStr) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
 }
 
 function formatDate(dateStr) {
