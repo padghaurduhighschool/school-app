@@ -187,6 +187,14 @@
                     .catch(err => console.log("PWA Failed", err));
             });
         }
+window.handleLogout = window.handleLogout || function() {
+    if (confirm("Are you sure you want to logout?")) {
+        localStorage.clear();
+        document.getElementById('main-app').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+        location.reload();
+    }
+};
     </script>
 </body>
 </html>
