@@ -2804,10 +2804,9 @@ window.handleLogout = () => {
         location.reload();
     }
 };
-
-window.handleLogout = function() => {
+window.handleLogout = function() {
     if (confirm("Are you sure you want to logout?")) {
-        // Clear all user data from local storage
+        // Remove items from localStorage
         localStorage.removeItem('userRole');
         localStorage.removeItem('userName');
         localStorage.removeItem('mappedClass');
@@ -2815,11 +2814,10 @@ window.handleLogout = function() => {
         localStorage.removeItem('userGR');
         localStorage.removeItem('hasCheckedInToday');
 
-        // Redirect to login screen by toggling visibility
+        // Hide main app and show login screen
         document.getElementById('main-app').classList.add('hidden');
         document.getElementById('login-screen').classList.remove('hidden');
         
-        // Refresh the page to clear any in-memory states and reset variables
         window.location.reload();
     }
 };
