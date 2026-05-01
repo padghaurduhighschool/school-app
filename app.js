@@ -2799,7 +2799,7 @@ window.togglePushNotifications = async () => {
 };
 
 
-window.handleLogout = function() {
+window.handleLogout = function() => {
     if (confirm("Are you sure you want to logout?")) {
         // Clear all user data from local storage
         localStorage.removeItem('userRole');
