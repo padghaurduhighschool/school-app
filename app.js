@@ -1,3 +1,5 @@
+
+
 // 1. CONFIGURATION & STATE
 const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
 const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv"; 
@@ -391,17 +393,7 @@ else if (section === 'more') {
 
 
 
-else if (section === 'students') {
-    loadStudentsSection();
-}
-else if (section === 'staff_logs_detail') {
-    loadStaffLogsDetail();
-}
-else if (section === 'student_attendance_summary') {
-    loadClassAttendanceStatus();
-}
-
-    else if (section === 'students') {
+   else if (section === 'students') {
         loadStudentsSection();
     }
     else if (section === 'staff_logs_detail') {
@@ -2417,8 +2409,7 @@ async function updateHomeStats() {
     }
 }
 // Push Notification Configuration
-const VAPID_PUBLIC_KEY = "BDEMWUO3WUNf6Dk7mDjT-IgeCC-EfEDsLY5XYZHcS2V-Tc9rFIDhQEFU1eO6ItnbB0rKiok5vdg9BH5EbLyFTK4"
-    ;
+const VAPID_PUBLIC_KEY = "BDEMWUO3WUNf6Dk7mDjT-IgeCC-EfEDsLY5XYZHcS2V-Tc9rFIDhQEFU1eO6ItnbB0rKiok5vdg9BH5EbLyFTK4";
 
 // Check if browser supports notifications
 let isPushNotificationSupported = false;
@@ -2575,13 +2566,16 @@ function showLocalNotification(title, body) {
 
 // Update notification button UI
 function updateNotificationButtonUI(isEnabled) {
-    const notifBtn = document.getElementById('your-button-id'); // Whatever your ID is
-    if (!notifBtn) return; // Stop if button doesn't exist
-
-    const icon = notifBtn.querySelector('i'); // Assuming you are looking for an <i> tag
+    const notifBtn = document.getElementById('enable-notifications-btn');
+    if (!notifBtn) return;
+    
+    const icon = notifBtn.querySelector('i');
     if (icon) {
-        // Only change className if the icon was actually found
         icon.className = isEnabled ? 'fas fa-bell' : 'fas fa-bell-slash';
+    }
+    const span = notifBtn.querySelector('span');
+    if (span) {
+        span.textContent = isEnabled ? '✅ Notifications Enabled' : '🔔 Enable Notifications';
     }
 }
 
@@ -2821,3 +2815,13 @@ window.handleLogout = function() {
         window.location.reload();
     }
 };
+
+// Add this in your registerForPushNotifications function
+if ('serviceWorker' in navigator) {
+    try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker registered');
+    } catch (error) {
+        console.log('Service Worker registration failed:', error);
+    }
+}
