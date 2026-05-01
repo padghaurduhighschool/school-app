@@ -1,0 +1,8 @@
+{
+  "name": "PUHS Admin Portal",
+  "short_name": "Admin App", 
+  "start_url": "/admin/",
+  "theme_color": "#7c3aed",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}
