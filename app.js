@@ -2770,6 +2770,7 @@ window.togglePushNotifications = async () => {
         await enablePushNotifications();
     }
 };
+// In app.js - keep only ONE of these
 window.handleLogout = function() {
     if (confirm("Are you sure you want to logout?")) {
         // Remove items from localStorage
@@ -2779,16 +2780,20 @@ window.handleLogout = function() {
         localStorage.removeItem('userPhone');
         localStorage.removeItem('userGR');
         localStorage.removeItem('hasCheckedInToday');
+        localStorage.removeItem('lastActivityDate');
 
         // Hide main app and show login screen
-        document.getElementById('main-app').classList.add('hidden');
-        document.getElementById('login-screen').classList.remove('hidden');
+        const mainApp = document.getElementById('main-app');
+        const loginScreen = document.getElementById('login-screen');
+        if (mainApp) mainApp.classList.add('hidden');
+        if (loginScreen) loginScreen.classList.remove('hidden');
         
-        window.location.reload();
+        // Clear the content area
+        const content = document.getElementById('content');
+        if (content) content.innerHTML = '';
     }
 };
 
-// Add this in your registerForPushNotifications function
 // Register service worker
 if ('serviceWorker' in navigator) {
     (async () => {
