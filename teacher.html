@@ -810,13 +810,16 @@ function renderTeacherFeesDashboard() {
         return;
     }
     
+    // Get the annual fee for this class from Firebase (admin saved)
+    const annualFeePerStudent = feesDataCache.feeStructure[teacherClass] || 0;
+    
     // Calculate totals for each student
     const studentData = classStudents.map(student => {
         const payments = feesDataCache.payments.filter(p => 
             p.name.toLowerCase() === student.name.toLowerCase()
         );
         const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-        const totalFees = feesDataCache.feeStructure[student.class] || 0;
+        const totalFees = annualFeePerStudent; // same for all students in this class
         const balance = totalFees - totalPaid;
         
         return {
@@ -831,18 +834,25 @@ function renderTeacherFeesDashboard() {
     studentData.sort((a, b) => a.name.localeCompare(b.name));
     
     const totalCollected = studentData.reduce((sum, s) => sum + s.totalPaid, 0);
-    const totalExpected = studentData.reduce((sum, s) => sum + s.totalFees, 0);
+    const totalExpected = studentData.length * annualFeePerStudent;
     const totalBalance = totalExpected - totalCollected;
-    const missingFees = studentData.some(s => s.totalFees === 0);
+    const missingFees = annualFeePerStudent === 0;
     
     container.innerHTML = `
         <div class="space-y-4">
             ${missingFees ? `
                 <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-lg text-amber-700 text-sm">
-                    <i class="fa-solid fa-circle-info mr-2"></i> 
-                    Some classes have no annual fee set. Please ask admin to save class‑wise fees in the Admin portal.
+                    <i class="fa-solid fa-circle-exclamation mr-2"></i> 
+                    <strong>Annual fee for Class ${teacherClass} is not set.</strong><br>
+                    Please go to <strong>Admin Portal → Profile → Manage Class-wise Fees</strong> and save the amount for this class.
+                    <button onclick="refreshFeesData()" class="ml-3 mt-1 px-3 py-1 bg-amber-600 text-white rounded text-xs">↻ Refresh after saving</button>
                 </div>
-            ` : ''}
+            ` : `
+                <div class="bg-green-50 border-l-4 border-green-500 p-3 rounded-lg text-green-700 text-sm">
+                    <i class="fa-solid fa-check-circle mr-2"></i> 
+                    Annual fee for Class ${teacherClass}: <strong>₹${annualFeePerStudent.toLocaleString()}</strong> per student.
+                </div>
+            `}
             
             <!-- Summary Cards -->
             <div class="grid grid-cols-3 gap-3">
@@ -855,8 +865,8 @@ function renderTeacherFeesDashboard() {
                     <p class="text-[10px] text-gray-500">Total Collected</p>
                 </div>
                 <div class="bg-orange-50 rounded-xl p-3 text-center">
-                    <p class="text-2xl font-bold text-orange-600">₹${totalBalance.toLocaleString()}</p>
-                    <p class="text-[10px] text-gray-500">Total Balance</p>
+                    <p class="text-2xl font-bold text-orange-600">${totalBalance >= 0 ? `₹${totalBalance.toLocaleString()}` : `Overpaid ₹${Math.abs(totalBalance).toLocaleString()}`}</p>
+                    <p class="text-[10px] text-gray-500">${totalBalance >= 0 ? 'Total Balance' : 'Overpaid Amount'}</p>
                 </div>
             </div>
             
@@ -884,25 +894,34 @@ function renderTeacherFeesDashboard() {
                             </tr>
                         </thead>
                         <tbody id="teacherStudentList">
-                            ${studentData.map(s => `
-                                <tr class="border-b hover:bg-gray-50 student-row" data-name="${s.name.toLowerCase()}" data-gr="${s.grNo?.toLowerCase() || ''}">
-                                    <td class="p-3 text-sm font-medium">
-                                        ${escapeHtml(s.name)}
-                                        ${s.totalFees === 0 ? '<span class="ml-2 text-[9px] bg-red-100 text-red-600 px-1 rounded">no fee set</span>' : ''}
+                            ${studentData.map(s => {
+                                let balanceDisplay = '';
+                                if (annualFeePerStudent === 0) {
+                                    balanceDisplay = '<span class="text-gray-400">N/A (fee not set)</span>';
+                                } else if (s.balance > 0) {
+                                    balanceDisplay = `<span class="text-red-600 font-bold">₹${s.balance.toLocaleString()}</span>`;
+                                } else if (s.balance < 0) {
+                                    balanceDisplay = `<span class="text-green-600">Overpaid ₹${Math.abs(s.balance).toLocaleString()}</span>`;
+                                } else {
+                                    balanceDisplay = '<span class="text-green-600 font-bold">PAID ✓</span>';
+                                }
+                                return `
+                                    <tr class="border-b hover:bg-gray-50 student-row" data-name="${s.name.toLowerCase()}" data-gr="${s.grNo?.toLowerCase() || ''}">
+                                        <td class="p-3 text-sm font-medium">${escapeHtml(s.name)}</td>
+                                        <td class="p-3 text-sm">${s.phone || '—'}</td>
+                                        <td class="p-3 text-right text-sm text-green-600">₹${s.totalPaid.toLocaleString()}</td>
+                                        <td class="p-3 text-right text-sm">${balanceDisplay}</td>
                                     </td>
-                                    <td class="p-3 text-sm">${s.phone || '—'}</td>
-                                    <td class="p-3 text-right text-sm text-green-600">₹${s.totalPaid.toLocaleString()}</td>
-                                    <td class="p-3 text-right text-sm ${s.balance > 0 ? 'text-red-600 font-bold' : 'text-green-600'}">
-                                        ${s.totalFees === 0 ? '⚠️ N/A' : (s.balance > 0 ? `₹${s.balance.toLocaleString()}` : 'PAID')}
-                                    </td>
-                                </tr>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </tbody>
                         <tfoot class="bg-gray-50 border-t">
                             <tr>
                                 <td colspan="2" class="p-3 text-right font-bold">Class ${teacherClass} Total:</td>
                                 <td class="p-3 text-right font-bold text-green-600">₹${totalCollected.toLocaleString()}</td>
-                                <td class="p-3 text-right font-bold text-orange-600">₹${totalBalance.toLocaleString()}</td>
+                                <td class="p-3 text-right font-bold ${totalBalance >= 0 ? 'text-orange-600' : 'text-green-600'}">
+                                    ${totalBalance >= 0 ? `₹${totalBalance.toLocaleString()}` : `Overpaid ₹${Math.abs(totalBalance).toLocaleString()}`}
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
