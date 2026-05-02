@@ -548,7 +548,7 @@ function fetchTeacherNotices() {
                             <button onclick="switchLangNotice('${n.id}','mr')" class="lang-tab px-2 py-1 rounded bg-gray-100">MR</button>
                             <button onclick="switchLangNotice('${n.id}','ur')" class="lang-tab px-2 py-1 rounded bg-gray-100">UR</button>
                         </div>
-                        <p id="msg-${n.id}" class="text-xs text-gray-600 leading-relaxed">${escapeHtml(n.message?.en || 'No content')}</p>
+                        <p id="msg-${n.id}" class="text-xs text-gray-600 leading-relaxed lang-en">${escapeHtml(n.message?.en || 'No content')}</p>
                     </div>
                     <p class="text-[8px] text-gray-400 mt-3">Posted by: ${escapeHtml(n.sender)}</p>
                 </div>
@@ -565,7 +565,14 @@ window.switchLangNotice = (id, lang) => {
         const msgDiv = document.getElementById(`msg-${id}`);
         if (msgDiv) {
             msgDiv.innerText = n.message?.[lang] || n.message?.en || "No content";
-            msgDiv.className = `text-xs text-gray-600 leading-relaxed`;
+            // Apply language-specific styling
+            if (lang === 'ur') {
+                msgDiv.className = "text-xs text-gray-600 leading-relaxed lang-ur";
+            } else if (lang === 'mr') {
+                msgDiv.className = "text-xs text-gray-600 leading-relaxed lang-mr";
+            } else {
+                msgDiv.className = "text-xs text-gray-600 leading-relaxed lang-en";
+            }
         }
     });
 };
