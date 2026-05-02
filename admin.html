@@ -548,13 +548,13 @@ body.dark ::-webkit-scrollbar-thumb {
                             <div id="home-stud-bar-absent" class="bg-red-400 h-full transition-all duration-500" style="width: 0%"></div>
                         </div>
                     </div>
-<div onclick="openHomeworkManager()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-indigo-500 cursor-pointer active:scale-95 transition-all">
+<div onclick="openNoticeModal()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-500 cursor-pointer active:scale-95 transition-all">
     <div class="flex items-center justify-between">
         <div>
-            <p class="text-gray-500 text-[10px] uppercase font-bold">Management</p>
-            <p class="text-lg font-bold text-indigo-600">Homework Manager</p>
+            <p class="text-gray-500 text-[10px] uppercase font-bold">Communication</p>
+            <p class="text-lg font-bold text-red-600">Send Notice</p>
         </div>
-        <i class="fa-regular fa-pen-to-square text-indigo-400 text-2xl"></i>
+        <i class="fa-regular fa-bell text-red-400 text-2xl"></i>
     </div>
 </div>
                     <div onclick="openTeacherTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-purple-500 cursor-pointer active:scale-95 transition-all">
@@ -606,6 +606,19 @@ body.dark ::-webkit-scrollbar-thumb {
                             <i class="fa-solid fa-chart-line text-indigo-400 text-2xl"></i>
                         </div>
                     </div>
+<div onclick="openHomeworkManager()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-indigo-500 cursor-pointer active:scale-95 transition-all">
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-gray-500 text-[10px] uppercase font-bold">Management</p>
+            <p class="text-lg font-bold text-indigo-600">Homework Manager</p>
+        </div>
+        <i class="fa-regular fa-pen-to-square text-indigo-400 text-2xl"></i>
+    </div>
+</div>
+
+
+
+                    
                 </div>
             `;
             updateHomeSummary();
@@ -2529,6 +2542,170 @@ window.deleteHomework = async (id) => {
         }
     }
 };        
+// ======================= NOTICE MODAL FOR ADMIN =======================
+async function openNoticeModal() {
+    // Ensure student list is loaded for the search feature
+    if (allStudents.length === 0) await fetchStudentData();
+
+    const modalHtml = `
+        <div id="noticeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onclick="if(event.target===this) closeNoticeModal()">
+            <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
+                    <h3 class="font-bold text-lg"><i class="fa-regular fa-bell text-red-500 mr-2"></i>Send Official Notice</h3>
+                    <button onclick="closeNoticeModal()" class="text-gray-500"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <div class="p-4 space-y-4">
+                    <!-- Target Type -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Send to</label>
+                        <select id="noticeTargetType" onchange="toggleNoticeTargetFields()" class="w-full p-2 bg-gray-50 rounded-xl border text-sm">
+                            <option value="school">Whole School</option>
+                            <option value="class">Specific Class</option>
+                            <option value="student">Specific Student</option>
+                        </select>
+                    </div>
+
+                    <!-- Dynamic Target Field (Class or Student) -->
+                    <div id="noticeTargetDetails"></div>
+
+                    <!-- Title -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Notice Title</label>
+                        <input type="text" id="noticeTitle" class="w-full p-2 bg-gray-50 rounded-xl border text-sm" placeholder="e.g. Holiday on 15th August">
+                    </div>
+
+                    <!-- Multi‑language messages -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">English Message</label>
+                        <textarea id="noticeMsgEn" rows="3" class="w-full p-2 bg-gray-50 rounded-xl border text-sm" placeholder="Write notice in English..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">मराठी सूचना</label>
+                        <textarea id="noticeMsgMr" rows="2" class="w-full p-2 bg-gray-50 rounded-xl border text-sm" placeholder="मराठीत लिहा..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">اردو نوٹس</label>
+                        <textarea id="noticeMsgUr" rows="2" class="w-full p-2 bg-gray-50 rounded-xl border text-sm" style="font-family: 'Noto Nastaliq Urdu'" placeholder="اردو میں لکھیں"></textarea>
+                    </div>
+
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="postAdminNotice()" class="flex-1 bg-red-600 text-white py-2 rounded-xl font-bold">📢 Send Notice</button>
+                        <button onclick="closeNoticeModal()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-bold">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    toggleNoticeTargetFields(); // initialise target field
+}
+
+window.closeNoticeModal = () => {
+    const modal = document.getElementById('noticeModal');
+    if (modal) modal.remove();
+};
+
+window.toggleNoticeTargetFields = () => {
+    const type = document.getElementById('noticeTargetType').value;
+    const container = document.getElementById('noticeTargetDetails');
+    if (!container) return;
+
+    if (type === 'class') {
+        container.innerHTML = `
+            <select id="noticeTargetValue" class="w-full p-2 bg-gray-50 rounded-xl border text-sm">
+                ${schoolClasses.map(c => `<option value="${c}">Class ${c}</option>`).join('')}
+            </select>
+        `;
+    } else if (type === 'student') {
+        container.innerHTML = `
+            <div>
+                <input type="text" id="studentSearchInput" oninput="searchStudentsForNotice()" placeholder="Search student by name or GR..." class="w-full p-2 bg-gray-50 rounded-xl border text-sm mb-2">
+                <div id="studentSuggestions" class="border rounded-xl max-h-40 overflow-y-auto hidden bg-white"></div>
+                <input type="hidden" id="noticeTargetValue">
+            </div>
+        `;
+    } else {
+        container.innerHTML = '';
+    }
+};
+
+window.searchStudentsForNotice = () => {
+    const input = document.getElementById('studentSearchInput');
+    const suggestionsBox = document.getElementById('studentSuggestions');
+    if (!input || !suggestionsBox) return;
+    const query = input.value.trim().toLowerCase();
+    if (!query) {
+        suggestionsBox.classList.add('hidden');
+        return;
+    }
+    const filtered = allStudents.filter(s =>
+        s.name.toLowerCase().includes(query) || s.id.includes(query)
+    ).slice(0, 10);
+    if (filtered.length === 0) {
+        suggestionsBox.innerHTML = '<div class="p-2 text-gray-400 text-sm">No matching student</div>';
+    } else {
+        suggestionsBox.innerHTML = filtered.map(s => `
+            <div onclick="selectStudentForNotice('${s.id}', '${s.name}')" class="p-2 hover:bg-blue-50 cursor-pointer border-b">
+                <span class="font-medium">${escapeHtml(s.name)}</span><br>
+                <span class="text-xs text-gray-500">GR: ${s.id} | Class: ${s.class}</span>
+            </div>
+        `).join('');
+    }
+    suggestionsBox.classList.remove('hidden');
+};
+
+window.selectStudentForNotice = (grNo, studentName) => {
+    document.getElementById('studentSearchInput').value = studentName;
+    document.getElementById('noticeTargetValue').value = grNo;
+    document.getElementById('studentSuggestions').classList.add('hidden');
+};
+
+window.postAdminNotice = async () => {
+    const targetType = document.getElementById('noticeTargetType').value;
+    let targetValue = '';
+    if (targetType === 'class') {
+        targetValue = document.getElementById('noticeTargetValue')?.value || '';
+    } else if (targetType === 'student') {
+        targetValue = document.getElementById('noticeTargetValue')?.value || '';
+    } else {
+        targetValue = 'ALL';
+    }
+    const title = document.getElementById('noticeTitle').value.trim();
+    const msgEn = document.getElementById('noticeMsgEn').value.trim();
+    const msgMr = document.getElementById('noticeMsgMr').value.trim();
+    const msgUr = document.getElementById('noticeMsgUr').value.trim();
+
+    if (!title || (!msgEn && !msgMr && !msgUr)) {
+        alert('Please fill the title and at least one language message');
+        return;
+    }
+
+    try {
+        await firebase.database().ref('notices').push({
+            targetType: targetType,
+            targetValue: targetValue,
+            title: title,
+            message: { en: msgEn, mr: msgMr, ur: msgUr },
+            sender: localStorage.getItem('userName'),
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            date: new Date().toLocaleDateString('en-GB')
+        });
+        alert('✅ Notice sent successfully!');
+        closeNoticeModal();
+        // Optionally refresh the notices list if it's currently open
+        if (document.getElementById('notices-list')) {
+            fetchNotices();
+        }
+    } catch (error) {
+        console.error(error);
+        alert('❌ Error sending notice: ' + error.message);
+    }
+};
+
+
+
+
+
         
     </script>
 </body>
