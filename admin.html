@@ -256,20 +256,20 @@
                 loadAdminHome();
             } 
             else if (section === 'staff') {
-                loadStaffLogsDetail();   // CHANGED: Now shows Staff Logs instead of Staff Management
-            }
-            else if (section === 'students') {
-                loadStudentManagement();
+                loadStaffLogsDetail();   // Shows Staff Logs
             }
             else if (section === 'attendance') {
-                loadAttendanceReports();
+                loadAttendanceReports();   // Shows class-wise attendance status
+            }
+            else if (section === 'students') {
+                loadStudentManagement();   // Keep original student management for bottom nav
             }
             else if (section === 'more') {
                 loadAdminProfile();
             }
         };
 
-        // ADMIN HOME DASHBOARD - Updated card title and onclick
+        // ADMIN HOME DASHBOARD - Updated: Student Management -> Student Attendance (now loads attendance reports)
         async function loadAdminHome() {
             const content = document.getElementById('content');
             const name = localStorage.getItem('userName');
@@ -283,7 +283,7 @@
                         <p class="text-xs opacity-70 mt-2">Role: ${role}</p>
                     </div>
 
-                    <!-- CHANGED: Staff Management -> Staff Attendance, onclick loads Staff Logs -->
+                    <!-- Staff Attendance Card -->
                     <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:scale-95 transition-all" onclick="loadSection('staff')">
                         <div class="flex justify-between items-center mb-2">
                             <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Staff Attendance</h3>
@@ -304,9 +304,10 @@
                         </div>
                     </div>
 
-                    <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:scale-95 transition-all" onclick="loadSection('students')">
+                    <!-- CHANGED: Student Management -> Student Attendance, now loads attendance reports -->
+                    <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:scale-95 transition-all" onclick="loadSection('attendance')">
                         <div class="flex justify-between items-center mb-2">
-                            <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Student Management</h3>
+                            <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Student Attendance</h3>
                             <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold" id="home-stud-total">0</span>
                         </div>
                         <div class="grid grid-cols-3 gap-2 items-end">
@@ -329,15 +330,7 @@
                         </div>
                     </div>
 
-                    <div onclick="loadSection('attendance')" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500 cursor-pointer active:scale-95 transition-all">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-[10px] uppercase font-bold">Reports</p>
-                                <p class="text-lg font-bold text-green-600">Attendance Reports</p>
-                            </div>
-                            <i class="fa-regular fa-calendar text-green-400 text-2xl"></i>
-                        </div>
-                    </div>
+                    <!-- REMOVED: Attendance Reports card -->
 
                     <div onclick="openTeacherTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-purple-500 cursor-pointer active:scale-95 transition-all">
                         <div class="flex items-center justify-between">
@@ -393,7 +386,7 @@
             updateHomeSummary();
         }
 
-        // NEW FUNCTION: Staff Logs Detail (shows today's staff check-in/out logs)
+        // STAFF LOGS DETAIL (shows today's staff check-in/out logs)
         async function loadStaffLogsDetail() {
             const content = document.getElementById('content');
             const dateKey = new Date().toISOString().split('T')[0];
@@ -437,11 +430,10 @@
             const container = document.getElementById('staff-logs-container');
             
             try {
-                // Get all staff from CSV to have names and roles
                 const staffResponse = await fetch(TEACHER_SHEET_CSV);
                 const staffText = await staffResponse.text();
                 const staffRows = staffText.split('\n').slice(1);
-                const staffMap = new Map(); // phone -> {name, role}
+                const staffMap = new Map();
                 
                 for (let i = 0; i < staffRows.length; i++) {
                     if (!staffRows[i].trim()) continue;
@@ -456,7 +448,6 @@
                     }
                 }
                 
-                // Get attendance logs for today
                 const snapshot = await firebase.database().ref(`attendance/${dateKey}`).once('value');
                 const logsData = snapshot.val();
                 
@@ -465,14 +456,12 @@
                     return;
                 }
                 
-                // Process logs: group by staff member (by name) to combine IN/OUT
-                const staffLogsMap = new Map(); // name -> { logs: [], role, phone, firstIn, lastOut }
+                const staffLogsMap = new Map();
                 Object.values(logsData).forEach(log => {
                     const name = log.name;
                     if (!name) return;
                     
                     if (!staffLogsMap.has(name)) {
-                        // Find staff info from CSV
                         let staffRole = 'Staff';
                         let staffPhone = '';
                         for (let [phone, info] of staffMap.entries()) {
@@ -512,7 +501,6 @@
                     }
                 });
                 
-                // Convert to array and sort by name
                 const staffArray = Array.from(staffLogsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
                 
                 if (staffArray.length === 0) {
@@ -520,7 +508,6 @@
                     return;
                 }
                 
-                // Render the logs
                 container.innerHTML = staffArray.map(staff => {
                     const inStatus = staff.firstIn ? `<span class="text-green-600"><i class="fa-solid fa-sign-in-alt mr-1"></i>${staff.firstIn.time}</span>` : '<span class="text-gray-400">Not checked in</span>';
                     const outStatus = staff.lastOut ? `<span class="text-red-600"><i class="fa-solid fa-sign-out-alt mr-1"></i>${staff.lastOut.time}</span>` : '<span class="text-gray-400">Not checked out</span>';
@@ -578,7 +565,6 @@
             }
         }
         
-        // Filter staff logs by search term
         window.filterStaffLogsList = () => {
             const searchTerm = document.getElementById('staffLogSearch')?.value.toLowerCase() || '';
             const items = document.querySelectorAll('.staff-log-item');
@@ -590,13 +576,11 @@
             });
         };
         
-        // Refresh staff logs
         window.refreshStaffLogs = () => {
             fetchStaffLogsData();
             showToast("Staff logs refreshed");
         };
         
-        // Export staff logs to CSV
         window.exportStaffLogs = async () => {
             const dateKey = new Date().toISOString().split('T')[0];
             try {
@@ -624,144 +608,7 @@
             }
         };
 
-        // STAFF MANAGEMENT - Original function kept for reference but no longer used by main card
-        async function loadStaffManagement() {
-            const content = document.getElementById('content');
-            content.innerHTML = `
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full mr-2"><i class="fa-solid fa-arrow-left"></i></button>
-                            <h2 class="text-lg font-bold">Staff Management</h2>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="exportStaffData()" class="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs">
-                                <i class="fa-solid fa-download mr-1"></i>Export
-                            </button>
-                            <button onclick="refreshStaffData()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs">
-                                <i class="fa-solid fa-refresh mr-1"></i>Refresh
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white p-4 rounded-2xl shadow-sm">
-                        <div class="relative">
-                            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            <input type="text" id="staffSearch" onkeyup="filterStaffList()" placeholder="Search by name, phone, or role..." class="w-full p-3 pl-10 bg-gray-50 rounded-xl text-sm">
-                        </div>
-                    </div>
-                    
-                    <div id="staff-list-container" class="space-y-2">
-                        <div class="text-center py-10"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i><p class="text-gray-400 text-sm mt-2">Loading staff...</p></div>
-                    </div>
-                </div>
-            `;
-            await loadStaffData();
-        }
-
-        async function loadStaffData() {
-            try {
-                const response = await fetch(TEACHER_SHEET_CSV);
-                const text = await response.text();
-                const rows = text.split('\n').slice(1);
-                const staffList = [];
-                
-                for (let i = 0; i < rows.length; i++) {
-                    if (!rows[i].trim()) continue;
-                    const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if (cols.length >= 4) {
-                        staffList.push({
-                            phone: cols[0]?.replace(/"/g, '').trim(),
-                            code: cols[1]?.replace(/"/g, '').trim(),
-                            name: cols[2]?.replace(/"/g, '').trim(),
-                            role: cols[3]?.replace(/"/g, '').trim(),
-                            class: cols[5]?.replace(/"/g, '').trim() || 'N/A'
-                        });
-                    }
-                }
-                
-                renderStaffList(staffList);
-            } catch (error) {
-                console.error(error);
-                document.getElementById('staff-list-container').innerHTML = `<div class="text-center py-10 text-red-500">Error loading staff data</div>`;
-            }
-        }
-
-        function renderStaffList(staff) {
-            const container = document.getElementById('staff-list-container');
-            if (!container) return;
-            if (staff.length === 0) {
-                container.innerHTML = `<div class="text-center py-10 text-gray-400">No staff members found.</div>`;
-                return;
-            }
-            
-            container.innerHTML = staff.map(s => `
-                <div class="bg-white rounded-2xl border shadow-sm overflow-hidden staff-item" data-name="${(s.name || '').toLowerCase()}" data-phone="${s.phone || ''}" data-role="${(s.role || '').toLowerCase()}">
-                    <div class="p-4">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 flex-wrap mb-2">
-                                    <h3 class="font-bold text-gray-800 text-lg">${escapeHtml(s.name || 'Unknown')}</h3>
-                                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 font-bold">${escapeHtml(s.role || 'Teacher')}</span>
-                                </div>
-                                <div class="space-y-1 text-sm">
-                                    <div class="flex items-center gap-3 text-gray-500">
-                                        <i class="fa-solid fa-phone text-xs w-4"></i>
-                                        <span class="text-xs">${s.phone || 'No phone'}</span>
-                                        ${s.phone ? `<button onclick="copyToClipboard('${s.phone}')" class="text-blue-500 text-[10px]"><i class="fa-regular fa-copy"></i> Copy</button>
-                                        <a href="tel:${s.phone}" class="text-green-500 text-[10px]"><i class="fa-solid fa-phone"></i> Call</a>` : ''}
-                                    </div>
-                                    <div class="flex items-center gap-3 text-gray-500">
-                                        <i class="fa-solid fa-lock text-xs w-4"></i>
-                                        <span class="text-xs">Code: ${s.code || '***'}</span>
-                                        <button onclick="copyToClipboard('${s.code}')" class="text-blue-500 text-[10px]"><i class="fa-regular fa-copy"></i> Copy</button>
-                                    </div>
-                                    ${s.class !== 'N/A' ? `<div class="flex items-center gap-3 text-gray-500"><i class="fa-solid fa-chalkboard text-xs w-4"></i><span class="text-xs">Assigned Class: ${s.class}</span></div>` : ''}
-                                </div>
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <button onclick="editStaff('${s.phone}')" class="text-blue-600 text-xs hover:text-blue-800 p-1"><i class="fa-regular fa-pen-to-square"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        window.filterStaffList = () => {
-            const searchTerm = document.getElementById('staffSearch')?.value.toLowerCase() || '';
-            const items = document.querySelectorAll('.staff-item');
-            items.forEach(item => {
-                const name = item.getAttribute('data-name');
-                const phone = item.getAttribute('data-phone');
-                const role = item.getAttribute('data-role');
-                const matches = name?.includes(searchTerm) || phone?.includes(searchTerm) || role?.includes(searchTerm);
-                item.style.display = matches ? '' : 'none';
-            });
-        };
-
-        window.editStaff = (phone) => {
-            alert(`Edit staff member: ${phone}\n\nIn production, this would open an edit form and update the Google Sheet.`);
-        };
-
-        window.exportStaffData = async () => {
-            const response = await fetch(TEACHER_SHEET_CSV);
-            const text = await response.text();
-            const blob = new Blob([text], { type: 'text/csv' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `staff_export_${new Date().toISOString().split('T')[0]}.csv`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-            showToast("Staff data exported");
-        };
-
-        window.refreshStaffData = () => {
-            loadStaffData();
-            showToast("Staff data refreshed");
-        };
-
-        // STUDENT MANAGEMENT - Identical to original students section
+        // STUDENT MANAGEMENT - Original function kept for bottom nav
         async function loadStudentManagement() {
             const content = document.getElementById('content');
             content.innerHTML = `
@@ -871,7 +718,7 @@
             showToast("Student data refreshed");
         };
 
-        // ATTENDANCE REPORTS - Admin view of all attendance
+        // ATTENDANCE REPORTS - Admin view of all attendance (class-wise summary)
         async function loadAttendanceReports() {
             const content = document.getElementById('content');
             const dateKey = new Date().toISOString().split('T')[0];
@@ -1171,7 +1018,7 @@
             }
         };
 
-        // TIME TABLE FUNCTIONS - Same as original
+        // TIME TABLE FUNCTIONS - Same as original (kept for brevity, but not modified)
         window.openDailyTimeTable = () => {
             const content = document.getElementById('content');
             const role = localStorage.getItem('userRole');
@@ -1338,7 +1185,7 @@
                 
                 for (let i = 1; i <= 10; i++) {
                     const rowData = data[i] || { date: "", day: "", time: "", sub: "" };
-                    html += `<tr>
+                    html += `</td>
                         <td class="p-2 border">${isAdmin ? `<input type="text" id="ex-date-${i}" value="${rowData.date}" class="w-full p-1 text-xs border-none bg-gray-50 rounded">` : `<span class="text-xs">${rowData.date || '-'}</span>`}</td>
                         <td class="p-2 border">${isAdmin ? `<input type="text" id="ex-day-${i}" value="${rowData.day}" class="w-full p-1 text-xs border-none bg-gray-50 rounded">` : `<span class="text-xs">${rowData.day || '-'}</span>`}</td>
                         <td class="p-2 border">${isAdmin ? `<input type="text" id="ex-time-${i}" value="${rowData.time}" class="w-full p-1 text-xs border-none bg-gray-50 rounded">` : `<span class="text-xs">${rowData.time || '-'}</span>`}</td>
@@ -1512,7 +1359,7 @@
                         html += `<td class="p-3 border text-gray-700 text-xs">${displayValue}</td>`;
                     }
                 }
-                html += `</tr>`;
+                html += `</table>`;
             }
             
             html += `
@@ -1581,7 +1428,6 @@
             }
         };
 
-        // FEES DASHBOARD
         let feesDataCache = {
             payments: [],
             feeStructure: {},
@@ -2026,12 +1872,10 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // Apply saved theme
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark');
         }
 
-        // Register service worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
