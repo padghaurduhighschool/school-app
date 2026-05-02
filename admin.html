@@ -1792,7 +1792,6 @@ window.loadPastAttendanceData = async () => {
     currentPastDate = date;
     currentPastClass = className;
     
-    // Update display headers
     document.getElementById('editorDateDisplay').innerText = new Date(date).toLocaleDateString('en-GB');
     document.getElementById('editorClassDisplay').innerText = `Class ${className}`;
     
@@ -1803,21 +1802,38 @@ window.loadPastAttendanceData = async () => {
     studentListDiv.innerHTML = `<div class="p-8 text-center"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i><p class="text-gray-400 mt-2">Loading students...</p></div>`;
     
     try {
-        // Fetch students from CSV
+        // Fetch students CSV
         const response = await fetch(STUDENT_SHEET_CSV);
         const text = await response.text();
-        const rows = text.split('\n').filter(row => row.trim() !== '').slice(1);
+        const lines = text.split('\n');
+        const headers = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/"/g, '').trim().toLowerCase());
         
+        // Find phone column index (look for phone/mobile/contact, otherwise fallback to column 15)
+        let phoneColIndex = 15; // default fallback
+        for (let i = 0; i < headers.length; i++) {
+            const h = headers[i];
+            if (h.includes('phone') || h.includes('mobile') || h.includes('contact')) {
+                phoneColIndex = i;
+                break;
+            }
+        }
+        
+        const rows = lines.slice(1).filter(row => row.trim() !== '');
         const students = [];
+        
         for (let row of rows) {
             const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             const studentClass = cols[1]?.replace(/"/g, '').trim();
             if (studentClass === className) {
+                let phone = '';
+                if (cols[phoneColIndex]) {
+                    phone = cols[phoneColIndex].replace(/"/g, '').trim();
+                }
                 students.push({
                     grNo: cols[2]?.replace(/"/g, '').trim(),
                     name: cols[7]?.replace(/"/g, '').trim(),
                     roll: cols[3]?.replace(/"/g, '').trim(),
-                    contact: cols[15]?.replace(/"/g, '').trim()
+                    phone: phone   // now correctly holds phone number, not address
                 });
             }
         }
@@ -1829,11 +1845,9 @@ window.loadPastAttendanceData = async () => {
             return;
         }
         
-        // Fetch existing attendance for this date & class
         const attendanceSnap = await firebase.database().ref(`student_attendance/${date}/${className}/records`).once('value');
         const existingAttendance = attendanceSnap.val() || {};
         
-        // Render student list with status
         renderPastAttendanceStudentList(existingAttendance);
         
     } catch (error) {
@@ -1856,14 +1870,19 @@ function renderPastAttendanceStudentList(existingAttendance) {
         const isPresent = (status === 'Present');
         const isAbsent = (status === 'Absent');
         
+        // Phone display (only if a valid phone number exists)
+        const phoneHtml = student.phone && student.phone.length >= 8 
+            ? `<span><i class="fa-solid fa-phone mr-1"></i>${student.phone}</span>`
+            : '';
+        
         return `
             <div class="p-4 flex items-center justify-between hover:bg-gray-50 transition-all" data-gr="${student.grNo}">
                 <div class="flex-1">
                     <p class="font-bold text-gray-800">${escapeHtml(student.name)}</p>
-                    <div class="flex gap-3 text-xs text-gray-500 mt-0.5">
+                    <div class="flex gap-3 text-xs text-gray-500 mt-0.5 flex-wrap">
                         <span><i class="fa-regular fa-id-card mr-1"></i>GR: ${student.grNo || 'N/A'}</span>
                         <span><i class="fa-regular fa-flag mr-1"></i>Roll: ${student.roll || 'N/A'}</span>
-                        ${student.contact ? `<span><i class="fa-solid fa-phone mr-1"></i>${student.contact}</span>` : ''}
+                        ${phoneHtml}
                     </div>
                 </div>
                 <div class="flex gap-3">
