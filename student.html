@@ -159,7 +159,7 @@ async function loadFeesData() {
     const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
     
     try {
-        // 1. Load Payments – using exact robust logic from teacher portal
+        // 1. Load Payments – robust parsing with headers
         const paymentsRes = await fetch(FEES_CSV_URL);
         const paymentsText = await paymentsRes.text();
         const paymentsLines = paymentsText.split('\n');
@@ -170,7 +170,6 @@ async function loadFeesData() {
         
         for (let i = 1; i < paymentsLines.length; i++) {
             if (!paymentsLines[i].trim()) continue;
-            // Use regex to split while respecting quoted commas
             const cols = paymentsLines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             
             const studentNameIndex = paymentHeaders.findIndex(h => h.includes('name') || h.includes('student'));
@@ -183,7 +182,7 @@ async function loadFeesData() {
             let date = dateIndex >= 0 ? cols[dateIndex]?.replace(/"/g, '').trim() : '';
             let amount = amountIndex >= 0 ? parseFloat(cols[amountIndex]?.replace(/"/g, '').trim()) || 0 : 0;
             
-            // Fallback for common column positions if headers not found
+            // Fallback for common column positions
             if (!studentName && cols[1]) studentName = cols[1]?.replace(/"/g, '').trim();
             if (!receiptNo && cols[0]) receiptNo = cols[0]?.replace(/"/g, '').trim();
             if (!date && cols[2]) date = cols[2]?.replace(/"/g, '').trim();
@@ -191,29 +190,23 @@ async function loadFeesData() {
             
             if (studentName) {
                 feesDataCache.payments.push({ name: studentName, receiptNo, date, amount });
-                console.log(`✅ Loaded payment: ${studentName} - ₹${amount} (${receiptNo})`);
-            } else {
-                console.warn(`⚠️ Skipping row ${i}: no student name found`, cols);
+                console.log(`✅ Loaded payment: ${studentName} - ₹${amount}`);
             }
         }
         
-        console.log(`📊 Total payments loaded: ${feesDataCache.payments.length}`);
-        
-        // 2. Load Fee Structure from Firebase (unchanged)
+        // 2. Load fee structure from Firebase
         feesDataCache.feeStructure = {};
         try {
             const snap = await firebase.database().ref('feeStructure/classWise').once('value');
             if (snap.exists()) {
                 feesDataCache.feeStructure = snap.val();
-                console.log("✅ Student fee structure from Firebase:", feesDataCache.feeStructure);
-            } else {
-                console.warn("⚠️ No fee structure in Firebase. Please ask admin to set it.");
+                console.log("✅ Fee structure:", feesDataCache.feeStructure);
             }
         } catch (err) {
-            console.warn("Could not load fee structure from Firebase", err);
+            console.warn("Could not load fee structure", err);
         }
         
-        // 3. Load Students (unchanged, but ensure name trimming)
+        // 3. Load students list (for reference)
         const studentRes = await fetch(STUDENT_SHEET_CSV);
         const studentText = await studentRes.text();
         const rows = studentText.split('\n').slice(1);
@@ -228,11 +221,7 @@ async function loadFeesData() {
             if (sname) feesDataCache.students.push({ name: sname, class: sclass, grNo: gr, phone });
         }
         
-        console.log("Student fees data loaded:", { 
-            payments: feesDataCache.payments.length, 
-            samplePayment: feesDataCache.payments[0],
-            studentName: localStorage.getItem('userName')
-        });
+        console.log(`📊 Total payments loaded: ${feesDataCache.payments.length}`);
     } catch (e) {
         console.error("Error loading fees data:", e);
     }
@@ -370,27 +359,29 @@ function renderStudentFeesDashboard() {
     const studentGR = localStorage.getItem('userGR');
     const studentClass = localStorage.getItem('mappedClass');
     
-    // Normalization function: remove all non-alphanumeric chars and extra spaces, then lowercase
-    function normalizeName(name) {
-        return name.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+    // Normalization: remove punctuation, extra spaces, lowercase
+    function normalize(str) {
+        return str.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
     }
     
-    const normalizedStudent = normalizeName(studentName);
+    const normalizedStudent = normalize(studentName);
     
-    // Filter payments using normalized comparison
+    // Flexible matching: exact normalized OR one contains the other
     const payments = feesDataCache.payments.filter(p => {
-        const normalizedPayment = normalizeName(p.name);
-        return normalizedPayment === normalizedStudent;
+        const normalizedPayment = normalize(p.name);
+        // Check if normalized strings are equal OR one contains the other
+        return normalizedPayment === normalizedStudent ||
+               normalizedPayment.includes(normalizedStudent) ||
+               normalizedStudent.includes(normalizedPayment);
     }).sort((a, b) => b.date.localeCompare(a.date));
     
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     const totalFees = feesDataCache.feeStructure[studentClass] || 0;
     const balance = totalFees - totalPaid;
     
-    // Debug info (visible in console)
     console.log('Student name:', studentName);
-    console.log('Normalized:', normalizedStudent);
-    console.log('Payments loaded:', feesDataCache.payments.map(p => ({ name: p.name, normalized: normalizeName(p.name), amount: p.amount })));
+    console.log('Normalized student:', normalizedStudent);
+    console.log('Matched payments:', payments.map(p => ({ name: p.name, amount: p.amount })));
     
     container.innerHTML = `
         <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 text-white">
