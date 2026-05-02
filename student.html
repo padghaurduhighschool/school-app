@@ -159,12 +159,14 @@ async function loadFeesData() {
     const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
     
     try {
-        // 1. Load Payments – using same robust logic as teacher portal
+        // 1. Load Payments – using exact robust logic from teacher portal
         const paymentsRes = await fetch(FEES_CSV_URL);
         const paymentsText = await paymentsRes.text();
         const paymentsLines = paymentsText.split('\n');
         const paymentHeaders = paymentsLines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
         feesDataCache.payments = [];
+        
+        console.log("📊 Payment CSV Headers:", paymentHeaders);
         
         for (let i = 1; i < paymentsLines.length; i++) {
             if (!paymentsLines[i].trim()) continue;
@@ -189,8 +191,13 @@ async function loadFeesData() {
             
             if (studentName) {
                 feesDataCache.payments.push({ name: studentName, receiptNo, date, amount });
+                console.log(`✅ Loaded payment: ${studentName} - ₹${amount} (${receiptNo})`);
+            } else {
+                console.warn(`⚠️ Skipping row ${i}: no student name found`, cols);
             }
         }
+        
+        console.log(`📊 Total payments loaded: ${feesDataCache.payments.length}`);
         
         // 2. Load Fee Structure from Firebase (unchanged)
         feesDataCache.feeStructure = {};
