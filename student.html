@@ -3,771 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Padgha Urdu High School - Student Portal</title>
+    <title>Padgha Urdu High School | Student Portal</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#6366f1">
+    <meta name="theme-color" content="#f97316">
     <link rel="apple-touch-icon" href="Padgha Urdu High School Logo.png">
     <link rel="icon" type="image/png" href="Padgha Urdu High School Logo.png">
-    <!-- Tailwind + Icons + Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:opsz,wght@14..32,400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&family=Noto+Sans+Devanagari&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
     <style>
-        /* === MODERN STYLES (exactly from style.css + original extras) === */
         * { font-family: 'Inter', sans-serif; }
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
-        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 24px; box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1); }
-        .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 -10px 30px -10px rgba(0, 0, 0, 0.1); }
-        .nav-btn { color: #94a3b8; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
-        .nav-btn.active { color: #6366f1; transform: translateY(-8px); }
-        .nav-btn.active i { text-shadow: 0 2px 10px rgba(99, 102, 241, 0.3); }
-        .nav-btn.active::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 20px; height: 3px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 3px; }
-        .modern-input { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 12px 16px; transition: all 0.2s ease; font-size: 14px; }
-        .modern-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
-        .modern-btn { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border: none; border-radius: 16px; padding: 14px 24px; font-weight: 600; color: white; transition: all 0.3s ease; cursor: pointer; box-shadow: 0 4px 15px -3px rgba(99, 102, 241, 0.3); }
-        .modern-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px -5px rgba(99, 102, 241, 0.4); }
-        .hover-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .hover-card:hover { transform: translateY(-4px); box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.15); }
+        body { background: #fef9e8; background-image: radial-gradient(circle at 10% 20%, rgba(251, 191, 36, 0.08) 0%, transparent 40%); min-height: 100vh; }
+        h1, h2, h3, .font-heading { font-family: 'Nunito', sans-serif; letter-spacing: -0.01em; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 2rem; box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1); }
+        .floating-nav { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(20px); border-radius: 2rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02); border: 1px solid rgba(255, 255, 255, 0.5); }
+        .nav-btn { color: #94a3b8; transition: all 0.3s cubic-bezier(0.34, 1.2, 0.64, 1); position: relative; }
+        .nav-btn.active { color: #f97316; transform: translateY(-4px); }
+        .nav-btn.active i { animation: bounce 0.4s ease; }
+        @keyframes bounce { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-6px); } }
+        .modern-input { background: white; border: 1px solid #fed7aa; border-radius: 1.5rem; padding: 12px 16px; transition: all 0.2s ease; font-size: 14px; }
+        .modern-input:focus { outline: none; border-color: #f97316; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15); }
+        .modern-btn { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); border: none; border-radius: 2rem; padding: 14px 24px; font-weight: 700; color: white; transition: all 0.3s ease; cursor: pointer; box-shadow: 0 4px 15px -3px rgba(249, 115, 22, 0.4); }
+        .modern-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px -5px rgba(249, 115, 22, 0.5); }
+        .hover-card { transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1); }
+        .hover-card:hover { transform: translateY(-6px) scale(1.01); box-shadow: 0 25px 35px -12px rgba(0, 0, 0, 0.15); }
         .splash-logo { animation: pulse 2s ease-in-out infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: #fff1e6; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #f97316, #ea580c); border-radius: 10px; }
         .lang-mr { font-family: 'Kokila', 'Noto Sans Devanagari', sans-serif; }
         .lang-ur { font-family: 'Noto Nastaliq Urdu', serif; direction: rtl; text-align: right; }
-        .loading-spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top: 3px solid #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .loading-spinner { width: 40px; height: 40px; border: 3px solid #ffe6cc; border-top: 3px solid #f97316; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .fab { position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px; border-radius: 28px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); cursor: pointer; transition: all 0.3s ease; z-index: 40; }
-        .fab:hover { transform: scale(1.1); }
-        body.dark .bg-white { background-color: #1f2937 !important; color: #f3f4f6; }
-        body.dark .text-gray-800 { color: #f3f4f6; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .hover-card { animation: fadeIn 0.3s ease-out; }
-        .attendance-checkbox { transform: scale(1.2); margin-right: 6px; }
-        /* Extra for timetable readability */
-        .timetable-table th, .timetable-table td { vertical-align: middle; text-align: center; white-space: nowrap; }
-        /* ===== DARK MODE IMPROVEMENTS ===== */
-body.dark .glass-nav {
-    background: rgba(31, 41, 55, 0.9);
-    backdrop-filter: blur(20px);
-    border-top-color: rgba(255, 255, 255, 0.05);
-}
-
-/* Cards & panels */
-body.dark .bg-white,
-body.dark [class*="bg-white"] {
-    background-color: #1f2937 !important;
-    color: #f3f4f6;
-}
-body.dark .bg-gray-50 {
-    background-color: #111827 !important;
-}
-body.dark .bg-gray-100 {
-    background-color: #1f2937 !important;
-}
-body.dark .bg-blue-50,
-body.dark .bg-green-50,
-body.dark .bg-red-50,
-body.dark .bg-yellow-50,
-body.dark .bg-orange-50,
-body.dark .bg-purple-50,
-body.dark .bg-indigo-50,
-body.dark .bg-amber-50,
-body.dark .bg-emerald-50 {
-    background-color: #1a2332 !important;
-    color: #e5e7eb;
-}
-/* Keep strong coloured backgrounds for status cards */
-body.dark .bg-green-50 {
-    background-color: #064e3b !important;
-}
-body.dark .bg-red-50 {
-    background-color: #7f1d1d !important;
-}
-body.dark .bg-blue-50 {
-    background-color: #1e3a5f !important;
-}
-body.dark .bg-yellow-50 {
-    background-color: #78350f !important;
-}
-
-/* Text colours */
-body.dark .text-gray-800,
-body.dark .text-gray-700 {
-    color: #e5e7eb !important;
-}
-body.dark .text-gray-600 {
-    color: #d1d5db !important;
-}
-body.dark .text-gray-500 {
-    color: #9ca3af !important;
-}
-body.dark .text-gray-400 {
-    color: #6b7280 !important;
-}
-body.dark .text-gray-300 {
-    color: #4b5563 !important;
-}
-
-/* Inputs & selects */
-body.dark .modern-input,
-body.dark input[type="text"],
-body.dark input[type="tel"],
-body.dark input[type="number"],
-body.dark input[type="date"],
-body.dark input[type="search"],
-body.dark select,
-body.dark textarea {
-    background-color: #374151;
-    border-color: #4b5563;
-    color: #f3f4f6;
-}
-body.dark .modern-input:focus,
-body.dark input:focus,
-body.dark select:focus,
-body.dark textarea:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
-}
-
-/* Borders */
-body.dark .border,
-body.dark .border-b,
-body.dark .border-t,
-body.dark .border-l,
-body.dark .border-r,
-body.dark .border-gray-200,
-body.dark .border-gray-100 {
-    border-color: #374151 !important;
-}
-
-/* Dividers & hr */
-body.dark .divide-y > * + * {
-    border-top-color: #374151 !important;
-}
-
-/* Shadows (make them darker) */
-body.dark .shadow-sm,
-body.dark .shadow,
-body.dark .shadow-lg {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
-}
-body.dark .glass-card {
-    background: rgba(31, 41, 55, 0.95);
-    backdrop-filter: blur(10px);
-}
-
-/* Buttons (non‑gradient) – keep the gradient for main buttons */
-body.dark button.bg-gray-100 {
-    background-color: #374151;
-    color: #e5e7eb;
-}
-
-/* Nav buttons */
-body.dark .nav-btn {
-    color: #9ca3af;
-}
-body.dark .nav-btn.active {
-    color: #818cf8;
-}
-
-/* FAB */
-body.dark .fab {
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
-}
-
-/* Tables & timetable cells */
-body.dark table {
-    background-color: #1f2937;
-}
-body.dark table th,
-body.dark table td {
-    border-color: #374151 !important;
-}
-body.dark .timetable-table th {
-    background-color: #4b5563;
-    color: #f3f4f6;
-}
-body.dark .timetable-table td {
-    background-color: #1f2937;
-    color: #d1d5db;
-}
-body.dark .timetable-table input {
-    background-color: #374151;
-    color: #f3f4f6;
-    border-color: #4b5563;
-}
-
-/* Modals */
-body.dark .paste-modal-content {
-    background-color: #1f2937;
-    color: #f3f4f6;
-    border: 1px solid #4b5563;
-}
-body.dark .paste-modal textarea {
-    background-color: #374151;
-    color: #f3f4f6;
-    border-color: #4b5563;
-}
-
-/* Splash screen (already fine) */
-/* Notification badge */
-body.dark .notification-badge {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: white;
-}
-
-/* Cards with hover effects */
-body.dark .hover-card:hover {
-    box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.5);
-}
-
-/* Attendance checkboxes toggle (peer) background */
-body.dark .attendance-checkbox + div {
-    background-color: #4b5563;
-}
-
-/* Scrollbar (optional) */
-body.dark ::-webkit-scrollbar-track {
-    background: #374151;
-}
-body.dark ::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-}
+        .fab { position: fixed; bottom: 90px; right: 20px; background: linear-gradient(135deg, #f97316, #ea580c); color: white; border-radius: 1.5rem; padding: 14px 18px; box-shadow: 0 10px 20px -5px rgba(249, 115, 22, 0.4); cursor: pointer; transition: all 0.3s ease; z-index: 40; display: flex; align-items: center; gap: 6px; font-weight: bold; }
+        .fab:hover { transform: scale(1.08) translateY(-4px); }
+        body.dark { background: #1e1b1a; background-image: radial-gradient(circle at 10% 20%, rgba(249, 115, 22, 0.15) 0%, transparent 40%); }
+        body.dark .bg-white { background-color: #2d2a29 !important; }
+        body.dark .text-gray-800 { color: #fef3e8 !important; }
+        body.dark .bg-gray-50, body.dark .bg-gray-100 { background-color: #3b3532 !important; }
+        body.dark .modern-input, body.dark input, body.dark select, body.dark textarea { background-color: #4a4340; border-color: #f97316; color: #fff; }
+        body.dark .floating-nav { background: rgba(30, 27, 26, 0.9); border-color: rgba(249, 115, 22, 0.3); }
+        body.dark .nav-btn.active { color: #f97316; }
+        body.dark .glass-card { background: rgba(45, 42, 41, 0.95); }
     </style>
 </head>
-<body>
+<body class="transition-colors duration-300">
 
-<!-- Splash Screen -->
-<div id="splash-screen" class="fixed inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex flex-col items-center justify-center z-50">
+<div id="splash-screen" class="fixed inset-0 bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 flex flex-col items-center justify-center z-50">
     <div class="text-center animate-bounce">
-        <img src="Padgha Urdu High School Logo.png" alt="School Logo" class="w-28 h-28 object-contain mx-auto mb-6 splash-logo" onerror="this.style.display='none'">
-        <h1 class="text-3xl font-bold text-white mb-2">Padgha Urdu High School</h1>
-        <p class="text-white/80 text-sm">Student Portal · Excellence in Education</p>
+        <img src="Padgha Urdu High School Logo.png" alt="Logo" class="w-28 h-28 object-contain mx-auto mb-6 splash-logo" onerror="this.style.display='none'">
+        <h1 class="text-4xl font-black text-white mb-2 drop-shadow-lg">Padgha Urdu High School</h1>
+        <p class="text-white/90 text-sm font-medium">Student Portal • Excellence in Education</p>
     </div>
     <div class="mt-8"><div class="loading-spinner"></div></div>
 </div>
 
-<!-- Student Login Screen (modern) -->
 <div id="login-screen" class="hidden min-h-screen flex items-center justify-center p-4">
     <div class="glass-card w-full max-w-md p-8">
         <div class="text-center mb-8">
-            <img src="Padgha Urdu High School Logo.png" alt="Logo" class="w-20 h-20 mx-auto mb-4" onerror="this.style.display='none'">
-            <h2 class="text-2xl font-bold gradient-text">Student Login</h2>
+            <img src="Padgha Urdu High School Logo.png" alt="Logo" class="w-24 h-24 mx-auto mb-4 rounded-full shadow-lg" onerror="this.style.display='none'">
+            <h2 class="text-3xl font-black text-orange-500">Student Login</h2>
             <p class="text-gray-500 text-sm mt-2">Enter phone number & login code</p>
         </div>
         <div class="space-y-4">
             <div class="relative">
-                <i class="fas fa-phone-alt absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                <i class="fas fa-phone-alt absolute left-5 top-1/2 transform -translate-y-1/2 text-orange-400"></i>
                 <input type="tel" id="phone" placeholder="Phone Number" class="modern-input w-full pl-12">
             </div>
             <div class="relative">
-                <i class="fas fa-key absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                <i class="fas fa-key absolute left-5 top-1/2 transform -translate-y-1/2 text-orange-400"></i>
                 <input type="text" id="code" placeholder="Login Code" class="modern-input w-full pl-12">
             </div>
             <button onclick="handleLogin()" class="modern-btn w-full"><i class="fas fa-arrow-right-to-bracket mr-2"></i>Login</button>
-            <button class="w-full text-indigo-600 text-sm font-medium mt-4 hover:text-indigo-700 transition"><i class="fas fa-headset mr-1"></i>Contact School Support</button>
+            <button class="w-full text-orange-500 text-sm font-bold mt-4 hover:text-orange-600 transition"><i class="fas fa-headset mr-1"></i>Contact School Support</button>
         </div>
     </div>
 </div>
 
-<!-- Main Student App (identical layout to original) -->
-<div id="main-app" class="hidden pb-20">
-    <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 sticky top-0 z-30 shadow-lg">
+<div id="main-app" class="hidden pb-24">
+    <header class="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-5 sticky top-0 z-30 shadow-xl">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <img src="Padgha Urdu High School Logo.png" alt="Logo" class="w-10 h-10 rounded-full bg-white/20 p-1" onerror="this.style.display='none'">
+                <img src="Padgha Urdu High School Logo.png" alt="Logo" class="w-10 h-10 rounded-full bg-white/20 p-1 shadow" onerror="this.style.display='none'">
                 <div>
-                    <h1 id="user-role-title" class="text-lg font-bold">Student Dashboard</h1>
+                    <h1 id="user-role-title" class="text-lg font-black">Student Dashboard</h1>
                     <p class="text-xs text-white/80" id="user-name-display"></p>
                 </div>
             </div>
-            <div class="flex space-x-3">
+            <div class="flex space-x-4">
                 <button onclick="loadSection('notices')"><i class="fas fa-bell text-xl"></i></button>
                 <button onclick="toggleTheme()"><i class="fas fa-moon text-xl"></i></button>
             </div>
         </div>
     </header>
-    <main id="content" class="p-4 pb-24"></main>
-    <nav class="fixed bottom-0 left-0 right-0 glass-nav flex justify-around p-3 pb-5 z-50">
-        <button onclick="setActiveNav(this, 'home')" class="nav-btn flex flex-col items-center"><i class="fas fa-home text-xl"></i><span class="text-[10px] mt-1">Home</span></button>
-        <button onclick="setActiveNav(this, 'attendance')" class="nav-btn flex flex-col items-center"><i class="fas fa-calendar-check text-xl"></i><span class="text-[10px] mt-1">Attendance</span></button>
-        <button onclick="setActiveNav(this, 'homework')" class="nav-btn flex flex-col items-center"><i class="fas fa-book-open text-xl"></i><span class="text-[10px] mt-1">Homework</span></button>
-        <button onclick="setActiveNav(this, 'notices')" class="nav-btn flex flex-col items-center"><i class="fas fa-bell text-xl"></i><span class="text-[10px] mt-1">Notices</span></button>
-        <button onclick="setActiveNav(this, 'more')" class="nav-btn flex flex-col items-center"><i class="fas fa-user-circle text-xl"></i><span class="text-[10px] mt-1">Profile</span></button>
+
+    <main id="content" class="p-4 pb-28"></main>
+
+    <nav class="fixed bottom-4 left-4 right-4 floating-nav flex justify-around p-2 z-50">
+        <button onclick="setActiveNav(this, 'home')" class="nav-btn flex flex-col items-center p-2 rounded-full transition-all duration-300"><i class="fas fa-home text-2xl"></i><span class="text-[10px] mt-1 font-bold">Home</span></button>
+        <button onclick="setActiveNav(this, 'attendance')" class="nav-btn flex flex-col items-center p-2 rounded-full transition-all duration-300"><i class="fas fa-calendar-check text-2xl"></i><span class="text-[10px] mt-1 font-bold">Attendance</span></button>
+        <button onclick="setActiveNav(this, 'homework')" class="nav-btn flex flex-col items-center p-2 rounded-full transition-all duration-300"><i class="fas fa-book-open text-2xl"></i><span class="text-[10px] mt-1 font-bold">Homework</span></button>
+        <button onclick="setActiveNav(this, 'notices')" class="nav-btn flex flex-col items-center p-2 rounded-full transition-all duration-300"><i class="fas fa-bell text-2xl"></i><span class="text-[10px] mt-1 font-bold">Notices</span></button>
+        <button onclick="setActiveNav(this, 'more')" class="nav-btn flex flex-col items-center p-2 rounded-full transition-all duration-300"><i class="fas fa-user-circle text-2xl"></i><span class="text-[10px] mt-1 font-bold">Profile</span></button>
     </nav>
-    <div class="fab" onclick="scrollToTop()"><i class="fas fa-arrow-up text-xl"></i></div>
+    <div class="fab" onclick="scrollToTop()"><i class="fas fa-arrow-up text-sm"></i><span class="text-sm font-bold hidden sm:inline">Top</span></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+
 <script>
-    // ======================= FIREBASE CONFIG (unchanged from working project) =======================
-    const firebaseConfig = {
-        apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
-        authDomain: "padgha-school-erp.firebaseapp.com",
-        databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "padgha-school-erp",
-        storageBucket: "padgha-school-erp.firebasestorage.app",
-        messagingSenderId: "481255456109",
-        appId: "1:481255456109:web:077e656f3dd03aee43ae64"
-    };
-    firebase.initializeApp(firebaseConfig);
-    console.log("Firebase ready - Student Portal");
-
-    // ======================= GLOBAL VARIABLES =======================
-    const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv";
-    const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
-    const FEES_CHART_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=936130121&single=true&output=csv";
-    let deferredPrompt;
-    let feesDataCache = { payments: [], feeStructure: {}, students: [] };
-    let isPushNotificationEnabled = false;
-    const VAPID_PUBLIC_KEY = "BDEMWUO3WUNf6Dk7mDjT-IgeCC-EfEDsLY5XYZHcS2V-Tc9rFIDhQEFU1eO6ItnbB0rKiok5vdg9BH5EbLyFTK4";
-
-    // ======================= HELPER FUNCTIONS =======================
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-    function formatDate(dateStr) { let parts = dateStr.split('-'); if(parts.length===3) return `${parts[2]}/${parts[1]}/${parts[0]}`; return dateStr; }
-    function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    function toggleTheme() { document.body.classList.toggle('dark'); localStorage.setItem('darkMode', document.body.classList.contains('dark')); }
-    if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark');
-
-    // ======================= PUSH NOTIFICATIONS =======================
-    async function initPushNotifications() { if (!('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window)) return false; const sub = await getPushSubscription(); isPushNotificationEnabled = !!sub; return true; }
-    async function getPushSubscription() { if (!('serviceWorker' in navigator)) return null; const sw = await navigator.serviceWorker.ready; return sw.pushManager.getSubscription(); }
-    function urlBase64ToUint8Array(base64String) { const padding = '='.repeat((4 - base64String.length % 4) % 4); const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/'); const raw = window.atob(base64); const arr = new Uint8Array(raw.length); for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i); return arr; }
-    async function enablePushNotifications() { if(Notification.permission !== 'granted') { let perm = await Notification.requestPermission(); if(perm !== 'granted') { alert("Please allow notifications"); return false; } } try { const swReg = await navigator.serviceWorker.ready; const sub = await swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) }); const userId = localStorage.getItem('userGR') || localStorage.getItem('userPhone'); await firebase.database().ref('push_subscriptions/' + userId).set({ endpoint: sub.endpoint, keys: sub.toJSON().keys, userId, userRole: 'Student', userName: localStorage.getItem('userName'), subscribedAt: firebase.database.ServerValue.TIMESTAMP }); isPushNotificationEnabled = true; updateNotificationButtonUI(true); alert("✅ Notifications enabled"); return true; } catch(e) { alert("Error: "+e.message); return false; } }
-    async function disablePushNotifications() { const sub = await getPushSubscription(); if(sub) await sub.unsubscribe(); const userId = localStorage.getItem('userGR') || localStorage.getItem('userPhone'); await firebase.database().ref('push_subscriptions/' + userId).remove(); isPushNotificationEnabled = false; updateNotificationButtonUI(false); alert("Notifications disabled"); }
-    function updateNotificationButtonUI(enabled) { const btn = document.getElementById('enable-notifications-btn'); if(btn){ let icon = btn.querySelector('i'); if(icon) icon.className = enabled ? "fas fa-bell mr-2 text-blue-600" : "fas fa-bell-slash mr-2 text-blue-600"; let span = btn.querySelector('span'); if(span) span.textContent = enabled ? "✅ Notifications Enabled" : "🔔 Enable Notifications"; } }
-    async function checkNotificationStatus() { await initPushNotifications(); updateNotificationButtonUI(isPushNotificationEnabled); }
-    window.togglePushNotifications = async () => { if(isPushNotificationEnabled) { if(confirm('Disable notifications?')) await disablePushNotifications(); } else await enablePushNotifications(); };
-
-    // ======================= FEES DATA LOADING =======================
-async function loadFeesData() {
-    const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
-    
-    try {
-        // 1. Load Payments – robust parsing with headers
-        const paymentsRes = await fetch(FEES_CSV_URL);
-        const paymentsText = await paymentsRes.text();
-        const paymentsLines = paymentsText.split('\n');
-        const paymentHeaders = paymentsLines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
-        feesDataCache.payments = [];
-        
-        console.log("📊 Payment CSV Headers:", paymentHeaders);
-        
-        for (let i = 1; i < paymentsLines.length; i++) {
-            if (!paymentsLines[i].trim()) continue;
-            const cols = paymentsLines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            
-            const studentNameIndex = paymentHeaders.findIndex(h => h.includes('name') || h.includes('student'));
-            const receiptIndex = paymentHeaders.findIndex(h => h.includes('receipt') || h.includes('voucher'));
-            const dateIndex = paymentHeaders.findIndex(h => h.includes('date'));
-            const amountIndex = paymentHeaders.findIndex(h => h.includes('amount') || h.includes('paid'));
-            
-            let studentName = studentNameIndex >= 0 ? cols[studentNameIndex]?.replace(/"/g, '').trim() : '';
-            let receiptNo = receiptIndex >= 0 ? cols[receiptIndex]?.replace(/"/g, '').trim() : `RCPT-${i}`;
-            let date = dateIndex >= 0 ? cols[dateIndex]?.replace(/"/g, '').trim() : '';
-            let amount = amountIndex >= 0 ? parseFloat(cols[amountIndex]?.replace(/"/g, '').trim()) || 0 : 0;
-            
-            // Fallback for common column positions
-            if (!studentName && cols[1]) studentName = cols[1]?.replace(/"/g, '').trim();
-            if (!receiptNo && cols[0]) receiptNo = cols[0]?.replace(/"/g, '').trim();
-            if (!date && cols[2]) date = cols[2]?.replace(/"/g, '').trim();
-            if (!amount && cols[3]) amount = parseFloat(cols[3]?.replace(/"/g, '').trim()) || 0;
-            
-            if (studentName) {
-                feesDataCache.payments.push({ name: studentName, receiptNo, date, amount });
-                console.log(`✅ Loaded payment: ${studentName} - ₹${amount}`);
-            }
-        }
-        
-        // 2. Load fee structure from Firebase
-        feesDataCache.feeStructure = {};
-        try {
-            const snap = await firebase.database().ref('feeStructure/classWise').once('value');
-            if (snap.exists()) {
-                feesDataCache.feeStructure = snap.val();
-                console.log("✅ Fee structure:", feesDataCache.feeStructure);
-            }
-        } catch (err) {
-            console.warn("Could not load fee structure", err);
-        }
-        
-        // 3. Load students list (for reference)
-        const studentRes = await fetch(STUDENT_SHEET_CSV);
-        const studentText = await studentRes.text();
-        const rows = studentText.split('\n').slice(1);
-        feesDataCache.students = [];
-        for (let row of rows) {
-            if (!row.trim()) continue;
-            const cols = row.split(',');
-            const sname = cols[7]?.replace(/"/g, '').trim();
-            const sclass = cols[1]?.replace(/"/g, '').trim();
-            const gr = cols[2]?.replace(/"/g, '').trim();
-            const phone = cols[15]?.replace(/"/g, '').trim();
-            if (sname) feesDataCache.students.push({ name: sname, class: sclass, grNo: gr, phone });
-        }
-        
-        console.log(`📊 Total payments loaded: ${feesDataCache.payments.length}`);
-    } catch (e) {
-        console.error("Error loading fees data:", e);
-    }
-}
-
-    // ======================= STUDENT ATTENDANCE LOGS =======================
-    async function fetchPersonalStudentLogs(studentName) {
-        const container = document.getElementById('personal-logs');
-        if(!container) return;
-        container.innerHTML = '<div class="text-center py-8"><i class="fa-solid fa-spinner fa-spin"></i><p class="text-gray-400 text-sm">Loading...</p></div>';
-        try {
-            const studentGR = localStorage.getItem('userGR');
-            const snapshot = await firebase.database().ref('student_attendance').once('value');
-            const allData = snapshot.val();
-            let present=0, absent=0, records=[];
-            if(allData) {
-                Object.keys(allData).forEach(dateStr => {
-                    Object.keys(allData[dateStr]).forEach(className => {
-                        const classData = allData[dateStr][className];
-                        if(classData?.records) {
-                            let found = null;
-                            if(studentGR && studentGR!=='Pending' && classData.records[studentGR]) found = classData.records[studentGR];
-                            else if(classData.records[studentName]) found = classData.records[studentName];
-                            else for(let key in classData.records) if(classData.records[key].name?.toLowerCase() === studentName.toLowerCase()) { found = classData.records[key]; break; }
-                            if(found) { records.push({ date: dateStr, status: found.status }); if(found.status==='Present') present++; else if(found.status==='Absent') absent++; }
-                        }
-                    });
-                });
-            }
-            records.sort((a,b)=>b.date.localeCompare(a.date));
-            const total = records.length;
-            const percent = total ? Math.round((present/total)*100) : 0;
-            const now = new Date(); const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-            const monthRecords = records.filter(r=>r.date.startsWith(curMonth));
-            const monthPresent = monthRecords.filter(r=>r.status==='Present').length;
-            if(records.length===0) { container.innerHTML = `<div class="text-center p-6 bg-gray-50 rounded-xl"><i class="fa-regular fa-calendar-xmark text-5xl text-gray-300"></i><p class="mt-2">No attendance records yet</p></div>`; return; }
-            container.innerHTML = `
-                <div class="space-y-4"><div class="grid grid-cols-2 gap-3"><div class="bg-green-50 p-3 rounded-xl text-center"><p class="text-2xl font-bold text-green-600">${present}</p><p class="text-xs">Present</p></div><div class="bg-red-50 p-3 rounded-xl text-center"><p class="text-2xl font-bold text-red-600">${absent}</p><p class="text-xs">Absent</p></div></div>
-                <div class="bg-blue-50 p-3 rounded-xl"><div class="flex justify-between text-xs"><span>Overall ${percent}%</span><span>${present}/${total}</span></div><div class="w-full bg-blue-200 h-1.5 rounded-full"><div class="bg-blue-600 h-1.5 rounded-full" style="width:${percent}%"></div></div><div class="text-xs mt-2">This month: ${monthPresent}/${monthRecords.length} (${monthRecords.length?Math.round((monthPresent/monthRecords.length)*100):0}%)</div></div>
-                <div><div class="max-h-60 overflow-y-auto border rounded-lg divide-y">${records.slice(0,30).map(r=>`<div class="flex justify-between p-2"><span class="text-sm">${formatDate(r.date)}</span><span class="text-xs font-bold ${r.status==='Present'?'text-green-600':'text-red-600'}">${r.status}</span></div>`).join('')}</div></div></div>
-            `;
-        } catch(e) { container.innerHTML = `<div class="text-red-500 text-center">Error loading attendance</div>`; }
-    }
-
-    // ======================= HOMEWORK & NOTICES =======================
-    function fetchHomework() { 
-    const container = document.getElementById('homework-list'); 
-    if(!container) return; 
-    const userClass = localStorage.getItem('mappedClass'); 
-    firebase.database().ref('homework').orderByChild('timestamp').on('value', (snap) => { 
-        const data=snap.val(); 
-        if(!data) { container.innerHTML='<p class="text-center text-gray-400">No homework</p>'; return; } 
-        let html=''; 
-        Object.values(data).reverse().forEach(hw=>{ 
-            if(hw.class===userClass) {
-                html += `
-                    <div class="bg-white p-5 rounded-2xl border shadow-sm">
-                        <div class="flex justify-between flex-wrap gap-2 mb-2">
-                            <span class="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded">${escapeHtml(hw.subject)}</span>
-                            <span class="text-xs text-gray-400">${hw.date || new Date(hw.timestamp).toLocaleDateString()}</span>
-                        </div>
-                        <h3 class="font-bold mt-1">Class ${hw.class}</h3>
-                        <p class="text-sm mt-2">${escapeHtml(hw.description)}</p>
-                        ${hw.attachmentData ? `<div class="mt-3"><a href="${hw.attachmentData}" target="_blank" class="text-blue-500 text-sm underline"><i class="fa-solid fa-paperclip mr-1"></i>${hw.attachmentName || 'Download Attachment'}</a></div>` : ''}
-                    </div>
-                `;
-            }
-        }); 
-        container.innerHTML = html || '<p class="text-center text-gray-400">No homework for your class</p>'; 
-    }); 
-}
-    function fetchNotices() { 
-    const container = document.getElementById('notices-list'); 
-    if(!container) return; 
-    const userClass = localStorage.getItem('mappedClass'); 
-    const userGR = localStorage.getItem('userGR'); 
-    firebase.database().ref('notices').orderByChild('timestamp').on('value', (snap) => { 
-        const data = snap.val(); 
-        if(!data) { 
-            container.innerHTML = '<p class="text-center text-gray-400">No notices</p>'; 
-            return; 
-        } 
-        let html = ''; 
-        Object.values(data).reverse().forEach(n => { 
-            let show = false; 
-            if(n.targetType === 'school') show = true; 
-            if(n.targetType === 'class' && n.targetValue === userClass) show = true; 
-            if(n.targetType === 'student' && n.targetValue === userGR) show = true; 
-            if(show) {
-                // 👇 NEW: Determine what label to show for "target"
-                let targetLabel = '';
-                if (n.targetType === 'school') targetLabel = 'Public';
-                else if (n.targetType === 'class') targetLabel = n.targetValue;        // class name e.g. "10"
-                else if (n.targetType === 'student') targetLabel = '✨ You Only ✨';   // ✅ shows "You Only" instead of GR
-                else targetLabel = n.targetValue || 'Notice';
-                
-                html += `<div class="bg-white p-5 rounded-2xl border-l-4 border-orange-500">
-                            <div class="flex justify-between">
-                                <span class="text-orange-600 text-xs font-bold">${targetLabel}</span>
-                                <span class="text-xs text-gray-400">${n.date}</span>
-                            </div>
-                            <h3 class="font-bold">${escapeHtml(n.title)}</h3>
-                            <div class="mt-2">
-                                <div class="flex gap-2 text-[10px] mb-1">
-                                    <button onclick="switchLang('${n.id}','en')" class="px-2 py-1 bg-gray-100 rounded">EN</button>
-                                    <button onclick="switchLang('${n.id}','mr')" class="px-2 py-1 bg-gray-100 rounded">MR</button>
-                                    <button onclick="switchLang('${n.id}','ur')" class="px-2 py-1 bg-gray-100 rounded">UR</button>
-                                </div>
-                                <p id="msg-${n.id}" class="text-xs text-gray-600">${escapeHtml(n.message?.en) || 'No content'}</p>
-                            </div>
-                          </div>`;
-            }
-        }); 
-        container.innerHTML = html || '<p class="text-center text-gray-400">No notices for you</p>'; 
-    }); 
-}
-window.switchLangNotice = (id, lang) => {
-    firebase.database().ref('notices/' + id).once('value', (snapshot) => {
-        const n = snapshot.val();
-        const msgDiv = document.getElementById(`msg-${id}`);
-        if (msgDiv) {
-            msgDiv.innerText = n.message?.[lang] || n.message?.en || "No content";
-            // Apply language-specific styling
-            if (lang === 'ur') {
-                msgDiv.className = "text-xs text-gray-600 leading-relaxed lang-ur";
-            } else if (lang === 'mr') {
-                msgDiv.className = "text-xs text-gray-600 leading-relaxed lang-mr";
-            } else {
-                msgDiv.className = "text-xs text-gray-600 leading-relaxed lang-en";
-            }
-        }
-    });
+// ======================= CONFIGURATION =======================
+const firebaseConfig = {
+    apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
+    authDomain: "padgha-school-erp.firebaseapp.com",
+    databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "padgha-school-erp",
+    storageBucket: "padgha-school-erp.firebasestorage.app",
+    messagingSenderId: "481255456109",
+    appId: "1:481255456109:web:077e656f3dd03aee43ae64"
 };
-    // ======================= TIME TABLE (FIXED: 8 periods, Friday early dismissal with rowspan) =======================
-    window.openDailyTimeTable = () => { 
-        const content = document.getElementById('content'); 
-        const mappedClass = localStorage.getItem('mappedClass'); 
-        content.innerHTML = `<div class="space-y-4 pb-20">
-            <div class="flex items-center gap-2">
-                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button>
-                <h2 class="text-xl font-bold">Daily Time Table</h2>
-            </div>
-            <div id="tt-grid" class="bg-white rounded-xl border overflow-hidden p-4 text-center text-gray-400">Loading...</div>
-        </div>`; 
-        loadClassTimetable(mappedClass); 
-    };
-    
-    async function loadClassTimetable(className) { 
-        const grid = document.getElementById('tt-grid'); 
-        if(!className) return; 
-        try { 
-            const snap = await firebase.database().ref(`timetable/class/${className}`).once('value'); 
-            const data = snap.val() || {}; 
-            const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-            const totalPeriods = 8;
-            const fridayMaxPeriod = 4;
-            
-            let html = '<div class="overflow-x-auto"><table class="w-full border-collapse text-sm timetable-table">';
-            // Header row with Period column + days
-            html += `<thead><tr class="bg-green-600 text-white">
-                <th class="p-2 border border-green-500 text-center font-bold w-16">Period</th>
-                ${days.map(d => `<th class="p-2 border border-green-500 text-center font-bold">${d}</th>`).join('')}
-            </tr></thead><tbody>`;
-            
-            for (let period = 1; period <= totalPeriods; period++) {
-                const isFridayPeriod = (period > fridayMaxPeriod);
-                // Row styling: subtle background for Friday extra rows
-                html += `<tr class="${isFridayPeriod ? 'bg-gray-50' : 'hover:bg-gray-50'}">`;
-                // Period column with indicator for Friday early dismissal
-                html += `<td class="p-2 border text-center font-bold ${isFridayPeriod ? 'text-gray-400' : 'text-green-600 bg-green-50'}">
-                            ${period}${isFridayPeriod ? '†' : ''}
-                         </td>`;
-                
-                for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
-                    const day = days[dayIdx];
-                    // Friday special handling: for periods >4, we merge into a single cell (only on period==5)
-                    if (day === 'Friday' && isFridayPeriod) {
-                        if (period === 5) {
-                            const rowspan = totalPeriods - fridayMaxPeriod; // = 4
-                            html += `<td rowspan="${rowspan}" class="p-2 border text-center bg-amber-50 align-middle">
-                                        <div class="flex flex-col items-center">
-                                            <i class="fa-solid fa-bell text-amber-500 text-lg mb-1"></i>
-                                            <span class="text-amber-700 font-medium text-xs">Early Dismissal</span>
-                                            <span class="text-amber-500 text-[10px] mt-1">No classes after period 4</span>
-                                        </div>
-                                     </td>`;
-                        }
-                        // Skip remaining Friday cells for periods 6-8 because they are covered by rowspan
-                        continue;
-                    }
-                    // Normal cell (Monday-Thursday, and Friday periods 1-4)
-                    let val = data[day]?.[period] || '—';
-                    html += `<td class="p-2 border text-xs text-gray-700">${escapeHtml(val)}</td>`;
-                }
-                html += `</tr>`;
-            }
-            // Footnote row
-            html += `<tr class="bg-gray-50"><td colspan="7" class="p-2 text-xs text-gray-500">
-                        <i class="fa-regular fa-clock mr-1"></i> <strong>Note:</strong> Friday has only 4 periods (Early dismissal)
-                     </td></tr>`;
-            html += `</tbody></table></div>`;
-            grid.innerHTML = html;
-        } catch(e) { 
-            grid.innerHTML = '<p class="text-red-500">Error loading timetable</p>'; 
-        } 
-    }
-    
-    window.openExamTimeTable = () => { const c=document.getElementById('content'); const mappedClass=localStorage.getItem('mappedClass'); c.innerHTML=`<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-xl font-bold">Exam Time Table</h2></div><div id="exam-grid" class="bg-white rounded-xl border p-4"></div></div>`; loadExamTimetable(mappedClass); };
-    async function loadExamTimetable(className) { const grid=document.getElementById('exam-grid'); try { const snap=await firebase.database().ref(`exam_timetable/${className}`).once('value'); const data=snap.val()||{}; let html='<table class="w-full"><thead><tr class="bg-gray-100"><th>Date</th><th>Day</th><th>Time</th><th>Subject</th></tr></thead><tbody>'; for(let i=1;i<=10;i++){ let row=data[i]||{}; html+=`<tr><td class="border p-2 text-xs">${row.date||'-'}</td><td class="border p-2 text-xs">${row.day||'-'}</td><td class="border p-2 text-xs">${row.time||'-'}</td><td class="border p-2 text-xs font-bold text-blue-600">${row.sub||'-'}</td></tr>`; } html+='</tbody></table>'; grid.innerHTML=html; } catch(e){ grid.innerHTML='<p class="text-red-500">Error</p>'; } }
+firebase.initializeApp(firebaseConfig);
 
-    // ======================= FEES DASHBOARD (STUDENT VIEW) =======================
-    window.showFeesDashboard = async () => { const content = document.getElementById('content'); content.innerHTML=`<div class="space-y-4 pb-20"><div class="flex items-center justify-between sticky top-0 bg-white z-10 p-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-lg font-bold">Fees Dashboard</h2><button onclick="refreshFeesData()" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs"><i class="fa-solid fa-refresh"></i></button></div><div id="feesContainer"></div></div>`; await loadFeesData(); renderStudentFeesDashboard(); };
-    window.refreshFeesData = async () => { await loadFeesData(); renderStudentFeesDashboard(); };
-function renderStudentFeesDashboard() {
-    const container = document.getElementById('feesContainer');
-    if (!container) return;
-    
-    const studentName = localStorage.getItem('userName');
-    const studentGR = localStorage.getItem('userGR');
-    const studentClass = localStorage.getItem('mappedClass');
-    
-    // Normalization: remove punctuation, extra spaces, lowercase
-    function normalize(str) {
-        return str.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
-    }
-    
-    const normalizedStudent = normalize(studentName);
-    
-    // Flexible matching: exact normalized OR one contains the other
-    const payments = feesDataCache.payments.filter(p => {
-        const normalizedPayment = normalize(p.name);
-        // Check if normalized strings are equal OR one contains the other
-        return normalizedPayment === normalizedStudent ||
-               normalizedPayment.includes(normalizedStudent) ||
-               normalizedStudent.includes(normalizedPayment);
-    }).sort((a, b) => b.date.localeCompare(a.date));
-    
-    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-    const totalFees = feesDataCache.feeStructure[studentClass] || 0;
-    const balance = totalFees - totalPaid;
-    
-    console.log('Student name:', studentName);
-    console.log('Normalized student:', normalizedStudent);
-    console.log('Matched payments:', payments.map(p => ({ name: p.name, amount: p.amount })));
-    
-    container.innerHTML = `
-        <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 text-white">
-            <div class="flex justify-between">
-                <div>
-                    <h3 class="font-bold">${escapeHtml(studentName)}</h3>
-                    <p>Class ${studentClass}</p>
-                    ${studentGR ? `<p class="text-xs">GR: ${studentGR}</p>` : ''}
-                </div>
-                <div class="bg-white/20 p-2 rounded text-center">
-                    <span class="text-2xl font-bold">₹${totalPaid.toLocaleString()}</span>
-                    <p class="text-[10px]">Total Paid</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white rounded-xl border overflow-hidden mt-4">
-            <div class="bg-gray-50 p-3 font-bold"><i class="fa-solid fa-receipt"></i> Payment History</div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    ${payments.length === 0 ? 
-                        `<tr><td class="p-6 text-center text-gray-400">No records</td></tr>` :
-                        `<thead><tr class="border-b"><th class="p-2 text-left">Receipt</th><th class="p-2 text-left">Date</th><th class="p-2 text-right">Amount</th></tr></thead>
-                        <tbody>${payments.map(p => `
-                            <tr class="border-b">
-                                <td class="p-2">${escapeHtml(p.receiptNo)}</td>
-                                <td class="p-2">${p.date || 'N/A'}</td>
-                                <td class="p-2 text-right font-bold text-green-600">₹${p.amount.toLocaleString()}</td>
-                            </tr>
-                        `).join('')}</tbody>`
-                    }
-                </table>
-            </div>
-            <div class="bg-gray-50 p-3 flex justify-between font-bold">
-                <span>Total Paid:</span>
-                <span class="text-green-600">₹${totalPaid.toLocaleString()}</span>
-            </div>
-            <div class="p-3 flex justify-between font-bold">
-                <span>Balance:</span>
-                <span class="${balance > 0 ? 'text-red-600' : 'text-green-600'}">
-                    ${balance > 0 ? `₹${balance.toLocaleString()}` : 'FULL PAID ✓'}
-                </span>
-            </div>
-        </div>
-        
-        ${balance > 0 ? `
-            <div class="bg-yellow-50 p-3 rounded-xl mt-3">
-                <i class="fa-solid fa-circle-info text-yellow-600"></i> 
-                Pending amount ₹${balance.toLocaleString()}. Please contact the school office.
-            </div>
-        ` : ''}
-        
-        ${totalFees === 0 ? `
-            <div class="bg-yellow-50 p-3 rounded-xl mt-3 text-yellow-700">
-                <i class="fa-solid fa-circle-exclamation"></i> 
-                Annual fee for Class ${studentClass} has not been set by the admin. Please contact school.
-            </div>
-        ` : ''}
-    `;
-}
-    window.showFeesChart = async () => { await loadFeesData(); const content = document.getElementById('content'); content.innerHTML=`<div class="space-y-4"><button onclick="loadSection('more')" class="text-blue-600">&larr; Back</button><h2 class="text-lg font-bold">Fee Structure by Class</h2>${Object.entries(feesDataCache.feeStructure).map(([cls,amt])=>`<div class="bg-white p-4 rounded-xl shadow flex justify-between"><span>Class ${cls}</span><span class="font-bold">₹${amt.toLocaleString()}</span></div>`).join('')}</div>`; };
+const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv";
+const schoolClasses = ["Jr KG", "Sr KG", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+let deferredPrompt;
+let feesDataCache = { payments: [], feeStructure: {}, students: [] };
 
-    // ======================= LOAD SECTION (STUDENT FLOW) =======================
-    window.loadSection = (section) => {
-        const content = document.getElementById('content');
-        const name = localStorage.getItem('userName');
-        const mappedClass = localStorage.getItem('mappedClass');
-        if(section === 'home') {
-            content.innerHTML = `
-                <div class="space-y-4"><div class="bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-2xl text-white shadow"><h2 class="text-2xl font-bold">Hello, ${escapeHtml(name)}! 👋</h2><p class="text-sm opacity-80">${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</p><p class="text-xs opacity-70 mt-1">Class: ${mappedClass}</p></div>
-                <div onclick="openDailyTimeTable()" class="bg-white p-5 rounded-xl shadow border-l-4 border-green-500 cursor-pointer hover:scale-[1.02] transition"><div class="flex justify-between"><div><p class="text-gray-500 text-xs">Schedule</p><p class="font-bold text-green-600">Daily Time Table</p><p class="text-xs text-gray-400">Class ${mappedClass}</p></div><i class="fa-regular fa-calendar text-green-400 text-2xl"></i></div></div>
-                <div onclick="openExamTimeTable()" class="bg-white p-5 rounded-xl shadow border-l-4 border-orange-500 cursor-pointer hover:scale-[1.02] transition"><div><p class="text-gray-500 text-xs">Assessments</p><p class="font-bold text-orange-600">Exam Time Table</p></div><i class="fa-regular fa-clock text-orange-400"></i></div>
-                <div onclick="showFeesDashboard()" class="bg-white p-5 rounded-xl shadow border-l-4 border-emerald-500 cursor-pointer hover:scale-[1.02] transition"><div><p class="text-gray-500 text-xs">Payments</p><p class="font-bold text-emerald-600">Fees Dashboard</p><p class="text-xs text-gray-400">View payment history</p></div><i class="fa-regular fa-credit-card text-emerald-400 text-2xl"></i></div></div>`;
-        } else if(section === 'attendance') {
-            content.innerHTML = `<div class="space-y-4"><div class="bg-white p-4 rounded-xl"><div id="personal-logs">Loading attendance...</div></div></div>`;
-            fetchPersonalStudentLogs(localStorage.getItem('userName'));
-        } else if(section === 'homework') {
-            content.innerHTML = `<div class="space-y-4"><h2 class="font-bold text-lg"><i class="fa-solid fa-book-open text-blue-600"></i> Homework</h2><div id="homework-list" class="space-y-3"></div></div>`;
-            fetchHomework();
-        } else if(section === 'notices') {
-            content.innerHTML = `<div class="space-y-4"><h2 class="font-bold text-lg"><i class="fa-solid fa-bell text-orange-600"></i> Notices</h2><div id="notices-list" class="space-y-3"></div></div>`;
-            fetchNotices();
-        } else if(section === 'more') {
-            const phone = localStorage.getItem('userPhone');
-            content.innerHTML = `<div class="space-y-4"><div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white"><div class="flex items-center gap-3"><div class="bg-white/20 p-3 rounded-full"><i class="fas fa-user-circle text-4xl"></i></div><div><h3 class="font-bold text-xl">${escapeHtml(name)}</h3><p>Student</p><p class="text-xs"><i class="fas fa-phone"></i> ${escapeHtml(phone) || 'Not provided'}</p></div></div></div><div class="bg-white rounded-2xl p-4"><h3 class="font-bold"><i class="fas fa-cog"></i> Settings</h3><button id="enable-notifications-btn" onclick="togglePushNotifications()" class="w-full mt-3 p-3 bg-blue-50 rounded-xl flex items-center justify-center"><i class="fas fa-bell mr-2 text-blue-600"></i><span>Enable Notifications</span></button><div id="install-button-container" class="hidden mt-3"><button onclick="triggerInstall()" class="w-full p-3 bg-green-50 rounded-xl"><i class="fas fa-download mr-2"></i>Install App</button></div><button onclick="showFeesChart()" class="w-full mt-3 p-3 bg-purple-50 rounded-xl"><i class="fas fa-chart-line"></i> View Fees Chart</button><button onclick="handleLogout()" class="w-full mt-3 p-3 bg-red-50 rounded-xl"><i class="fas fa-sign-out-alt"></i> Logout</button></div></div>`;
-            setTimeout(() => { checkNotificationStatus(); if(deferredPrompt) document.getElementById('install-button-container')?.classList.remove('hidden'); }, 100);
+function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
+function formatDate(dateStr) { let p=dateStr.split('-'); if(p.length===3) return `${p[2]}/${p[1]}/${p[0]}`; return dateStr; }
+function scrollToTop() { window.scrollTo({top:0,behavior:'smooth'}); }
+function toggleTheme() { document.body.classList.toggle('dark'); localStorage.setItem('darkMode',document.body.classList.contains('dark')); }
+if(localStorage.getItem('darkMode')==='true') document.body.classList.add('dark');
+
+window.onload = () => {
+    setTimeout(() => {
+        document.getElementById('splash-screen').classList.add('hidden');
+        if(localStorage.getItem('userRole') === 'Student') {
+            document.getElementById('main-app').classList.remove('hidden');
+            loadSection('home');
+        } else {
+            document.getElementById('login-screen').classList.remove('hidden');
         }
-    };
-    window.setActiveNav = (el, sec) => { document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.remove('active')); el.classList.add('active'); loadSection(sec); };
-    window.triggerInstall = async () => { if(deferredPrompt){ deferredPrompt.prompt(); const {outcome}=await deferredPrompt.userChoice; if(outcome==='accepted') deferredPrompt=null; } };
+    }, 1500);
+};
 
-    // ======================= LOGIN (STUDENT ONLY) =======================
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; const btn = document.getElementById('install-button-container'); if(btn) btn.classList.remove('hidden'); });
+
+// ======================= LOGIN =======================
 window.handleLogin = async () => {
     const phone = document.getElementById('phone').value.trim();
     const code = document.getElementById('code').value.trim();
-    if (!phone || !code) { alert("Please enter phone and code"); return; }
+    if(!phone || !code) { alert("Please enter phone and code"); return; }
     try {
         const res = await fetch(STUDENT_SHEET_CSV);
         const text = await res.text();
         const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
         const headers = rows[0].map(h => h.replace(/"/g, '').trim().toLowerCase());
-        
-        // Find column indices dynamically
         const grIdx = headers.findIndex(h => h.includes('gr') || h === 'gr no');
         const nameIdx = headers.findIndex(h => h.includes('name') || h === 'student name');
-        const classIdx = headers.findIndex(h => h.includes('class') || h === 'standard' || h === 'grade');
+        const classIdx = headers.findIndex(h => h.includes('class') || h === 'standard');
         const phoneIdx = headers.findIndex(h => h.includes('contact') || h === 'phone' || h === 'mobile');
         const codeIdx = headers.findIndex(h => h.includes('code') || h === 'password' || h === 'pin');
         
         let student = null;
-        for (let i = 1; i < rows.length; i++) {
+        for(let i=1; i<rows.length; i++) {
             const sPhone = rows[i][phoneIdx]?.replace(/"/g, '').trim();
             const sCode = rows[i][codeIdx]?.replace(/"/g, '').trim();
-            if (sPhone === phone && sCode === code) {
+            if(sPhone === phone && sCode === code) {
                 student = {
                     gr: rows[i][grIdx]?.replace(/"/g, '').trim() || 'Pending',
                     name: rows[i][nameIdx]?.replace(/"/g, '').trim(),
@@ -777,38 +183,275 @@ window.handleLogin = async () => {
                 break;
             }
         }
-        
-        if (student) {
+        if(student) {
             localStorage.setItem('userRole', 'Student');
             localStorage.setItem('userName', student.name);
-            localStorage.setItem('mappedClass', student.class);   // critical for fees
+            localStorage.setItem('mappedClass', student.class);
             localStorage.setItem('userGR', student.gr);
             localStorage.setItem('userPhone', phone);
-            
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
             document.getElementById('user-name-display').innerText = `Student • ${student.name}`;
             loadSection('home');
-            if ('Notification' in window && 'serviceWorker' in navigator) Notification.requestPermission();
-            registerForPushNotifications();
+            if('Notification' in window && 'serviceWorker' in navigator) Notification.requestPermission();
         } else {
             alert("Invalid phone or code");
         }
-    } catch (e) {
-        console.error(e);
-        alert("Login failed. Check internet.");
+    } catch(e) { console.error(e); alert("Login failed. Check internet."); }
+};
+
+// ======================= LOAD SECTION =======================
+window.loadSection = (section) => {
+    const content = document.getElementById('content');
+    const name = localStorage.getItem('userName');
+    const mappedClass = localStorage.getItem('mappedClass');
+    if(section === 'home') {
+        content.innerHTML = `
+            <div class="space-y-5">
+                <div class="bg-white rounded-3xl shadow-xl overflow-hidden"><div class="h-2 bg-gradient-to-r from-amber-400 to-orange-400"></div><div class="p-5"><h2 class="text-3xl font-black text-slate-800">Hello, ${escapeHtml(name)}! 👋</h2><p class="text-sm text-slate-500 mt-1">${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</p><p class="text-xs text-orange-500 mt-2 font-bold">Class: ${mappedClass}</p></div></div>
+                <div onclick="openDailyTimeTable()" class="bg-white rounded-2xl p-4 shadow-md hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer"><div class="flex justify-between items-center"><div><div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-2"><i class="fas fa-clock text-lg"></i></div><p class="text-xs text-gray-500">Schedule</p><p class="font-bold text-amber-600">Daily Time Table</p></div><i class="fa-regular fa-calendar text-amber-400 text-2xl"></i></div></div>
+                <div onclick="openExamTimeTable()" class="bg-white rounded-2xl p-4 shadow-md hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer"><div class="flex justify-between items-center"><div><div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-2"><i class="fas fa-calendar-alt text-lg"></i></div><p class="text-xs text-gray-500">Assessments</p><p class="font-bold text-orange-600">Exam Time Table</p></div><i class="fa-regular fa-clock text-orange-400 text-2xl"></i></div></div>
+                <div onclick="showFeesDashboard()" class="bg-white rounded-2xl p-4 shadow-md hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer"><div class="flex justify-between items-center"><div><div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-2"><i class="fas fa-rupee-sign text-lg"></i></div><p class="text-xs text-gray-500">Payments</p><p class="font-bold text-emerald-600">Fees Dashboard</p></div><i class="fa-regular fa-credit-card text-emerald-400 text-2xl"></i></div></div>
+            </div>`;
+    } else if(section === 'attendance') {
+        content.innerHTML = `<div class="space-y-4"><div class="bg-white rounded-2xl shadow-md p-4"><div id="personal-logs" class="space-y-2"><div class="text-center py-8"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div></div></div></div>`;
+        fetchPersonalStudentLogs(localStorage.getItem('userName'));
+    } else if(section === 'homework') {
+        content.innerHTML = `<div class="space-y-4"><h2 class="text-xl font-black"><i class="fa-solid fa-book-open text-amber-500 mr-2"></i>Homework</h2><div id="homework-list" class="space-y-3"></div></div>`;
+        fetchHomework();
+    } else if(section === 'notices') {
+        content.innerHTML = `<div class="space-y-4"><h2 class="text-xl font-black"><i class="fa-solid fa-bell text-amber-500 mr-2"></i>Notices</h2><div id="notices-list" class="space-y-3"></div></div>`;
+        fetchNotices();
+    } else if(section === 'more') {
+        const phone = localStorage.getItem('userPhone');
+        content.innerHTML = `
+            <div class="space-y-4"><div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 text-white"><div class="flex items-center gap-4"><div class="bg-white/20 p-3 rounded-full"><i class="fas fa-user-circle text-4xl"></i></div><div><h3 class="font-black text-xl">${escapeHtml(name)}</h3><p>Student</p><p class="text-xs"><i class="fas fa-phone"></i> ${escapeHtml(phone) || 'Not provided'}</p></div></div></div>
+            <div class="bg-white rounded-2xl shadow-md overflow-hidden"><div class="p-4 border-b"><h3 class="font-black text-gray-800"><i class="fas fa-cog mr-2 text-orange-500"></i>Settings</h3></div><div class="p-4 space-y-3">
+                <button id="enable-notifications-btn" onclick="alert('Notifications can be enabled via browser settings.')" class="w-full p-3 bg-blue-50 rounded-xl text-blue-700 font-bold text-left"><i class="fas fa-bell mr-2"></i>Enable Notifications</button>
+                <div id="install-button-container" class="${deferredPrompt?'':'hidden'}"><button onclick="triggerInstall()" class="w-full p-3 bg-green-50 rounded-xl text-green-700 font-bold text-left"><i class="fas fa-download mr-2"></i>Install App</button></div>
+                <button onclick="showFeesChart()" class="w-full p-3 bg-purple-50 rounded-xl text-purple-700 font-bold text-left"><i class="fas fa-chart-line mr-2"></i>View Fees Chart</button>
+                <button onclick="handleLogout()" class="w-full p-3 bg-red-50 rounded-xl text-red-700 font-bold text-left"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
+            </div></div></div>`;
+        setTimeout(() => { if(deferredPrompt) document.getElementById('install-button-container')?.classList.remove('hidden'); }, 100);
     }
 };
-    async function registerForPushNotifications() { if ('Notification' in window && 'serviceWorker' in navigator) await Notification.requestPermission(); }
 
-    window.handleLogout = () => { if(confirm("Logout?")){ localStorage.clear(); document.getElementById('main-app').classList.add('hidden'); document.getElementById('login-screen').classList.remove('hidden'); loadSection('home'); } };
+window.setActiveNav = (el, sec) => { document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.remove('active')); el.classList.add('active'); loadSection(sec); };
+window.triggerInstall = async () => { if(deferredPrompt){ deferredPrompt.prompt(); } };
+window.handleLogout = () => { if(confirm("Logout?")){ localStorage.clear(); document.getElementById('main-app').classList.add('hidden'); document.getElementById('login-screen').classList.remove('hidden'); } };
 
-    // ======================= PWA & STARTUP =======================
-    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; const installBtn = document.getElementById('install-button-container'); if(installBtn) installBtn.classList.remove('hidden'); });
-    if('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(e=>console.log); }); }
-    window.onload = () => { setTimeout(() => { document.getElementById('splash-screen').classList.add('hidden'); if(localStorage.getItem('userRole') === 'Student') { document.getElementById('main-app').classList.remove('hidden'); loadSection('home'); } else { document.getElementById('login-screen').classList.remove('hidden'); } }, 1500); };
-    window.scrollToTop = scrollToTop;
-    window.toggleTheme = toggleTheme;
+// ======================= ATTENDANCE HISTORY =======================
+async function fetchPersonalStudentLogs(studentName) {
+    const container = document.getElementById('personal-logs');
+    if(!container) return;
+    container.innerHTML = '<div class="text-center py-8"><i class="fa-solid fa-spinner fa-spin"></i><p class="text-gray-400 text-sm">Loading...</p></div>';
+    try {
+        const studentGR = localStorage.getItem('userGR');
+        const snapshot = await firebase.database().ref('student_attendance').once('value');
+        const allData = snapshot.val();
+        let present=0, absent=0, records=[];
+        if(allData) {
+            Object.keys(allData).forEach(dateStr => {
+                Object.keys(allData[dateStr]).forEach(className => {
+                    const classData = allData[dateStr][className];
+                    if(classData?.records) {
+                        let found = null;
+                        if(studentGR && studentGR!=='Pending' && classData.records[studentGR]) found = classData.records[studentGR];
+                        else if(classData.records[studentName]) found = classData.records[studentName];
+                        else for(let key in classData.records) if(classData.records[key].name?.toLowerCase() === studentName.toLowerCase()) { found = classData.records[key]; break; }
+                        if(found) { records.push({ date: dateStr, status: found.status }); if(found.status==='Present') present++; else if(found.status==='Absent') absent++; }
+                    }
+                });
+            });
+        }
+        records.sort((a,b)=>b.date.localeCompare(a.date));
+        const total = records.length;
+        const percent = total ? Math.round((present/total)*100) : 0;
+        const now = new Date(); const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+        const monthRecords = records.filter(r=>r.date.startsWith(curMonth));
+        const monthPresent = monthRecords.filter(r=>r.status==='Present').length;
+        if(records.length===0) { container.innerHTML = `<div class="text-center p-6 bg-gray-50 rounded-xl"><i class="fa-regular fa-calendar-xmark text-5xl text-gray-300"></i><p class="mt-2">No attendance records yet</p></div>`; return; }
+        container.innerHTML = `
+            <div class="space-y-4"><div class="grid grid-cols-2 gap-3"><div class="bg-green-50 p-3 rounded-xl text-center"><p class="text-2xl font-bold text-green-600">${present}</p><p class="text-xs">Present</p></div><div class="bg-red-50 p-3 rounded-xl text-center"><p class="text-2xl font-bold text-red-600">${absent}</p><p class="text-xs">Absent</p></div></div>
+            <div class="bg-blue-50 p-3 rounded-xl"><div class="flex justify-between text-xs"><span>Overall ${percent}%</span><span>${present}/${total}</span></div><div class="w-full bg-blue-200 h-1.5 rounded-full"><div class="bg-blue-600 h-1.5 rounded-full" style="width:${percent}%"></div></div><div class="text-xs mt-2">This month: ${monthPresent}/${monthRecords.length} (${monthRecords.length?Math.round((monthPresent/monthRecords.length)*100):0}%)</div></div>
+            <div><div class="max-h-60 overflow-y-auto border rounded-lg divide-y">${records.slice(0,30).map(r=>`<div class="flex justify-between p-2"><span class="text-sm">${formatDate(r.date)}</span><span class="text-xs font-bold ${r.status==='Present'?'text-green-600':'text-red-600'}">${r.status}</span></div>`).join('')}</div></div></div>
+        `;
+    } catch(e) { container.innerHTML = `<div class="text-red-500 text-center">Error loading attendance</div>`; }
+}
+
+// ======================= HOMEWORK =======================
+function fetchHomework() {
+    const container = document.getElementById('homework-list');
+    if(!container) return;
+    const userClass = localStorage.getItem('mappedClass');
+    firebase.database().ref('homework').orderByChild('timestamp').on('value', (snap) => {
+        const data=snap.val();
+        if(!data) { container.innerHTML='<p class="text-center text-gray-400 py-10">📭 No homework</p>'; return; }
+        let html='';
+        Object.values(data).reverse().forEach(hw=>{
+            if(hw.class===userClass) {
+                html += `<div class="bg-white rounded-2xl shadow-md overflow-hidden"><div class="h-1 bg-gradient-to-r from-amber-400 to-orange-400"></div><div class="p-4"><div class="flex justify-between flex-wrap gap-2 mb-2"><span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">${escapeHtml(hw.subject)}</span><span class="text-xs text-gray-400">${hw.date || new Date(hw.timestamp).toLocaleDateString()}</span></div><h3 class="font-bold mt-1">Class ${hw.class}</h3><p class="text-sm mt-2">${escapeHtml(hw.description)}</p>${hw.attachmentData ? `<div class="mt-3"><a href="${hw.attachmentData}" target="_blank" class="text-blue-500 text-sm underline"><i class="fa-solid fa-paperclip mr-1"></i>${hw.attachmentName || 'Download'}</a></div>` : ''}</div></div>`;
+            }
+        });
+        container.innerHTML = html || '<p class="text-center text-gray-400 py-10">No homework for your class</p>';
+    });
+}
+
+// ======================= NOTICES =======================
+function fetchNotices() {
+    const container = document.getElementById('notices-list');
+    if(!container) return;
+    const userClass = localStorage.getItem('mappedClass');
+    const userGR = localStorage.getItem('userGR');
+    firebase.database().ref('notices').orderByChild('timestamp').on('value', (snap) => {
+        const data = snap.val();
+        if(!data) { container.innerHTML = '<p class="text-center text-gray-400 py-10">📭 No notices</p>'; return; }
+        let html = '';
+        Object.values(data).reverse().forEach(n => {
+            let show = false;
+            if(n.targetType === 'school') show = true;
+            if(n.targetType === 'class' && n.targetValue === userClass) show = true;
+            if(n.targetType === 'student' && n.targetValue === userGR) show = true;
+            if(show) {
+                let targetLabel = n.targetType === 'school' ? 'Public' : (n.targetType === 'class' ? n.targetValue : '✨ You Only ✨');
+                html += `<div class="bg-white rounded-2xl shadow-md overflow-hidden"><div class="h-1 bg-gradient-to-r from-amber-400 to-orange-400"></div><div class="p-4"><div class="flex justify-between"><span class="text-orange-600 text-xs font-bold">${targetLabel}</span><span class="text-xs text-gray-400">${n.date}</span></div><h3 class="font-bold mt-1">${escapeHtml(n.title)}</h3><div class="mt-2"><div class="flex gap-2 text-[10px] mb-1"><button onclick="switchLangNotice('${n.id}','en')" class="px-2 py-1 bg-gray-100 rounded">EN</button><button onclick="switchLangNotice('${n.id}','mr')" class="px-2 py-1 bg-gray-100 rounded">MR</button><button onclick="switchLangNotice('${n.id}','ur')" class="px-2 py-1 bg-gray-100 rounded">UR</button></div><p id="msg-${n.id}" class="text-xs text-gray-600">${escapeHtml(n.message?.en) || 'No content'}</p></div></div></div>`;
+            }
+        });
+        container.innerHTML = html || '<p class="text-center text-gray-400 py-10">No notices for you</p>';
+    });
+}
+window.switchLangNotice = (id, lang) => {
+    firebase.database().ref('notices/' + id).once('value', (snapshot) => {
+        const n = snapshot.val();
+        const msgDiv = document.getElementById(`msg-${id}`);
+        if(msgDiv) {
+            msgDiv.innerText = n.message?.[lang] || n.message?.en || "No content";
+            msgDiv.className = `text-xs text-gray-600 leading-relaxed lang-${lang}`;
+        }
+    });
+};
+
+// ======================= TIME TABLES =======================
+window.openDailyTimeTable = () => {
+    document.getElementById('content').innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-xl font-black">Daily Time Table</h2></div><div id="tt-grid" class="bg-white rounded-2xl shadow-md overflow-hidden p-4 text-center text-gray-400">Loading...</div></div>`;
+    loadClassTimetable(localStorage.getItem('mappedClass'));
+};
+window.loadClassTimetable = async (className) => {
+    const grid = document.getElementById('tt-grid');
+    if(!className) return;
+    try {
+        const snap = await firebase.database().ref(`timetable/class/${className}`).once('value');
+        const data = snap.val() || {};
+        const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        const totalPeriods = 8, fridayMax = 4;
+        let html = '<div class="overflow-x-auto"><table class="w-full border-collapse text-sm"><thead><tr class="bg-amber-600 text-white"><th class="p-3 border border-amber-500">Period</th>'+days.map(d=>`<th class="p-3 border border-amber-500">${d}</th>`).join('')+'</tr></thead><tbody>';
+        for(let p=1;p<=totalPeriods;p++){
+            const isFriPeriod = p>fridayMax;
+            html+=`<tr class="${isFriPeriod?'bg-gray-50':''}"><td class="p-3 border text-center font-bold ${isFriPeriod?'text-gray-400':'text-amber-600 bg-amber-50'}">${p}${isFriPeriod?'†':''}</td>`;
+            for(let idx=0;idx<days.length;idx++){
+                const day=days[idx];
+                if(day==='Friday' && isFriPeriod){
+                    if(p===5) html+=`<td rowspan="${totalPeriods-fridayMax}" class="p-3 border text-center bg-amber-50 align-middle"><div class="flex flex-col items-center"><i class="fa-regular fa-clock text-amber-500 mb-1"></i><span class="text-amber-700 font-medium text-xs">Early Dismissal</span><span class="text-amber-500 text-[10px]">No classes</span></div></td>`;
+                    continue;
+                }
+                const val=data[day]?.[p]||'—';
+                html+=`<td class="p-3 border text-xs text-gray-700">${escapeHtml(val)}</td>`;
+            }
+            html+=`</tr>`;
+        }
+        html+=`<tr class="bg-gray-50"><td colspan="7" class="p-3 text-xs text-gray-500"><i class="fa-regular fa-clock mr-1"></i> <strong>Note:</strong> Friday has only 4 periods (Early dismissal)</td></tr></tbody></table></div>`;
+        grid.innerHTML=html;
+    } catch(e){ grid.innerHTML=`<p class="text-red-500">Error: ${e.message}</p>`; }
+};
+window.openExamTimeTable = () => {
+    document.getElementById('content').innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-xl font-black">Exam Time Table</h2></div><div id="exam-grid" class="bg-white rounded-2xl shadow-md p-4"></div></div>`;
+    loadExamTimetable(localStorage.getItem('mappedClass'));
+};
+window.loadExamTimetable = async (className) => {
+    const grid=document.getElementById('exam-grid');
+    try{
+        const snap=await firebase.database().ref(`exam_timetable/${className}`).once('value');
+        const data=snap.val()||{};
+        let html='<table class="w-full"><thead><tr class="bg-amber-100"><th class="p-2">Date</th><th class="p-2">Day</th><th class="p-2">Time</th><th class="p-2">Subject</th></tr></thead><tbody>';
+        for(let i=1;i<=10;i++){ let row=data[i]||{}; html+=`<tr><td class="border p-2 text-xs">${row.date||'-'}</td><td class="border p-2 text-xs">${row.day||'-'}</td><td class="border p-2 text-xs">${row.time||'-'}</td><td class="border p-2 text-xs font-bold text-blue-600">${row.sub||'-'}</td></tr>`; }
+        html+='</tbody></table>';
+        grid.innerHTML=html;
+    } catch(e){ grid.innerHTML='<p class="text-red-500">Error</p>'; }
+};
+
+// ======================= FEES DASHBOARD =======================
+window.showFeesDashboard = async () => {
+    document.getElementById('content').innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-lg font-black">Fees Dashboard</h2><button onclick="refreshFeesData()" class="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-refresh mr-1"></i>Refresh</button></div><div id="feesContainer"></div></div>`;
+    await loadFeesData();
+    renderStudentFeesDashboard();
+};
+async function loadFeesData() {
+    const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
+    try{
+        const paymentsRes=await fetch(FEES_CSV_URL);
+        const paymentsText=await paymentsRes.text();
+        const lines=paymentsText.split('\n');
+        const headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim().toLowerCase());
+        feesDataCache.payments=[];
+        for(let i=1;i<lines.length;i++){
+            if(!lines[i].trim()) continue;
+            const cols=lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            const nameIdx=headers.findIndex(h=>h.includes('name')||h.includes('student'));
+            const recIdx=headers.findIndex(h=>h.includes('receipt')||h.includes('voucher'));
+            const dateIdx=headers.findIndex(h=>h.includes('date'));
+            const amtIdx=headers.findIndex(h=>h.includes('amount')||h.includes('paid'));
+            let sname=nameIdx>=0?cols[nameIdx]?.replace(/"/g,'').trim():'';
+            let receipt=recIdx>=0?cols[recIdx]?.replace(/"/g,'').trim():`RCPT-${i}`;
+            let date=dateIdx>=0?cols[dateIdx]?.replace(/"/g,'').trim():'';
+            let amount=amtIdx>=0?parseFloat(cols[amtIdx]?.replace(/"/g,'').trim())||0:0;
+            if(!sname && cols[1]) sname=cols[1]?.replace(/"/g,'').trim();
+            if(!receipt && cols[0]) receipt=cols[0]?.replace(/"/g,'').trim();
+            if(!date && cols[2]) date=cols[2]?.replace(/"/g,'').trim();
+            if(!amount && cols[3]) amount=parseFloat(cols[3]?.replace(/"/g,'').trim())||0;
+            if(sname) feesDataCache.payments.push({name:sname,receiptNo:receipt,date,amount});
+        }
+        const snap=await firebase.database().ref('feeStructure/classWise').once('value');
+        feesDataCache.feeStructure=snap.val()||{};
+        const studentRes=await fetch(STUDENT_SHEET_CSV);
+        const studentText=await studentRes.text();
+        const rows=studentText.split('\n').slice(1);
+        feesDataCache.students=[];
+        for(const row of rows){
+            if(!row.trim()) continue;
+            const cols=row.split(',');
+            const name=cols[7]?.replace(/"/g,'').trim();
+            const cls=cols[1]?.replace(/"/g,'').trim();
+            const gr=cols[2]?.replace(/"/g,'').trim();
+            const ph=cols[15]?.replace(/"/g,'').trim();
+            if(name) feesDataCache.students.push({name,class:cls,grNo:gr,phone:ph});
+        }
+    } catch(e){ console.error(e); }
+}
+window.refreshFeesData = async () => { await loadFeesData(); renderStudentFeesDashboard(); };
+function renderStudentFeesDashboard() {
+    const container = document.getElementById('feesContainer');
+    if(!container) return;
+    const studentName = localStorage.getItem('userName');
+    const studentGR = localStorage.getItem('userGR');
+    const studentClass = localStorage.getItem('mappedClass');
+    function normalize(s){ return s.toLowerCase().replace(/[^\w\s]/g,'').replace(/\s+/g,' ').trim(); }
+    const normalizedStudent = normalize(studentName);
+    const payments = feesDataCache.payments.filter(p => {
+        const norm = normalize(p.name);
+        return norm === normalizedStudent || norm.includes(normalizedStudent) || normalizedStudent.includes(norm);
+    }).sort((a,b)=>b.date.localeCompare(a.date));
+    const totalPaid = payments.reduce((sum,p)=>sum+p.amount,0);
+    const totalFees = feesDataCache.feeStructure[studentClass] || 0;
+    const balance = totalFees - totalPaid;
+    container.innerHTML = `
+        <div class="space-y-4">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl p-4 text-white"><div class="flex justify-between"><div><h3 class="font-bold">${escapeHtml(studentName)}</h3><p>Class ${studentClass}</p>${studentGR?`<p class="text-xs">GR: ${studentGR}</p>`:''}</div><div class="bg-white/20 p-2 rounded text-center"><span class="text-2xl font-bold">₹${totalPaid.toLocaleString()}</span><p class="text-[10px]">Total Paid</p></div></div></div>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden"><div class="bg-gray-50 p-3 font-bold"><i class="fa-solid fa-receipt"></i> Payment History</div><div class="overflow-x-auto"><table class="w-full">${payments.length===0?`<tr><td class="p-6 text-center text-gray-400">No records</td></tr>`:`<thead><tr class="border-b"><th class="p-2 text-left">Receipt</th><th class="p-2 text-left">Date</th><th class="p-2 text-right">Amount</th></tr></thead><tbody>${payments.map(p=>`<tr class="border-b"><td class="p-2">${escapeHtml(p.receiptNo)}</td><td class="p-2">${p.date||'N/A'}</td><td class="p-2 text-right font-bold text-green-600">₹${p.amount.toLocaleString()}</td></tr>`).join('')}</tbody>`}</table></div><div class="bg-gray-50 p-3 flex justify-between font-bold"><span>Total Paid:</span><span class="text-green-600">₹${totalPaid.toLocaleString()}</span></div><div class="p-3 flex justify-between font-bold"><span>Balance:</span><span class="${balance>0?'text-red-600':'text-green-600'}">${balance>0?`₹${balance.toLocaleString()}`:'FULL PAID ✓'}</span></div></div>
+            ${balance>0?`<div class="bg-yellow-50 p-3 rounded-xl mt-3"><i class="fa-solid fa-circle-info text-yellow-600"></i> Pending amount ₹${balance.toLocaleString()}. Please contact school office.</div>`:''}
+            ${totalFees===0?`<div class="bg-yellow-50 p-3 rounded-xl mt-3 text-yellow-700"><i class="fa-solid fa-circle-exclamation"></i> Annual fee for Class ${studentClass} not set by admin. Contact school.</div>`:''}
+        </div>`;
+}
+window.showFeesChart = async () => { await loadFeesData(); document.getElementById('content').innerHTML=`<div class="space-y-4"><button onclick="loadSection('more')" class="text-blue-600">&larr; Back</button><h2 class="text-lg font-black">Fee Structure by Class</h2>${Object.entries(feesDataCache.feeStructure).map(([cls,amt])=>`<div class="bg-white rounded-xl shadow-md p-4 flex justify-between"><span>Class ${cls}</span><span class="font-bold">₹${amt.toLocaleString()}</span></div>`).join('')}</div>`; };
 </script>
 </body>
 </html>
