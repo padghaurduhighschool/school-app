@@ -16,7 +16,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&family=Noto+Sans+Devanagari&display=swap" rel="stylesheet">
     <style>
-        /* Modal for bulk paste */
         .paste-modal {
             position: fixed;
             top: 0;
@@ -47,6 +46,16 @@
             padding: 0.5rem;
             border: 1px solid #ccc;
             border-radius: 0.5rem;
+        }
+        /* Fix table alignment */
+        .timetable-table th, .timetable-table td {
+            vertical-align: middle;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .timetable-table input {
+            min-width: 80px;
+            text-align: center;
         }
     </style>
 </head>
@@ -157,7 +166,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
 
     <script>
-        // Firebase Config - Same as original
+        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
             authDomain: "padgha-school-erp.firebaseapp.com",
@@ -208,7 +217,6 @@
             }, 2000);
         };
 
-        // PWA INSTALLATION
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
@@ -216,7 +224,6 @@
             if (installBtn) installBtn.classList.remove('hidden');
         });
 
-        // LOGIN LOGIC
         window.handleLogin = async function() {
             const phone = document.getElementById('phone').value.trim();
             const code = document.getElementById('code').value.trim();
@@ -272,7 +279,6 @@
             }
         }
 
-        // DASHBOARD NAVIGATION
         window.loadSection = (section) => {
             const content = document.getElementById('content');
             const role = localStorage.getItem('userRole');
@@ -297,7 +303,6 @@
             }
         };
 
-        // ADMIN HOME DASHBOARD
         async function loadAdminHome() {
             const content = document.getElementById('content');
             const name = localStorage.getItem('userName');
@@ -410,7 +415,7 @@
             updateHomeSummary();
         }
 
-        // STAFF LOGS (unchanged)
+        // ======================= STAFF LOGS (unchanged) =======================
         async function loadStaffLogsDetail() {
             const content = document.getElementById('content');
             const dateKey = new Date().toISOString().split('T')[0];
@@ -628,7 +633,7 @@
             }
         };
 
-        // STUDENT MANAGEMENT (unchanged)
+        // ======================= STUDENT MANAGEMENT (unchanged) =======================
         async function loadStudentManagement() {
             const content = document.getElementById('content');
             content.innerHTML = `
@@ -736,7 +741,7 @@
             showToast("Student data refreshed");
         };
 
-        // ATTENDANCE REPORTS (unchanged)
+        // ======================= ATTENDANCE REPORTS (unchanged) =======================
         async function loadAttendanceReports() {
             const content = document.getElementById('content');
             const dateKey = new Date().toISOString().split('T')[0];
@@ -896,7 +901,7 @@
             }
         };
 
-        // ADMIN PROFILE (unchanged)
+        // ======================= ADMIN PROFILE (unchanged) =======================
         async function loadAdminProfile() {
             const content = document.getElementById('content');
             const name = localStorage.getItem('userName');
@@ -1025,9 +1030,7 @@
             }
         };
 
-        // ---------------- ENHANCED TIME TABLE FUNCTIONS WITH BULK PASTE ----------------
-        
-        // Daily Time Table (with paste button)
+        // ======================= DAILY TIME TABLE (unchanged) =======================
         window.openDailyTimeTable = () => {
             const content = document.getElementById('content');
             const role = localStorage.getItem('userRole');
@@ -1074,7 +1077,7 @@
                 html += `<thead><tr class="bg-green-600 text-white">
                     <th class="p-3 border border-green-500 text-center font-bold w-16">Period</th>
                     ${days.map(d => `<th class="p-3 border border-green-500 text-center font-bold">${d}</th>`).join('')}
-                  </td></thead><tbody>`;
+                   </tr></thead><tbody>`;
                 
                 for (let period = 1; period <= totalPeriods; period++) {
                     const isFridayPeriod = period > fridayMaxPeriod;
@@ -1115,14 +1118,9 @@
             }
         };
 
-        // Bulk paste for Daily Timetable
         window.bulkPasteDailyTimetable = () => {
             const className = document.getElementById('tt-class-select')?.value;
             if (!className) { alert("Please select a class first."); return; }
-            
-            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-            const totalPeriods = 8;
-            const fridayMaxPeriod = 4;
             
             const modalHtml = `
                 <div id="pasteModal" class="paste-modal" onclick="if(event.target===this) closePasteModal()">
@@ -1145,24 +1143,16 @@
             if (!raw) { closePasteModal(); return; }
             const lines = raw.split(/\r?\n/).filter(l => l.trim().length > 0);
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-            const totalPeriods = 8;
-            const fridayMaxPeriod = 4;
-            
-            // Assume first line might be header, but we'll try to parse data rows
             let periodRow = 1;
             for (let line of lines) {
-                const cells = line.split(/\t|,/); // tab or comma
-                if (cells.length < 6) continue; // need at least 6 columns
-                if (periodRow > totalPeriods) break;
-                // Skip Friday periods beyond 4
-                if (periodRow <= fridayMaxPeriod || periodRow > fridayMaxPeriod) {
-                    for (let col = 0; col < days.length; col++) {
-                        const day = days[col];
-                        if (day === 'Friday' && periodRow > fridayMaxPeriod) continue;
-                        const cellValue = cells[col]?.trim() || '';
-                        const input = document.getElementById(`cell-${day}-${periodRow}`);
-                        if (input) input.value = cellValue;
-                    }
+                const cells = line.split(/\t|,/);
+                if (cells.length < 6) continue;
+                if (periodRow > 8) break;
+                for (let col = 0; col < days.length; col++) {
+                    const day = days[col];
+                    if (day === 'Friday' && periodRow > 4) continue;
+                    const input = document.getElementById(`cell-${day}-${periodRow}`);
+                    if (input) input.value = cells[col]?.trim() || '';
                 }
                 periodRow++;
             }
@@ -1198,7 +1188,7 @@
             } catch (err) { alert("Error: " + err.message); }
         };
 
-        // Exam Time Table with paste button
+        // ======================= EXAM TIME TABLE (unchanged) =======================
         window.openExamTimeTable = () => {
             const content = document.getElementById('content');
             const role = localStorage.getItem('userRole');
@@ -1315,7 +1305,7 @@
             } catch (err) { alert("Error: " + err.message); }
         };
 
-        // Teacher Time Table (Admin view) with paste button
+        // ======================= TEACHER TIME TABLE (FIXED) =======================
         window.openTeacherTimeTable = () => {
             const content = document.getElementById('content');
             const role = localStorage.getItem('userRole');
@@ -1339,7 +1329,7 @@
                         <select id="teacherSelect" class="w-full p-3 bg-gray-50 rounded-xl text-sm border mb-4">
                             <option value="">-- Select Teacher --</option>
                         </select>
-                        <div id="teacher-tt-container" class="mt-4">
+                        <div id="teacher-tt-container" class="mt-4 overflow-x-auto">
                             <p class="text-center text-gray-400 py-8">Select a teacher to view/edit timetable</p>
                         </div>
                     </div>
@@ -1396,39 +1386,73 @@
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const totalPeriods = 8;
             const fridayMaxPeriod = 4;
-            let html = `<div class="overflow-x-auto"><table class="w-full border-collapse text-sm"><thead><tr class="bg-purple-600 text-white"><th class="p-3 border border-purple-500 text-center font-bold w-16">Period</th>${days.map(day => `<th class="p-3 border border-purple-500 text-center font-bold">${day}</th>`).join('')}</tr></thead><tbody>`;
+            
+            let html = `<div class="overflow-x-auto"><table class="w-full border-collapse text-sm timetable-table">
+                <thead>
+                    <tr class="bg-purple-600 text-white">
+                        <th class="p-3 border border-purple-500 text-center font-bold w-16">Period</th>
+                        ${days.map(day => `<th class="p-3 border border-purple-500 text-center font-bold">${day}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>`;
+            
             for (let period = 1; period <= totalPeriods; period++) {
-                const isFridayPeriod = period > fridayMaxPeriod;
+                const isFridayPeriod = (period > fridayMaxPeriod);
                 html += `<tr class="${isFridayPeriod ? 'bg-gray-50' : 'hover:bg-gray-50'}">`;
-                html += `<td class="p-3 border text-center font-bold ${isFridayPeriod ? 'text-gray-400' : 'text-purple-600 bg-purple-50'}">${period}${isFridayPeriod ? '†' : ''}</table>`;
+                html += `<td class="p-3 border text-center font-bold ${isFridayPeriod ? 'text-gray-400' : 'text-purple-600 bg-purple-50'}">${period}${isFridayPeriod ? '†' : ''}</td>`;
+                
                 for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
                     const day = days[dayIdx];
                     if (day === 'Friday' && isFridayPeriod) {
+                        // Only output the merged cell on the first row of the merged block (period 5)
                         if (period === 5) {
-                            const rowspan = totalPeriods - fridayMaxPeriod;
-                            html += `<td rowspan="${rowspan}" class="p-3 border text-center bg-amber-50 align-middle"><div class="flex flex-col items-center"><i class="fa-solid fa-bell text-amber-500 text-lg mb-1"></i><span class="text-amber-700 font-medium text-xs">Early Dismissal</span><span class="text-amber-500 text-[10px] mt-1">No classes after period 4</span></div></td>`;
+                            const rowspan = totalPeriods - fridayMaxPeriod; // = 4
+                            html += `<td rowspan="${rowspan}" class="p-3 border text-center bg-amber-50 align-middle">
+                                <div class="flex flex-col items-center">
+                                    <i class="fa-solid fa-bell text-amber-500 text-lg mb-1"></i>
+                                    <span class="text-amber-700 font-medium text-xs">Early Dismissal</span>
+                                    <span class="text-amber-500 text-[10px] mt-1">No classes after period 4</span>
+                                </div>
+                            </td>`;
                         }
+                        // For periods 6,7,8 we output nothing for Friday because the cell is already merged
                         continue;
                     }
+                    
                     const value = schedule?.[day]?.[period] || '';
                     if (isEditable) {
-                        html += `<td class="p-1 border"><input type="text" id="cell-${day}-${period}" value="${value.replace(/"/g, '&quot;')}" class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" placeholder="Subject / Class"></td>`;
+                        html += `<td class="p-1 border">
+                            <input type="text" id="cell-${day}-${period}" 
+                                value="${value.replace(/"/g, '&quot;')}" 
+                                class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" 
+                                placeholder="Subject / Class">
+                        </td>`;
                     } else {
                         html += `<td class="p-3 border text-gray-700 text-xs">${value || '—'}</td>`;
                     }
                 }
                 html += `</tr>`;
             }
-            html += `<tr class="bg-gray-50 border-t-2"><td colspan="7" class="p-3 text-xs text-gray-500"><div class="flex items-center justify-between"><div><i class="fa-regular fa-clock mr-1 text-amber-500"></i><strong>Note:</strong> Friday has only 4 periods (Early dismissal at 10:45 AM)${isEditable ? '<br><span class="text-[10px] text-purple-500">Click any cell to edit</span>' : ''}</div></div></td></tr></tbody></table></div>`;
+            
+            html += `<tr class="bg-gray-50 border-t-2">
+                <td colspan="7" class="p-3 text-xs text-gray-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <i class="fa-regular fa-clock mr-1 text-amber-500"></i>
+                            <strong>Note:</strong> Friday has only 4 periods (Early dismissal at 10:45 AM)
+                            ${isEditable ? '<br><span class="text-[10px] text-purple-500">Click any cell to edit</span>' : ''}
+                        </div>
+                    </div>
+                </td>
+            </tr>`;
+            
+            html += `</tbody></table></div>`;
             container.innerHTML = html;
         }
 
         window.bulkPasteTeacherTimetable = () => {
             const teacher = document.getElementById('teacherSelect')?.value;
             if (!teacher) { alert("Please select a teacher first."); return; }
-            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-            const totalPeriods = 8;
-            const fridayMaxPeriod = 4;
             const modalHtml = `
                 <div id="pasteModalTeacher" class="paste-modal" onclick="if(event.target===this) closePasteModalTeacher()">
                     <div class="paste-modal-content">
@@ -1494,9 +1518,9 @@
                 await firebase.database().ref(`teacher_timetables/${sanitizedKey}`).set(saveData);
                 alert(`✅ Timetable saved successfully for ${teacher}!`);
             } catch (err) { alert("❌ Error saving: " + err.message); }
-        };
+        }
 
-        // FEES DASHBOARD (unchanged)
+        // ======================= FEES DASHBOARD (unchanged) =======================
         let feesDataCache = { payments: [], feeStructure: {}, students: [] };
         window.showFeesDashboard = async () => {
             const content = document.getElementById('content');
@@ -1608,7 +1632,7 @@
             content.innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-lg font-bold">Fee Structure by Class</h2></div><button onclick="refreshFeesData()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-refresh mr-1"></i>Refresh</button></div><div class="p-4 space-y-3">${Object.entries(feesDataCache.feeStructure).map(([className, totalFees]) => `<div class="bg-white rounded-xl shadow-sm border p-4 flex justify-between items-center"><div><p class="font-bold text-gray-800">Class ${className}</p><p class="text-xs text-gray-500">Annual Fees</p></div><div class="text-right"><p class="text-xl font-bold text-blue-600">₹${totalFees.toLocaleString()}</p><p class="text-[10px] text-gray-400">per student</p></div></div>`).join('')}${Object.keys(feesDataCache.feeStructure).length === 0 ? `<div class="text-center py-10 text-gray-400"><i class="fa-solid fa-chart-line text-4xl mb-3"></i><p>No fee structure data available</p><button onclick="refreshFeesData()" class="mt-3 text-blue-600 text-xs underline">Refresh</button></div>` : ''}</div></div>`;
         };
 
-        // HOME SUMMARY UPDATE (unchanged)
+        // ======================= HOME SUMMARY & UTILITIES =======================
         async function updateHomeSummary() {
             const dateKey = new Date().toISOString().split('T')[0];
             const [staffRes, studRes] = await Promise.all([ fetch(TEACHER_SHEET_CSV), fetch(STUDENT_SHEET_CSV) ]);
@@ -1647,7 +1671,6 @@
             });
         }
 
-        // UTILITY FUNCTIONS
         window.triggerInstall = async () => {
             if (!deferredPrompt) return;
             deferredPrompt.prompt();
