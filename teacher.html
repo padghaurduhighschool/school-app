@@ -722,55 +722,21 @@ async function loadFeesData() {
             if (studentName) { feesDataCache.payments.push({ name: studentName, receiptNo, date, amount }); }
         }
         
-        // 2. Load Fee Structure: Firebase FIRST
+        // 2. Load Fee Structure: Firebase ONLY (no CSV fallback)
         let feeStructureFromFirebase = {};
         try {
             const snap = await firebase.database().ref('feeStructure/classWise').once('value');
             if (snap.exists()) {
                 feeStructureFromFirebase = snap.val();
                 console.log("✅ Using Firebase fee structure (admin saved):", feeStructureFromFirebase);
+            } else {
+                console.warn("⚠️ No fee structure found in Firebase. Please set it via Admin Portal.");
             }
         } catch (err) {
             console.warn("Could not load fee structure from Firebase", err);
         }
         
-        if (Object.keys(feeStructureFromFirebase).length > 0) {
-            feesDataCache.feeStructure = feeStructureFromFirebase;
-        } else {
-            // Fallback: parse the multi‑column chart CSV correctly
-            console.warn("⚠️ Firebase fee structure empty – falling back to CSV chart.");
-            const FEES_CHART_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=936130121&single=true&output=csv";
-            const chartRes = await fetch(FEES_CHART_URL);
-            const chartText = await chartRes.text();
-            const lines = chartText.split('\n').filter(l => l.trim());
-            const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-            
-            // Find the row that contains "I Term Fees" (or use first data row as fallback)
-            let termRowIndex = 1;
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].toLowerCase().includes('i term fees')) {
-                    termRowIndex = i;
-                    break;
-                }
-            }
-            const termRow = lines[termRowIndex].split(',').map(c => c.replace(/"/g, '').trim());
-            
-            // Class names start at column 2 (index 2) because columns 0=Due Date, 1=Term
-            const feeStructure = {};
-            for (let col = 2; col < headers.length; col++) {
-                let className = headers[col];
-                // Normalize class names (e.g., "Class 4" → "4", "Jr KG" stays)
-                if (className.startsWith('Class ')) {
-                    className = className.replace('Class ', '');
-                }
-                const amount = parseFloat(termRow[col]) || 0;
-                if (className && amount > 0) {
-                    feeStructure[className] = amount;
-                }
-            }
-            feesDataCache.feeStructure = feeStructure;
-            console.log("📊 Fallback fee structure from CSV:", feeStructure);
-        }
+        feesDataCache.feeStructure = feeStructureFromFirebase;
         
         // 3. Load Students (unchanged)
         const studentRes = await fetch(STUDENT_SHEET_CSV);
