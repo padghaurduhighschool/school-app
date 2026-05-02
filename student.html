@@ -155,10 +155,9 @@
     window.togglePushNotifications = async () => { if(isPushNotificationEnabled) { if(confirm('Disable notifications?')) await disablePushNotifications(); } else await enablePushNotifications(); };
 
     // ======================= FEES DATA LOADING =======================
-// ======================= FEES DATA LOADING (Firebase first, then CSV) =======================
 async function loadFeesData() {
     try {
-        // 1. Load Payment History (unchanged)
+        // 1. Load payments
         const paymentsRes = await fetch(FEES_CSV_URL);
         const paymentsText = await paymentsRes.text();
         const paymentsLines = paymentsText.split('\n');
@@ -173,22 +172,22 @@ async function loadFeesData() {
             if (name) feesDataCache.payments.push({ name, receiptNo: receipt, date, amount });
         }
 
-        // 2. Load Fee Structure from Firebase FIRST (admin saved values)
+        // 2. Load fee structure from Firebase FIRST
         let feeStructureFromFirebase = {};
         try {
             const snap = await firebase.database().ref('feeStructure/classWise').once('value');
             if (snap.exists()) {
                 feeStructureFromFirebase = snap.val();
-                console.log("Using Firebase fee structure (admin saved):", feeStructureFromFirebase);
+                console.log("Using Firebase fee structure:", feeStructureFromFirebase);
             }
         } catch (err) {
-            console.warn("Could not load fee structure from Firebase", err);
+            console.warn("Firebase fee load error", err);
         }
 
         if (Object.keys(feeStructureFromFirebase).length > 0) {
             feesDataCache.feeStructure = feeStructureFromFirebase;
         } else {
-            // Fallback: load from CSV chart
+            // Fallback to CSV chart
             const chartRes = await fetch(FEES_CHART_URL);
             const chartText = await chartRes.text();
             const chartLines = chartText.split('\n');
@@ -202,7 +201,7 @@ async function loadFeesData() {
             }
         }
 
-        // 3. Load Student Info (unchanged)
+        // 3. Load students list (for reference)
         const studentRes = await fetch(STUDENT_SHEET_CSV);
         const studentText = await studentRes.text();
         const rows = studentText.split('\n').slice(1);
@@ -345,7 +344,75 @@ async function loadFeesData() {
     // ======================= FEES DASHBOARD (STUDENT VIEW) =======================
     window.showFeesDashboard = async () => { const content = document.getElementById('content'); content.innerHTML=`<div class="space-y-4 pb-20"><div class="flex items-center justify-between sticky top-0 bg-white z-10 p-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-lg font-bold">Fees Dashboard</h2><button onclick="refreshFeesData()" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs"><i class="fa-solid fa-refresh"></i></button></div><div id="feesContainer"></div></div>`; await loadFeesData(); renderStudentFeesDashboard(); };
     window.refreshFeesData = async () => { await loadFeesData(); renderStudentFeesDashboard(); };
-    function renderStudentFeesDashboard() { const container = document.getElementById('feesContainer'); if(!container) return; const studentName = localStorage.getItem('userName'); const studentGR = localStorage.getItem('userGR'); const payments = feesDataCache.payments.filter(p=>p.name.toLowerCase()===studentName.toLowerCase()).sort((a,b)=>b.date.localeCompare(a.date)); const totalPaid = payments.reduce((s,p)=>s+p.amount,0); const studentInfo = feesDataCache.students.find(s=>s.name===studentName); const studentClass = studentInfo?.class || 'N/A'; const totalFees = feesDataCache.feeStructure[studentClass] || 0; const balance = totalFees - totalPaid; container.innerHTML = `<div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 text-white"><div class="flex justify-between"><div><h3 class="font-bold">${escapeHtml(studentName)}</h3><p>Class ${studentClass}</p>${studentGR?`<p class="text-xs">GR: ${studentGR}</p>`:''}</div><div class="bg-white/20 p-2 rounded text-center"><span class="text-2xl font-bold">₹${totalPaid.toLocaleString()}</span><p class="text-[10px]">Total Paid</p></div></div></div><div class="bg-white rounded-xl border overflow-hidden mt-4"><div class="bg-gray-50 p-3 font-bold"><i class="fa-solid fa-receipt"></i> Payment History</div><div class="overflow-x-auto"><table class="w-full">${payments.length===0?'<tr><td class="p-6 text-center text-gray-400">No records</td></tr>':`<thead><tr class="border-b"><th class="p-2 text-left">Receipt</th><th class="p-2 text-left">Date</th><th class="p-2 text-right">Amount</th></tr></thead><tbody>${payments.map(p=>`<tr class="border-b"><td class="p-2">${escapeHtml(p.receiptNo)}</td><td class="p-2">${p.date||'N/A'}</td><td class="p-2 text-right font-bold text-green-600">₹${p.amount.toLocaleString()}</td></tr>`).join('')}</tbody>`}</table></div><div class="bg-gray-50 p-3 flex justify-between font-bold"><span>Total Paid:</span><span class="text-green-600">₹${totalPaid.toLocaleString()}</span></div><div class="p-3 flex justify-between font-bold"><span>Balance:</span><span class="${balance>0?'text-red-600':'text-green-600'}">${balance>0?`₹${balance.toLocaleString()}`:'FULL PAID ✓'}</span></div></div>${balance>0?`<div class="bg-yellow-50 p-3 rounded-xl"><i class="fa-solid fa-circle-info text-yellow-600"></i> Pending amount ₹${balance}. Contact office.</div>`:''}`; }
+function renderStudentFeesDashboard() {
+    const container = document.getElementById('feesContainer');
+    if (!container) return;
+    
+    const studentName = localStorage.getItem('userName');
+    const studentGR = localStorage.getItem('userGR');
+    const studentClass = localStorage.getItem('mappedClass');   // use stored class
+    
+    // Get payments for this student
+    const payments = feesDataCache.payments.filter(p => 
+        p.name.toLowerCase() === studentName.toLowerCase()
+    ).sort((a, b) => b.date.localeCompare(a.date));
+    
+    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+    const totalFees = feesDataCache.feeStructure[studentClass] || 0;
+    const balance = totalFees - totalPaid;
+    
+    container.innerHTML = `
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 text-white">
+            <div class="flex justify-between">
+                <div>
+                    <h3 class="font-bold">${escapeHtml(studentName)}</h3>
+                    <p>Class ${studentClass}</p>
+                    ${studentGR ? `<p class="text-xs">GR: ${studentGR}</p>` : ''}
+                </div>
+                <div class="bg-white/20 p-2 rounded text-center">
+                    <span class="text-2xl font-bold">₹${totalPaid.toLocaleString()}</span>
+                    <p class="text-[10px]">Total Paid</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl border overflow-hidden mt-4">
+            <div class="bg-gray-50 p-3 font-bold"><i class="fa-solid fa-receipt"></i> Payment History</div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    ${payments.length === 0 ? 
+                        `<tr><td class="p-6 text-center text-gray-400">No records</td></tr>` :
+                        `<thead><tr class="border-b"><th class="p-2 text-left">Receipt</th><th class="p-2 text-left">Date</th><th class="p-2 text-right">Amount</th></tr></thead>
+                        <tbody>${payments.map(p => `
+                            <tr class="border-b">
+                                <td class="p-2">${escapeHtml(p.receiptNo)}</td>
+                                <td class="p-2">${p.date || 'N/A'}</td>
+                                <td class="p-2 text-right font-bold text-green-600">₹${p.amount.toLocaleString()}</td>
+                            </tr>
+                        `).join('')}</tbody>`
+                    }
+                </table>
+            </div>
+            <div class="bg-gray-50 p-3 flex justify-between font-bold">
+                <span>Total Paid:</span>
+                <span class="text-green-600">₹${totalPaid.toLocaleString()}</span>
+            </div>
+            <div class="p-3 flex justify-between font-bold">
+                <span>Balance:</span>
+                <span class="${balance > 0 ? 'text-red-600' : 'text-green-600'}">
+                    ${balance > 0 ? `₹${balance.toLocaleString()}` : 'FULL PAID ✓'}
+                </span>
+            </div>
+        </div>
+        
+        ${balance > 0 ? `
+            <div class="bg-yellow-50 p-3 rounded-xl mt-3">
+                <i class="fa-solid fa-circle-info text-yellow-600"></i> 
+                Pending amount ₹${balance.toLocaleString()}. Please contact the school office.
+            </div>
+        ` : ''}
+    `;
+}
     window.showFeesChart = async () => { await loadFeesData(); const content = document.getElementById('content'); content.innerHTML=`<div class="space-y-4"><button onclick="loadSection('more')" class="text-blue-600">&larr; Back</button><h2 class="text-lg font-bold">Fee Structure by Class</h2>${Object.entries(feesDataCache.feeStructure).map(([cls,amt])=>`<div class="bg-white p-4 rounded-xl shadow flex justify-between"><span>Class ${cls}</span><span class="font-bold">₹${amt.toLocaleString()}</span></div>`).join('')}</div>`; };
 
     // ======================= LOAD SECTION (STUDENT FLOW) =======================
@@ -378,44 +445,59 @@ async function loadFeesData() {
     window.triggerInstall = async () => { if(deferredPrompt){ deferredPrompt.prompt(); const {outcome}=await deferredPrompt.userChoice; if(outcome==='accepted') deferredPrompt=null; } };
 
     // ======================= LOGIN (STUDENT ONLY) =======================
-    window.handleLogin = async () => {
-        const phone = document.getElementById('phone').value.trim();
-        const code = document.getElementById('code').value.trim();
-        if(!phone || !code) { alert("Please enter phone and code"); return; }
-        try {
-            const res = await fetch(STUDENT_SHEET_CSV);
-            const text = await res.text();
-            const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
-            const headers = rows[0].map(h=>h.replace(/"/g,'').trim().toLowerCase());
-            const grIdx = headers.findIndex(h=>h.includes('gr'));
-            const nameIdx = headers.findIndex(h=>h.includes('name'));
-            const classIdx = headers.findIndex(h=>h.includes('class'));
-            const phoneIdx = headers.findIndex(h=>h.includes('contact'));
-            const codeIdx = headers.findIndex(h=>h.includes('code'));
-            let student = null;
-            for(let i=1;i<rows.length;i++) {
-                let sPhone = rows[i][phoneIdx]?.replace(/"/g,'').trim();
-                let sCode = rows[i][codeIdx]?.replace(/"/g,'').trim();
-                if(sPhone === phone && sCode === code) {
-                    student = { gr: rows[i][grIdx]?.replace(/"/g,'').trim(), name: rows[i][nameIdx]?.replace(/"/g,'').trim(), class: rows[i][classIdx]?.replace(/"/g,'').trim(), phone: sPhone };
-                    break;
-                }
+window.handleLogin = async () => {
+    const phone = document.getElementById('phone').value.trim();
+    const code = document.getElementById('code').value.trim();
+    if (!phone || !code) { alert("Please enter phone and code"); return; }
+    try {
+        const res = await fetch(STUDENT_SHEET_CSV);
+        const text = await res.text();
+        const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+        const headers = rows[0].map(h => h.replace(/"/g, '').trim().toLowerCase());
+        
+        // Find column indices dynamically
+        const grIdx = headers.findIndex(h => h.includes('gr') || h === 'gr no');
+        const nameIdx = headers.findIndex(h => h.includes('name') || h === 'student name');
+        const classIdx = headers.findIndex(h => h.includes('class') || h === 'standard' || h === 'grade');
+        const phoneIdx = headers.findIndex(h => h.includes('contact') || h === 'phone' || h === 'mobile');
+        const codeIdx = headers.findIndex(h => h.includes('code') || h === 'password' || h === 'pin');
+        
+        let student = null;
+        for (let i = 1; i < rows.length; i++) {
+            const sPhone = rows[i][phoneIdx]?.replace(/"/g, '').trim();
+            const sCode = rows[i][codeIdx]?.replace(/"/g, '').trim();
+            if (sPhone === phone && sCode === code) {
+                student = {
+                    gr: rows[i][grIdx]?.replace(/"/g, '').trim() || 'Pending',
+                    name: rows[i][nameIdx]?.replace(/"/g, '').trim(),
+                    class: rows[i][classIdx]?.replace(/"/g, '').trim() || 'N/A',
+                    phone: sPhone
+                };
+                break;
             }
-            if(student) {
-                localStorage.setItem('userRole', 'Student');
-                localStorage.setItem('userName', student.name);
-                localStorage.setItem('mappedClass', student.class);
-                localStorage.setItem('userGR', student.gr || 'Pending');
-                localStorage.setItem('userPhone', phone);
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
-                document.getElementById('user-name-display').innerText = `Student • ${student.name}`;
-                loadSection('home');
-                if('Notification' in window && 'serviceWorker' in navigator) Notification.requestPermission();
-                registerForPushNotifications();
-            } else alert("Invalid phone or code");
-        } catch(e) { alert("Login failed. Check internet."); }
-    };
+        }
+        
+        if (student) {
+            localStorage.setItem('userRole', 'Student');
+            localStorage.setItem('userName', student.name);
+            localStorage.setItem('mappedClass', student.class);   // critical for fees
+            localStorage.setItem('userGR', student.gr);
+            localStorage.setItem('userPhone', phone);
+            
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('user-name-display').innerText = `Student • ${student.name}`;
+            loadSection('home');
+            if ('Notification' in window && 'serviceWorker' in navigator) Notification.requestPermission();
+            registerForPushNotifications();
+        } else {
+            alert("Invalid phone or code");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Login failed. Check internet.");
+    }
+};
     async function registerForPushNotifications() { if ('Notification' in window && 'serviceWorker' in navigator) await Notification.requestPermission(); }
 
     window.handleLogout = () => { if(confirm("Logout?")){ localStorage.clear(); document.getElementById('main-app').classList.add('hidden'); document.getElementById('login-screen').classList.remove('hidden'); loadSection('home'); } };
