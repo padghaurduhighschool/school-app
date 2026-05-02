@@ -1133,19 +1133,9 @@ function readFileAsDataURL(file) {
         reader.readAsDataURL(file);
     });
 }
-    function fetchHomework(){ const cont=document.getElementById('homework-list'); if(cont) cont.innerHTML='<div class="bg-white p-4 rounded-xl">Homework section active.</div>'; }
-    window.postHomework = ()=>{};
-    window.deleteHomework=(id)=>{};
+
     
-    function loadNoticesSection(){ fetchNotices(); }
-    function fetchNotices(){ const cont=document.getElementById('notices-list'); if(cont) cont.innerHTML='<div class="p-4">Notices available.</div>'; }
-    function toggleNoticeFields(){}
-    window.searchStudentNotice=()=>{};
-    window.selectStudent=()=>{};
-    window.postNotice=()=>{};
-    window.switchLangNotice=()=>{};
-    
-    function loadStudentsSection(){ fetchStudentData(); }
+   
     async function fetchStudentData(){ try{ const resp=await fetch(STUDENT_SHEET_CSV); const text=await resp.text(); const rows=text.split('\n').slice(1); allStudents=rows.map(row=>{ const c=row.split(','); return { id:c[2]?.replace(/"/g,'').trim(), name:c[7]?.replace(/"/g,'').trim(), class:c[1]?.replace(/"/g,'').trim(), roll:c[3]?.replace(/"/g,'').trim(), contact:c[15]?.replace(/"/g,'').trim() }; }).filter(s=>s.name); renderStudentList(allStudents); }catch(e){ console.error(e); } }
     function renderStudentList(students){ const cont=document.getElementById('student-list-container'); if(!cont) return; cont.innerHTML=students.map(s=>`<div class="bg-white p-4 rounded-xl shadow-sm border flex justify-between"><div><p class="font-bold">${s.name}</p><p class="text-xs">GR: ${s.id}</p></div><div><span class="bg-blue-100 px-3 py-1 rounded-full text-xs">${s.class}</span></div></div>`).join(''); }
     window.filterStudents=()=>{};
