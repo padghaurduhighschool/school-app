@@ -172,13 +172,15 @@ async function loadFeesData() {
             if (name) feesDataCache.payments.push({ name, receiptNo: receipt, date, amount });
         }
         
-        // 2. Load fee structure ONLY from Firebase
+        // 2. Load fee structure ONLY from Firebase (no CSV fallback)
         feesDataCache.feeStructure = {};
         try {
             const snap = await firebase.database().ref('feeStructure/classWise').once('value');
             if (snap.exists()) {
                 feesDataCache.feeStructure = snap.val();
                 console.log("✅ Student fee structure from Firebase:", feesDataCache.feeStructure);
+            } else {
+                console.warn("⚠️ No fee structure in Firebase. Please ask admin to set it.");
             }
         } catch (err) {
             console.warn("Could not load fee structure from Firebase", err);
