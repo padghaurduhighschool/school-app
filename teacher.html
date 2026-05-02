@@ -445,7 +445,6 @@ body.dark ::-webkit-scrollbar-thumb {
             }
         } else if(section === 'attendance') loadAttendanceSection();
         else if(section === 'homework') loadHomeworkSection();
-        else if(section === 'notices') loadNoticesSection();
         else if(section === 'students') loadStudentsSection();
         else if(section === 'staff_logs_detail') loadStaffLogsDetail();
         else if(section === 'student_attendance_summary') loadClassAttendanceStatus();
@@ -458,7 +457,119 @@ body.dark ::-webkit-scrollbar-thumb {
         content.innerHTML = `<div class="space-y-4"><div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl"><div class="flex items-center space-x-4"><div class="bg-white/20 rounded-full p-3"><i class="fas fa-user-circle text-4xl"></i></div><div><h3 class="font-bold text-xl">${escapeHtml(name)}</h3><p class="text-white/80 text-sm">${escapeHtml(role)}</p><p class="text-white/60 text-xs mt-1"><i class="fas fa-phone mr-1"></i>${escapeHtml(phone)||'Not provided'}</p></div></div></div><div class="bg-white rounded-2xl shadow-sm overflow-hidden"><div class="p-4 border-b"><h3 class="font-bold text-gray-800"><i class="fas fa-cog mr-2 text-indigo-600"></i>Settings</h3></div><div class="p-4 space-y-3">${['Admin','Super Admin','Supervisor'].includes(role) ? `<button onclick="loadUserManagement()" class="flex flex-col items-center p-4 bg-purple-50 border border-purple-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full"><div class="flex items-center justify-center w-full"><i class="fas fa-users-cog mr-2 text-purple-600"></i><span class="text-sm font-bold text-purple-700">User Management</span></div><p class="text-xs text-gray-500 mt-2">View all credentials</p></button>` : ''}<button id="enable-notifications-btn" onclick="togglePushNotifications()" class="flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full"><div class="flex items-center justify-center w-full"><i class="fas fa-bell mr-2 text-blue-600"></i><span class="text-sm font-bold text-blue-700">Checking status...</span></div></button><div id="install-button-container" class="${deferredPrompt?'':'hidden'}"><button onclick="triggerInstall()" class="flex flex-col items-center p-4 bg-green-50 border border-green-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full"><div class="flex items-center justify-center w-full"><i class="fas fa-download mr-2 text-green-600"></i><span class="text-sm font-bold text-green-700">Install App</span></div></button></div><button onclick="showFeesChart()" class="flex flex-col items-center p-4 bg-purple-50 border border-purple-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full"><div class="flex items-center justify-center w-full"><i class="fas fa-chart-line mr-2 text-purple-600"></i><span class="text-sm font-bold text-purple-700">Fees Structure Chart</span></div></button><button onclick="calculateMonthlyHours()" class="flex flex-col items-center p-4 bg-orange-50 border border-orange-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full"><div class="flex items-center justify-center w-full"><i class="fas fa-clock mr-2 text-orange-600"></i><span class="text-sm font-bold text-orange-700">Monthly Hours</span></div></button><button onclick="handleLogout()" class="flex flex-col items-center p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full"><div class="flex items-center justify-center w-full"><i class="fas fa-sign-out-alt mr-2 text-red-600"></i><span class="text-sm font-bold text-red-700">Logout</span></div></button></div></div><div class="text-center text-xs text-gray-400 py-4"><p>Version 2.0.0 | Padgha Urdu High School</p></div></div>`;
         setTimeout(() => checkNotificationStatus(), 100);
     }
+// ======================= NOTICES SECTION (TEACHER VIEW) =======================
+let teacherStudentMap = {}; // GR -> class
 
+async function loadNoticesSection() {
+    const content = document.getElementById('content');
+    content.innerHTML = `
+        <div class="space-y-4">
+            <h2 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-bell mr-2 text-orange-600"></i>Notices & Announcements</h2>
+            <div id="notices-list" class="space-y-3 pb-10">
+                <p class="text-center py-10 text-gray-400 italic text-sm">Loading notices...</p>
+            </div>
+        </div>
+    `;
+    await loadTeacherStudentMapping(); // build GR -> class map
+    fetchTeacherNotices();
+}
+
+async function loadTeacherStudentMapping() {
+    try {
+        const response = await fetch(STUDENT_SHEET_CSV);
+        const text = await response.text();
+        const rows = text.split('\n').slice(1);
+        teacherStudentMap = {};
+        for (const row of rows) {
+            if (!row.trim()) continue;
+            const cols = row.split(',');
+            const gr = cols[2]?.replace(/"/g, '').trim();
+            const className = cols[1]?.replace(/"/g, '').trim();
+            if (gr && className) {
+                teacherStudentMap[gr] = className;
+            }
+        }
+        console.log("Student mapping loaded for teacher notices");
+    } catch (err) {
+        console.error("Failed to load student mapping:", err);
+    }
+}
+
+function fetchTeacherNotices() {
+    const teacherClass = localStorage.getItem('mappedClass');
+    const container = document.getElementById('notices-list');
+    if (!container) return;
+
+    firebase.database().ref('notices').orderByChild('timestamp').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+            container.innerHTML = `<p class="text-center py-10 text-gray-400">No active notices.</p>`;
+            return;
+        }
+
+        const notices = Object.entries(data).map(([id, n]) => ({ id, ...n })).reverse();
+        let html = '';
+
+        for (const n of notices) {
+            let visible = false;
+
+            // 1. Whole school notice
+            if (n.targetType === 'school') {
+                visible = true;
+            }
+            // 2. Notice for teacher's own class
+            else if (n.targetType === 'class' && n.targetValue === teacherClass) {
+                visible = true;
+            }
+            // 3. Individual student notice – check if that student belongs to teacher's class
+            else if (n.targetType === 'student') {
+                const studentGR = n.targetValue;
+                const studentClass = teacherStudentMap[studentGR];
+                if (studentClass && studentClass === teacherClass) {
+                    visible = true;
+                }
+            }
+
+            if (!visible) continue;
+
+            html += `
+                <div class="bg-white p-5 rounded-2xl border-l-4 border-orange-500 shadow-sm">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-[9px] font-black text-orange-600 uppercase">
+                            📢 ${n.targetType === 'school' ? 'Public' : (n.targetType === 'class' ? `Class ${n.targetValue}` : `Student Notice`)}
+                        </span>
+                        <span class="text-[10px] text-gray-400">${n.date || ''}</span>
+                    </div>
+                    <h3 class="font-black text-gray-800 text-sm">${escapeHtml(n.title)}</h3>
+                    <div class="mt-2">
+                        <div class="flex gap-2 mb-2 text-[10px]">
+                            <button onclick="switchLangNotice('${n.id}','en')" class="lang-tab px-2 py-1 rounded bg-gray-100">EN</button>
+                            <button onclick="switchLangNotice('${n.id}','mr')" class="lang-tab px-2 py-1 rounded bg-gray-100">MR</button>
+                            <button onclick="switchLangNotice('${n.id}','ur')" class="lang-tab px-2 py-1 rounded bg-gray-100">UR</button>
+                        </div>
+                        <p id="msg-${n.id}" class="text-xs text-gray-600 leading-relaxed">${escapeHtml(n.message?.en || 'No content')}</p>
+                    </div>
+                    <p class="text-[8px] text-gray-400 mt-3">Posted by: ${escapeHtml(n.sender)}</p>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html || '<p class="text-center py-10 text-gray-400">No notices for you.</p>';
+    });
+}
+
+window.switchLangNotice = (id, lang) => {
+    firebase.database().ref('notices/' + id).once('value', (snapshot) => {
+        const n = snapshot.val();
+        const msgDiv = document.getElementById(`msg-${id}`);
+        if (msgDiv) {
+            msgDiv.innerText = n.message?.[lang] || n.message?.en || "No content";
+            msgDiv.className = `text-xs text-gray-600 leading-relaxed`;
+        }
+    });
+};
+
+    
     // ---------- ATTENDANCE SECTION (FULL INTERFACE) ----------
     function loadAttendanceSection() {
         const content = document.getElementById('content');
@@ -1336,6 +1447,16 @@ window.filterTeacherStudentList = () => {
     function showFeesChart(){ alert('Fee chart will load in fees dashboard.'); }
     
     console.log("Teacher/Staff portal loaded — full features, student login removed");
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+    
 </script>
 </body>
 </html>
