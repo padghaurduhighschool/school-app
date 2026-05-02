@@ -378,79 +378,77 @@ body.dark ::-webkit-scrollbar-thumb {
 
     async function registerForPushNotifications() { if('Notification' in window && 'serviceWorker' in navigator) await Notification.requestPermission(); }
 
-    // LOAD SECTIONS
-    window.loadSection = (section) => {
-        const content = document.getElementById('content');
-        const role = localStorage.getItem('userRole');
-        const name = localStorage.getItem('userName');
-        document.getElementById('user-role-title').innerHTML = `<i class="fa-solid fa-school mr-2"></i>${role} Dashboard`;
-        
-        if(section === 'home') {
-            if(["Supervisor","Clerk","Super Admin","Admin","Teacher"].includes(role)) {
-                content.innerHTML = `
-                    <div class="space-y-4">
-                        <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-2xl text-white shadow-lg">
-                            <h2 class="text-2xl font-bold">Welcome, ${name}</h2>
-                            <p class="text-sm opacity-80 mt-1">${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</p>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div onclick="openDailyTimeTable()" class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-green-500 cursor-pointer active:scale-95 transition-all">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-gray-500 text-[10px] uppercase font-bold">Schedule</p>
-                                        <p class="text-lg font-bold text-green-600">Daily Time Table</p>
-                                    </div>
-                                    <i class="fa-regular fa-calendar text-green-400 text-2xl"></i>
+window.loadSection = (section) => {
+    const content = document.getElementById('content');
+    const role = localStorage.getItem('userRole');
+    const name = localStorage.getItem('userName');
+    document.getElementById('user-role-title').innerHTML = `<i class="fa-solid fa-school mr-2"></i>${role} Dashboard`;
+    
+    if(section === 'home') {
+        if(["Supervisor","Clerk","Super Admin","Admin","Teacher"].includes(role)) {
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <!-- Welcome Banner -->
+                    <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-2xl text-white shadow-lg">
+                        <h2 class="text-2xl font-bold">Welcome, ${name}</h2>
+                        <p class="text-sm opacity-80 mt-1">${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</p>
+                    </div>
+
+                    <!-- Compact Paytm-style grid -->
+                    <div class="p-0">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                            <!-- Daily Time Table -->
+                            <div onclick="openDailyTimeTable()" class="bg-white flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-gray-50 active:scale-95 transition-all cursor-pointer">
+                                <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                    <i class="fas fa-clock text-xl"></i>
                                 </div>
+                                <span class="text-xs font-medium text-gray-700">Daily TT</span>
                             </div>
-                            <div onclick="openExamTimeTable()" class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-orange-500 cursor-pointer active:scale-95 transition-all">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-gray-500 text-[10px] uppercase font-bold">Assessments</p>
-                                        <p class="text-lg font-bold text-orange-600">Exam Time Table</p>
-                                    </div>
-                                    <i class="fa-regular fa-clock text-orange-400 text-2xl"></i>
+
+                            <!-- Exam Time Table -->
+                            <div onclick="openExamTimeTable()" class="bg-white flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-gray-50 active:scale-95 transition-all cursor-pointer">
+                                <div class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
+                                    <i class="fas fa-calendar-alt text-xl"></i>
                                 </div>
+                                <span class="text-xs font-medium text-gray-700">Exam TT</span>
                             </div>
-                            <div onclick="openTeacherTimeTable()" class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-purple-500 cursor-pointer active:scale-95 transition-all">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-gray-500 text-[10px] uppercase font-bold">Teachers View</p>
-                                        <p class="text-lg font-bold text-purple-600">Teacher Time Table</p>
-                                    </div>
-                                    <i class="fa-regular fa-user text-purple-400 text-2xl"></i>
+
+                            <!-- Teacher Time Table -->
+                            <div onclick="openTeacherTimeTable()" class="bg-white flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-gray-50 active:scale-95 transition-all cursor-pointer">
+                                <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+                                    <i class="fas fa-chalkboard-user text-xl"></i>
                                 </div>
+                                <span class="text-xs font-medium text-gray-700">Teacher TT</span>
                             </div>
-                            <div onclick="loadSection('students')" class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-blue-500 cursor-pointer active:scale-95 transition-all">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-gray-500 text-[10px] uppercase font-bold">View records</p>
-                                        <p class="text-lg font-bold text-blue-600">Student Details</p>
-                                    </div>
-                                    <i class="fa-regular fa-address-card text-blue-400 text-2xl"></i>
+
+                            <!-- Student Details -->
+                            <div onclick="loadSection('students')" class="bg-white flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-gray-50 active:scale-95 transition-all cursor-pointer">
+                                <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                                    <i class="fas fa-address-card text-xl"></i>
                                 </div>
+                                <span class="text-xs font-medium text-gray-700">Students</span>
                             </div>
-                            <div onclick="showFeesDashboard()" class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-emerald-500 cursor-pointer active:scale-95 transition-all">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-gray-500 text-[10px] uppercase font-bold">Accounts</p>
-                                        <p class="text-lg font-bold text-emerald-600">Fees Dashboard</p>
-                                    </div>
-                                    <i class="fa-regular fa-credit-card text-emerald-400 text-2xl"></i>
+
+                            <!-- Fees Dashboard -->
+                            <div onclick="showFeesDashboard()" class="bg-white flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-gray-50 active:scale-95 transition-all cursor-pointer">
+                                <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+                                    <i class="fas fa-rupee-sign text-xl"></i>
                                 </div>
+                                <span class="text-xs font-medium text-gray-700">Fees</span>
                             </div>
                         </div>
-                    </div>`;
-                updateHomeSummary().catch(console.error);
-            }
-        } else if(section === 'attendance') loadAttendanceSection();
-        else if(section === 'homework') loadHomeworkSection();
-        else if(section === 'students') loadStudentsSection();
-        else if(section === 'staff_logs_detail') loadStaffLogsDetail();
-        else if(section === 'student_attendance_summary') loadClassAttendanceStatus();
-        else if(section === 'notices') loadNoticesSection();   
-        else if(section === 'more') loadMoreSection();
-    };
+                    </div>
+                </div>`;
+            updateHomeSummary().catch(console.error);
+        }
+    } else if(section === 'attendance') loadAttendanceSection();
+    else if(section === 'homework') loadHomeworkSection();
+    else if(section === 'students') loadStudentsSection();
+    else if(section === 'staff_logs_detail') loadStaffLogsDetail();
+    else if(section === 'student_attendance_summary') loadClassAttendanceStatus();
+    else if(section === 'notices') loadNoticesSection();   
+    else if(section === 'more') loadMoreSection();
+};
 
     function loadMoreSection() {
         const role = localStorage.getItem('userRole'), name = localStorage.getItem('userName'), phone = localStorage.getItem('userPhone');
