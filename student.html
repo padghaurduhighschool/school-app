@@ -361,16 +361,29 @@ function renderStudentFeesDashboard() {
     
     const studentName = localStorage.getItem('userName');
     const studentGR = localStorage.getItem('userGR');
-    const studentClass = localStorage.getItem('mappedClass');   // use stored class
+    const studentClass = localStorage.getItem('mappedClass');
     
-    // Get payments for this student
-    const payments = feesDataCache.payments.filter(p => 
-        p.name.toLowerCase() === studentName.toLowerCase()
-    ).sort((a, b) => b.date.localeCompare(a.date));
+    // Normalization function: remove all non-alphanumeric chars and extra spaces, then lowercase
+    function normalizeName(name) {
+        return name.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+    }
+    
+    const normalizedStudent = normalizeName(studentName);
+    
+    // Filter payments using normalized comparison
+    const payments = feesDataCache.payments.filter(p => {
+        const normalizedPayment = normalizeName(p.name);
+        return normalizedPayment === normalizedStudent;
+    }).sort((a, b) => b.date.localeCompare(a.date));
     
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     const totalFees = feesDataCache.feeStructure[studentClass] || 0;
     const balance = totalFees - totalPaid;
+    
+    // Debug info (visible in console)
+    console.log('Student name:', studentName);
+    console.log('Normalized:', normalizedStudent);
+    console.log('Payments loaded:', feesDataCache.payments.map(p => ({ name: p.name, normalized: normalizeName(p.name), amount: p.amount })));
     
     container.innerHTML = `
         <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 text-white">
@@ -420,6 +433,13 @@ function renderStudentFeesDashboard() {
             <div class="bg-yellow-50 p-3 rounded-xl mt-3">
                 <i class="fa-solid fa-circle-info text-yellow-600"></i> 
                 Pending amount ₹${balance.toLocaleString()}. Please contact the school office.
+            </div>
+        ` : ''}
+        
+        ${totalFees === 0 ? `
+            <div class="bg-yellow-50 p-3 rounded-xl mt-3 text-yellow-700">
+                <i class="fa-solid fa-circle-exclamation"></i> 
+                Annual fee for Class ${studentClass} has not been set by the admin. Please contact school.
             </div>
         ` : ''}
     `;
