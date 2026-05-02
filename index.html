@@ -3,219 +3,155 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Padgha Urdu High School | Semi-English | Jr KG - Std 10</title>
-  <meta name="description" content="Padgha Urdu High School, Thane – Semi-English medium education from Junior KG to Class 10. Official student, teacher, and admin portals.">
-  <meta name="theme-color" content="#00695C">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+  <title>Padgha Urdu High School & Bkids | Official Portal</title>
+  
+  <!-- Modern Typography & Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
     :root {
-      --primary: #00695C;
-      --primary-dark: #004D40;
-      --accent: #FF8F00;
-      --accent-hover: #E65100;
-      --bg-light: #F5F9FF;
-      --gray: #374151;
-      --white: #ffffff;
-      --shadow: 0 20px 25px -12px rgba(0,0,0,0.05);
-      --radius: 28px;
+      --primary: #004D40;
+      --primary-gradient: linear-gradient(135deg, #004D40 0%, #00796B 100%);
+      --accent: #FF9100;
+      --text-dark: #1F2937;
+      --text-light: #6B7280;
+      --glass: rgba(255, 255, 255, 0.8);
+      --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+      --radius-lg: 24px;
+      --radius-md: 16px;
     }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg-light);
-      color: var(--gray);
-      line-height: 1.5;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #F8FAFC;
+      color: var(--text-dark);
+      overflow-x: hidden;
+      scroll-behavior: smooth;
     }
-    .container {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 2rem;
-    }
+
+    /* --- Navigation --- */
     .navbar {
-      background: var(--white);
-      backdrop-filter: blur(10px);
-      background: rgba(255,255,255,0.96);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      position: fixed;
+      top: 0; width: 100%; z-index: 1000;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      transition: 0.3s;
     }
+
     .nav-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 2rem;
-      max-width: 1400px;
+      max-width: 1300px;
       margin: 0 auto;
-    }
-    .logo {
+      padding: 1rem 2rem;
       display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 800;
-      font-size: 1.3rem;
-      color: var(--primary);
-    }
-    .logo i {
-      font-size: 2rem;
-      color: var(--accent);
-    }
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-      list-style: none;
-    }
-    .nav-links a {
-      text-decoration: none;
-      font-weight: 500;
-      transition: 0.2s;
-      color: var(--gray);
-    }
-    .nav-links a:hover { color: var(--accent); }
-    .menu-toggle {
-      display: none;
-      font-size: 1.6rem;
-      cursor: pointer;
-    }
-    .hero {
-      background: linear-gradient(115deg, var(--primary) 0%, #008b74 100%);
-      color: white;
-      padding: 4rem 0;
-      border-radius: 0 0 3rem 3rem;
-      margin-bottom: 2rem;
-    }
-    .hero .container {
-      display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 2rem;
-      flex-wrap: wrap;
-    }
-    .hero-content h1 {
-      font-size: 2.6rem;
-      color: white;
-      margin-bottom: 1rem;
-    }
-    .hero p {
-      font-size: 1.1rem;
-      opacity: 0.92;
-      margin: 1rem 0 1.8rem;
-    }
-    .hero-badge {
-      background: rgba(255,255,255,0.2);
-      backdrop-filter: blur(4px);
-      display: inline-block;
-      padding: 0.4rem 1rem;
-      border-radius: 60px;
-      font-size: 0.85rem;
-    }
-    .hero-stats {
-      display: flex;
-      gap: 2rem;
-      margin-top: 1.5rem;
-    }
-    .stat-number {
-      font-size: 1.8rem;
-      font-weight: 800;
-    }
-    .portal-section {
-      padding: 2rem 0 3rem;
-    }
-    .portal-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-      justify-content: center;
-      margin-top: 2rem;
-    }
-    .portal-card {
-      background: var(--white);
-      border-radius: var(--radius);
-      padding: 2rem 1.8rem;
-      flex: 1;
-      min-width: 240px;
-      text-align: center;
-      text-decoration: none;
-      color: inherit;
-      transition: all 0.25s ease;
-      box-shadow: var(--shadow);
-      border: 1px solid #e2e8f0;
-    }
-    .portal-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 25px 30px -12px rgba(0,0,0,0.15);
-      border-color: var(--accent);
-    }
-    .portal-icon {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      display: flex;
       align-items: center;
-      justify-content: center;
-      margin: 0 auto 1.2rem;
-      font-size: 2.5rem;
     }
-    .student .portal-icon { background: #E0F2FE; color: #0369A1; }
-    .teacher .portal-icon { background: #E6F7EC; color: #2E7D32; }
-    .admin .portal-icon { background: #FFF3E0; color: #E65100; }
-    .portal-card h3 { font-size: 1.8rem; margin-bottom: 0.5rem; }
-    .portal-arrow { font-weight: 600; color: var(--accent); margin-top: 1rem; display: inline-block; }
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(270px,1fr));
-      gap: 1.8rem;
-      margin: 3rem 0;
+
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .brand-logo { 
+      background: var(--primary-gradient); 
+      color: white; padding: 10px; border-radius: 12px; font-size: 1.5rem; 
     }
-    .info-card {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 1.5rem;
-      border-left: 5px solid var(--accent);
-      box-shadow: var(--shadow);
+    .brand-text { font-weight: 800; font-size: 1.4rem; color: var(--primary); letter-spacing: -0.5px; }
+
+    .nav-links { display: flex; gap: 2.5rem; list-style: none; }
+    .nav-links a { 
+      text-decoration: none; color: var(--text-dark); font-weight: 600; font-size: 0.95rem;
+      transition: 0.2s; position: relative;
     }
-    .info-card i { font-size: 1.8rem; color: var(--accent); margin-bottom: 0.8rem; }
-    .mission {
-      background: white;
-      padding: 2rem;
-      border-radius: 2rem;
-      margin: 2rem 0;
+    .nav-links a:after {
+      content: ''; position: absolute; bottom: -5px; left: 0; width: 0%; height: 2px;
+      background: var(--accent); transition: 0.3s;
     }
+    .nav-links a:hover:after { width: 100%; }
+
+    /* --- Hero Section --- */
+    .hero {
+      padding: 160px 0 100px;
+      background: radial-gradient(circle at top right, #E0F2F1, transparent), #F8FAFC;
+      position: relative;
+    }
+
+    .hero-grid {
+      max-width: 1300px; margin: 0 auto; padding: 0 2rem;
+      display: grid; grid-template-columns: 1.2fr 1fr; gap: 4rem; align-items: center;
+    }
+
+    .hero-tag {
+      background: #E0F2F1; color: var(--primary);
+      padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 0.85rem;
+      display: inline-flex; align-items: center; gap: 8px; margin-bottom: 1.5rem;
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif; font-size: 4rem; line-height: 1.1; margin-bottom: 1.5rem;
+    }
+
+    .hero p { font-size: 1.2rem; color: var(--text-light); margin-bottom: 2.5rem; line-height: 1.7; }
+
+    .hero-btns { display: flex; gap: 1rem; }
+    .btn {
+      padding: 16px 32px; border-radius: 14px; font-weight: 700; text-decoration: none;
+      transition: 0.3s; display: inline-block; cursor: pointer; border: none;
+    }
+    .btn-primary { background: var(--primary-gradient); color: white; box-shadow: 0 10px 20px rgba(0,77,64,0.2); }
+    .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(0,77,64,0.3); }
+
+    .hero-image-wrap { position: relative; }
+    .hero-img { 
+      width: 100%; border-radius: var(--radius-lg); 
+      box-shadow: 20px 20px 60px rgba(0,0,0,0.1); transform: rotate(2deg);
+    }
+
+    /* --- Stats Section --- */
+    .stats-bar {
+      background: white; padding: 3rem 0; margin-top: -50px; position: relative; z-index: 10;
+      border-radius: var(--radius-md); box-shadow: var(--card-shadow); max-width: 1100px; margin-left: auto; margin-right: auto;
+    }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; }
+    .stat-item h3 { font-size: 2.5rem; color: var(--primary); margin-bottom: 5px; }
+    .stat-item p { color: var(--text-light); font-weight: 600; font-size: 0.9rem; }
+
+    /* --- Institution Cards --- */
+    .section-padding { padding: 100px 0; }
+    .center-text { text-align: center; max-width: 700px; margin: 0 auto 4rem; }
+    
+    .institutions-grid {
+      max-width: 1300px; margin: 0 auto; padding: 0 2rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem;
+    }
+
+    .inst-card {
+      background: white; padding: 3rem; border-radius: var(--radius-lg);
+      border: 1px solid rgba(0,0,0,0.05); transition: 0.4s; position: relative; overflow: hidden;
+    }
+    .inst-card:hover { transform: translateY(-10px); border-color: var(--primary); }
+    .inst-card i { font-size: 3rem; color: var(--accent); margin-bottom: 1.5rem; }
+    .inst-card h3 { font-size: 2rem; margin-bottom: 1rem; }
+
+    /* --- Map & Contact --- */
+    .contact-container {
+      max-width: 1300px; margin: 0 auto; padding: 0 2rem;
+      display: grid; grid-template-columns: 1fr 1.5fr; gap: 3rem;
+    }
+    .map-frame {
+      width: 100%; height: 450px; border-radius: var(--radius-lg); border: none;
+      filter: grayscale(0.2) contrast(1.1);
+    }
+
     footer {
-      background: var(--primary-dark);
-      color: #cfdfda;
-      padding: 2.5rem 0;
-      text-align: center;
-      margin-top: 3rem;
+      background: #0F172A; color: white; padding: 80px 0 40px;
     }
-    .footer-links {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      flex-wrap: wrap;
-      margin-bottom: 1rem;
-    }
-    .footer-links a { color: #cfdfda; text-decoration: none; }
-    @media (max-width: 768px) {
-      .nav-links {
-        display: none;
-        flex-direction: column;
-        background: white;
-        position: absolute;
-        top: 70px;
-        left: 0;
-        width: 100%;
-        padding: 1.5rem;
-        box-shadow: 0 10px 15px rgba(0,0,0,0.1);
-      }
-      .nav-links.active { display: flex; }
-      .menu-toggle { display: block; }
-      .hero-content h1 { font-size: 2rem; }
+
+    @media (max-width: 992px) {
+      .hero-grid, .institutions-grid, .contact-container { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 3rem; }
+      .nav-links { display: none; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 2rem; }
     }
   </style>
 </head>
@@ -223,106 +159,145 @@
 
 <nav class="navbar">
   <div class="nav-container">
-    <div class="logo">
-      <i class="fas fa-school"></i>
-      <span>Padgha Urdu High School</span>
-    </div>
-    <ul class="nav-links" id="navLinks">
-      <li><a href="#">Home</a></li>
-      <li><a href="#">About</a></li>
-      <li><a href="#">Academics</a></li>
-      <li><a href="#">Facilities</a></li>
-      <li><a href="student.html">Student</a></li>
-      <li><a href="teacher.html">Teacher</a></li>
-      <li><a href="admin.html">Admin</a></li>
-      <li><a href="#">Contact</a></li>
+    <a href="#" class="brand">
+      <div class="brand-logo"><i class="fas fa-mosque"></i></div>
+      <span class="brand-text">Padgha Urdu High School</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#about">Institutions</a></li>
+      <li><a href="#portals">Portals</a></li>
+      <li><a href="#campus">Campus</a></li>
+      <li><a href="#contact">Contact</a></li>
     </ul>
-    <div class="menu-toggle" id="mobileMenu">
-      <i class="fas fa-bars"></i>
-    </div>
+    <a href="admin.html" class="btn btn-primary" style="padding: 10px 20px;">Admin Login</a>
   </div>
 </nav>
 
-<section class="hero">
-  <div class="container">
+<section class="hero" id="home">
+  <div class="hero-grid">
     <div class="hero-content">
-      <div class="hero-badge"><i class="fas fa-globe"></i> Semi-English Medium | Jr KG to Std 10</div>
-      <h1>Padgha Urdu High School</h1>
-      <p>Nurturing young minds from Junior KG through Secondary education. A blend of modern pedagogy, traditional values, and semi-English instruction for holistic development.</p>
-      <div class="hero-stats">
-        <div class="stat"><div class="stat-number">Jr KG → 10</div><div>Full Academic Range</div></div>
-        <div class="stat"><div class="stat-number">Semi-English</div><div>Bilingual Excellence</div></div>
-        <div class="stat"><div class="stat-number">12+</div><div>Qualified Staff</div></div>
+      <div class="hero-tag"><i class="fas fa-star"></i> Excellence in Bilingual Education</div>
+      <h1>Empowering the Next Generation of Scholars.</h1>
+      <p>Providing a sophisticated Semi-English curriculum from Junior KG to Std 10. We blend modern technology with cultural values in the heart of Padgha.</p>
+      <div class="hero-btns">
+        <a href="#portals" class="btn btn-primary">Explore Portals</a>
+        <a href="#contact" class="btn" style="background: white; color: var(--primary);">Visit Campus</a>
       </div>
     </div>
-  </div>
-</section>
-
-<section class="portal-section">
-  <div class="container">
-    <h2 style="text-align: center;">Digital Campus Access</h2>
-    <p style="text-align: center; max-width: 700px; margin: 0 auto 1rem;">Select your role to access the dedicated portal.</p>
-    <div class="portal-grid">
-      <a href="student.html" class="portal-card student">
-        <div class="portal-icon"><i class="fas fa-graduation-cap"></i></div>
-        <h3>Student Zone</h3>
-        <p>Assignments, results, study material & notices.</p>
-        <span class="portal-arrow">Go to Student →</span>
-      </a>
-      <a href="teacher.html" class="portal-card teacher">
-        <div class="portal-icon"><i class="fas fa-chalkboard-user"></i></div>
-        <h3>Teacher Portal</h3>
-        <p>Manage classes, attendance, grades & resources.</p>
-        <span class="portal-arrow">Go to Teacher →</span>
-      </a>
-      <a href="admin.html" class="portal-card admin">
-        <div class="portal-icon"><i class="fas fa-building-lock"></i></div>
-        <h3>Admin Console</h3>
-        <p>School operations, records, reports & oversight.</p>
-        <span class="portal-arrow">Go to Admin →</span>
-      </a>
+    <div class="hero-image-wrap">
+      <!-- High quality placeholder representing school activity -->
+      <img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=800" alt="Education" class="hero-img">
     </div>
   </div>
 </section>
 
-<div class="container">
-  <h2>Why Padgha Urdu High School?</h2>
-  <div class="info-grid">
-    <div class="info-card"><i class="fas fa-language"></i><h3>Semi-English Medium</h3><p>Balanced instruction in Urdu & English, preparing students for competitive exams and higher studies.</p></div>
-    <div class="info-card"><i class="fas fa-child"></i><h3>Jr KG to Class 10</h3><p>Seamless educational journey from kindergarten through secondary school under one roof.</p></div>
-    <div class="info-card"><i class="fas fa-laptop"></i><h3>Digital Literacy</h3><p>Computer lab with internet access, smart classroom initiatives.</p></div>
-    <div class="info-card"><i class="fas fa-book"></i><h3>Library & Labs</h3><p>Well-stocked library, science lab, and activity-based learning.</p></div>
-    <div class="info-card"><i class="fas fa-futbol"></i><h3>Sports & Nutrition</h3><p>Playground, mid-day meal, and co-curricular emphasis.</p></div>
-    <div class="info-card"><i class="fas fa-hands-helping"></i><h3>Inclusive Campus</h3><p>Ramps, separate washrooms, safe environment for all.</p></div>
+<section class="stats-bar">
+  <div class="stats-grid">
+    <div class="stat-item"><h3>25+</h3><p>Years of Legacy</p></div>
+    <div class="stat-item"><h3>100%</h3><p>SSC Results</p></div>
+    <div class="stat-item"><h3>15+</h3><p>Modern Classrooms</p></div>
+    <div class="stat-item"><h3>Bkids</h3><p>Pre-Primary Wing</p></div>
   </div>
-</div>
+</section>
 
-<div class="container">
-  <div class="mission">
-    <h2>Our Mission</h2>
-    <p>Padgha Urdu High School is committed to delivering quality semi-English education from Junior KG to Class 10. We aim to foster academic excellence, moral integrity, and social responsibility, ensuring every child is prepared for the future. Our dedicated faculty and modern infrastructure create a nurturing environment where students thrive.</p>
-    <p style="margin-top: 1rem;"><strong>📍 Location:</strong> Padgha, Bhiwandi Taluka, Thane District, Maharashtra</p>
-    <p><strong>📧 Email:</strong> padghahighschool@gmail.com | <strong>📞 Phone:</strong> +91 9168935575, +91 9022560241</p>
+<section class="section-padding" id="about">
+  <div class="center-text">
+    <h2 style="font-size: 2.5rem;">Our Prestigious Institutions</h2>
+    <p>We provide a continuous learning journey from the first steps of a toddler to the final years of secondary schooling.</p>
   </div>
-</div>
+  <div class="institutions-grid">
+    <div class="inst-card">
+      <i class="fas fa-child-reaching"></i>
+      <h3>Bkids Pre-Primary</h3>
+      <p>A nurturing space for Junior and Senior KG students. We focus on play-based learning and foundational English literacy to give your child a head start.</p>
+    </div>
+    <div class="inst-card">
+      <i class="fas fa-school"></i>
+      <h3>Padgha Urdu High School</h3>
+      <p>Secondary education (Std 1 to 10) with a specialized Semi-English medium. Preparing students for the Maharashtra Board with excellence.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section-padding" style="background: #F1F5F9;" id="portals">
+  <div class="center-text">
+    <h2>Digital Management System</h2>
+    <p>Integrated ERP solutions for our students, parents, and faculty.</p>
+  </div>
+  <div class="institutions-grid">
+    <!-- Student Portal -->
+    <div class="inst-card" style="padding: 2rem; text-align: center;">
+      <div style="background: #E0F2FE; width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+        <i class="fas fa-user-graduate" style="font-size: 1.5rem; color: #0369A1; margin: 0;"></i>
+      </div>
+      <h4>Student Portal</h4>
+      <p style="font-size: 0.9rem; margin: 10px 0;">Check Attendance & APAAR ID</p>
+      <a href="student.html" class="btn btn-primary" style="width: 100%;">Enter Zone</a>
+    </div>
+    <!-- Teacher Portal -->
+    <div class="inst-card" style="padding: 2rem; text-align: center;">
+      <div style="background: #DCFCE7; width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+        <i class="fas fa-chalkboard-teacher" style="font-size: 1.5rem; color: #15803D; margin: 0;"></i>
+      </div>
+      <h4>Teacher Portal</h4>
+      <p style="font-size: 0.9rem; margin: 10px 0;">UDISE+ & Academic Records</p>
+      <a href="teacher.html" class="btn btn-primary" style="width: 100%;">Access Portal</a>
+    </div>
+  </div>
+</section>
+
+<section class="section-padding" id="contact">
+  <div class="contact-container">
+    <div>
+      <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Visit Us Today</h2>
+      <p style="margin-bottom: 2rem;">We are located in the peaceful surroundings of Padgha, providing a focused environment for learning.</p>
+      
+      <div style="display: flex; gap: 15px; margin-bottom: 1rem;">
+        <i class="fas fa-map-marker-alt" style="color: var(--accent);"></i>
+        <p>Bhiwandi Taluka, Thane District, Maharashtra - 421101</p>
+      </div>
+      <div style="display: flex; gap: 15px; margin-bottom: 1rem;">
+        <i class="fas fa-envelope" style="color: var(--accent);"></i>
+        <p>padghahighschool@gmail.com</p>
+      </div>
+      <div style="display: flex; gap: 15px; margin-bottom: 1rem;">
+        <i class="fab fa-whatsapp" style="color: var(--accent);"></i>
+        <p>+91 9168935575</p>
+      </div>
+    </div>
+    <!-- Google Maps Embed -->
+    <iframe class="map-frame" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15061.644336069795!2d73.2384358!3d19.3079088!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7bd77894a4c69%3A0x6e2c3666b6c43916!2sPadgha%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" allowfullscreen="" loading="lazy"></iframe>
+  </div>
+</section>
 
 <footer>
-  <div class="container">
-    <div class="footer-links">
-      <a href="#">Privacy Policy</a>
-      <a href="#">Terms</a>
-      <a href="#">Contact</a>
+  <div class="nav-container" style="flex-direction: column; gap: 2rem; text-align: center;">
+    <div class="brand">
+        <span class="brand-text" style="color: white;">Padgha Urdu High School</span>
     </div>
-    <p>© 2025 Padgha Urdu High School | Semi-English Medium | Jr KG – Std 10</p>
-    <p><i class="fas fa-envelope"></i> padghahighschool@gmail.com | <i class="fab fa-whatsapp"></i> +91 9168935575 / +91 9022560241</p>
+    <div style="display: flex; gap: 2rem;">
+        <a href="#" style="color: #94A3B8; text-decoration: none;">Admissions</a>
+        <a href="#" style="color: #94A3B8; text-decoration: none;">Curriculum</a>
+        <a href="#" style="color: #94A3B8; text-decoration: none;">Careers</a>
+    </div>
+    <p style="color: #64748B; font-size: 0.8rem;">© 2026 Padgha Urdu High School & Bkids Pre-Primary. All Rights Reserved.</p>
   </div>
 </footer>
 
 <script>
-  const mobileBtn = document.getElementById('mobileMenu');
-  const navLinks = document.getElementById('navLinks');
-  mobileBtn.addEventListener('click', () => navLinks.classList.toggle('active'));
-  document.querySelectorAll('.nav-links a').forEach(link => link.addEventListener('click', () => navLinks.classList.remove('active')));
+  // Simple scroll effect for Navbar
+  window.addEventListener('scroll', () => {
+    const nav = document.querySelector('.navbar');
+    if (window.scrollY > 50) {
+      nav.style.padding = '0.5rem 0';
+      nav.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
+    } else {
+      nav.style.padding = '1rem 0';
+      nav.style.boxShadow = 'none';
+    }
+  });
 </script>
+
 </body>
 </html>
