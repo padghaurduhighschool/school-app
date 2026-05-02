@@ -45,6 +45,8 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .hover-card { animation: fadeIn 0.3s ease-out; }
         .attendance-checkbox { transform: scale(1.2); margin-right: 6px; }
+        /* Extra for timetable readability */
+        .timetable-table th, .timetable-table td { vertical-align: middle; text-align: center; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -210,9 +212,80 @@
     function fetchNotices() { const container = document.getElementById('notices-list'); if(!container) return; const userClass = localStorage.getItem('mappedClass'); const userGR = localStorage.getItem('userGR'); firebase.database().ref('notices').orderByChild('timestamp').on('value', (snap) => { const data=snap.val(); if(!data){ container.innerHTML='<p class="text-center text-gray-400">No notices</p>'; return; } let html=''; Object.values(data).reverse().forEach(n=>{ let show=false; if(n.targetType==='school') show=true; if(n.targetType==='class' && n.targetValue===userClass) show=true; if(n.targetType==='student' && n.targetValue===userGR) show=true; if(show) html+=`<div class="bg-white p-5 rounded-2xl border-l-4 border-orange-500"><div class="flex justify-between"><span class="text-orange-600 text-xs font-bold">${n.targetType==='school'?'Public':n.targetValue}</span><span class="text-xs text-gray-400">${n.date}</span></div><h3 class="font-bold">${escapeHtml(n.title)}</h3><div class="mt-2"><div class="flex gap-2 text-[10px] mb-1"><button onclick="switchLang('${n.id}','en')" class="px-2 py-1 bg-gray-100 rounded">EN</button><button onclick="switchLang('${n.id}','mr')" class="px-2 py-1 bg-gray-100 rounded">MR</button><button onclick="switchLang('${n.id}','ur')" class="px-2 py-1 bg-gray-100 rounded">UR</button></div><p id="msg-${n.id}" class="text-xs text-gray-600">${escapeHtml(n.message?.en)||'No content'}</p></div><p class="text-[9px] text-gray-400 mt-2">By: ${escapeHtml(n.sender)}</p></div>`; }); container.innerHTML = html || '<p class="text-center text-gray-400">No notices</p>'; }); }
     window.switchLang = (id,lang) => { firebase.database().ref(`notices/${id}`).once('value',snap=>{ let n=snap.val(); let el=document.getElementById(`msg-${id}`); if(el) el.innerText = n.message?.[lang] || n.message?.en || "No content"; }); };
 
-    // ======================= TIME TABLE (student read only) =======================
-    window.openDailyTimeTable = () => { const c=document.getElementById('content'); const mappedClass=localStorage.getItem('mappedClass'); c.innerHTML=`<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-xl font-bold">Daily Time Table</h2></div><div id="tt-grid" class="bg-white rounded-xl border overflow-hidden p-4 text-center text-gray-400">Loading...</div></div>`; loadClassTimetable(mappedClass); };
-    async function loadClassTimetable(className) { const grid=document.getElementById('tt-grid'); if(!className) return; try { const snap = await firebase.database().ref(`timetable/class/${className}`).once('value'); const data=snap.val()||{}; const days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]; let html='<div class="overflow-x-auto"><table class="w-full border-collapse text-sm"><thead><tr class="bg-green-600 text-white">'+days.map(d=>`<th class="p-2 border">${d}</th>`).join('')+'</tr></thead><tbody>'; for(let p=1;p<=8;p++){ html+=`<tr>${days.map(day=>{ if(day==='Friday' && p>4) return ''; let val = data[day]?.[p] || '—'; return `<td class="p-2 border text-xs">${val}</td>`; }).join('')}</tr>`; } html+=`</tbody></table><p class="text-xs text-gray-500 p-2">Friday: only 4 periods</p></div>`; grid.innerHTML=html; } catch(e){ grid.innerHTML='<p class="text-red-500">Error loading timetable</p>'; } }
+    // ======================= TIME TABLE (FIXED: 8 periods, Friday early dismissal with rowspan) =======================
+    window.openDailyTimeTable = () => { 
+        const content = document.getElementById('content'); 
+        const mappedClass = localStorage.getItem('mappedClass'); 
+        content.innerHTML = `<div class="space-y-4 pb-20">
+            <div class="flex items-center gap-2">
+                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button>
+                <h2 class="text-xl font-bold">Daily Time Table</h2>
+            </div>
+            <div id="tt-grid" class="bg-white rounded-xl border overflow-hidden p-4 text-center text-gray-400">Loading...</div>
+        </div>`; 
+        loadClassTimetable(mappedClass); 
+    };
+    
+    async function loadClassTimetable(className) { 
+        const grid = document.getElementById('tt-grid'); 
+        if(!className) return; 
+        try { 
+            const snap = await firebase.database().ref(`timetable/class/${className}`).once('value'); 
+            const data = snap.val() || {}; 
+            const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+            const totalPeriods = 8;
+            const fridayMaxPeriod = 4;
+            
+            let html = '<div class="overflow-x-auto"><table class="w-full border-collapse text-sm timetable-table">';
+            // Header row with Period column + days
+            html += `<thead><tr class="bg-green-600 text-white">
+                <th class="p-2 border border-green-500 text-center font-bold w-16">Period</th>
+                ${days.map(d => `<th class="p-2 border border-green-500 text-center font-bold">${d}</th>`).join('')}
+            </tr></thead><tbody>`;
+            
+            for (let period = 1; period <= totalPeriods; period++) {
+                const isFridayPeriod = (period > fridayMaxPeriod);
+                // Row styling: subtle background for Friday extra rows
+                html += `<tr class="${isFridayPeriod ? 'bg-gray-50' : 'hover:bg-gray-50'}">`;
+                // Period column with indicator for Friday early dismissal
+                html += `<td class="p-2 border text-center font-bold ${isFridayPeriod ? 'text-gray-400' : 'text-green-600 bg-green-50'}">
+                            ${period}${isFridayPeriod ? '†' : ''}
+                         </td>`;
+                
+                for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
+                    const day = days[dayIdx];
+                    // Friday special handling: for periods >4, we merge into a single cell (only on period==5)
+                    if (day === 'Friday' && isFridayPeriod) {
+                        if (period === 5) {
+                            const rowspan = totalPeriods - fridayMaxPeriod; // = 4
+                            html += `<td rowspan="${rowspan}" class="p-2 border text-center bg-amber-50 align-middle">
+                                        <div class="flex flex-col items-center">
+                                            <i class="fa-solid fa-bell text-amber-500 text-lg mb-1"></i>
+                                            <span class="text-amber-700 font-medium text-xs">Early Dismissal</span>
+                                            <span class="text-amber-500 text-[10px] mt-1">No classes after period 4</span>
+                                        </div>
+                                     </td>`;
+                        }
+                        // Skip remaining Friday cells for periods 6-8 because they are covered by rowspan
+                        continue;
+                    }
+                    // Normal cell (Monday-Thursday, and Friday periods 1-4)
+                    let val = data[day]?.[period] || '—';
+                    html += `<td class="p-2 border text-xs text-gray-700">${escapeHtml(val)}</td>`;
+                }
+                html += `</tr>`;
+            }
+            // Footnote row
+            html += `<tr class="bg-gray-50"><td colspan="7" class="p-2 text-xs text-gray-500">
+                        <i class="fa-regular fa-clock mr-1"></i> <strong>Note:</strong> Friday has only 4 periods (Early dismissal)
+                     </td></tr>`;
+            html += `</tbody></table></div>`;
+            grid.innerHTML = html;
+        } catch(e) { 
+            grid.innerHTML = '<p class="text-red-500">Error loading timetable</p>'; 
+        } 
+    }
+    
     window.openExamTimeTable = () => { const c=document.getElementById('content'); const mappedClass=localStorage.getItem('mappedClass'); c.innerHTML=`<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-xl font-bold">Exam Time Table</h2></div><div id="exam-grid" class="bg-white rounded-xl border p-4"></div></div>`; loadExamTimetable(mappedClass); };
     async function loadExamTimetable(className) { const grid=document.getElementById('exam-grid'); try { const snap=await firebase.database().ref(`exam_timetable/${className}`).once('value'); const data=snap.val()||{}; let html='<table class="w-full"><thead><tr class="bg-gray-100"><th>Date</th><th>Day</th><th>Time</th><th>Subject</th></tr></thead><tbody>'; for(let i=1;i<=10;i++){ let row=data[i]||{}; html+=`<tr><td class="border p-2 text-xs">${row.date||'-'}</td><td class="border p-2 text-xs">${row.day||'-'}</td><td class="border p-2 text-xs">${row.time||'-'}</td><td class="border p-2 text-xs font-bold text-blue-600">${row.sub||'-'}</td></tr>`; } html+='</tbody></table>'; grid.innerHTML=html; } catch(e){ grid.innerHTML='<p class="text-red-500">Error</p>'; } }
 
