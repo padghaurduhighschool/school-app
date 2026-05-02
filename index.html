@@ -1,200 +1,327 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Padgha Urdu High School</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#6366f1">
-    <link rel="apple-touch-icon" href="Padgha Urdu High School Logo.png">
-    <link rel="icon" type="image/png" href="Padgha Urdu High School Logo.png">
-    <link rel="stylesheet" href="style.css">
-    <!-- Fonts & Icons -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&family=Noto+Sans+Devanagari&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Padgha Urdu High School | Semi-English | Jr KG - Std 10</title>
+  <meta name="description" content="Padgha Urdu High School, Thane – Semi-English medium education from Junior KG to Class 10. Official student, teacher, and admin portals.">
+  <meta name="theme-color" content="#00695C">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    :root {
+      --primary: #00695C;
+      --primary-dark: #004D40;
+      --accent: #FF8F00;
+      --accent-hover: #E65100;
+      --bg-light: #F5F9FF;
+      --gray: #374151;
+      --white: #ffffff;
+      --shadow: 0 20px 25px -12px rgba(0,0,0,0.05);
+      --radius: 28px;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-light);
+      color: var(--gray);
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+    .navbar {
+      background: var(--white);
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.96);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 1.3rem;
+      color: var(--primary);
+    }
+    .logo i {
+      font-size: 2rem;
+      color: var(--accent);
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+    .nav-links a {
+      text-decoration: none;
+      font-weight: 500;
+      transition: 0.2s;
+      color: var(--gray);
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .menu-toggle {
+      display: none;
+      font-size: 1.6rem;
+      cursor: pointer;
+    }
+    .hero {
+      background: linear-gradient(115deg, var(--primary) 0%, #008b74 100%);
+      color: white;
+      padding: 4rem 0;
+      border-radius: 0 0 3rem 3rem;
+      margin-bottom: 2rem;
+    }
+    .hero .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+    .hero-content h1 {
+      font-size: 2.6rem;
+      color: white;
+      margin-bottom: 1rem;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      opacity: 0.92;
+      margin: 1rem 0 1.8rem;
+    }
+    .hero-badge {
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(4px);
+      display: inline-block;
+      padding: 0.4rem 1rem;
+      border-radius: 60px;
+      font-size: 0.85rem;
+    }
+    .hero-stats {
+      display: flex;
+      gap: 2rem;
+      margin-top: 1.5rem;
+    }
+    .stat-number {
+      font-size: 1.8rem;
+      font-weight: 800;
+    }
+    .portal-section {
+      padding: 2rem 0 3rem;
+    }
+    .portal-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+    .portal-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 2rem 1.8rem;
+      flex: 1;
+      min-width: 240px;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.25s ease;
+      box-shadow: var(--shadow);
+      border: 1px solid #e2e8f0;
+    }
+    .portal-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 25px 30px -12px rgba(0,0,0,0.15);
+      border-color: var(--accent);
+    }
+    .portal-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.2rem;
+      font-size: 2.5rem;
+    }
+    .student .portal-icon { background: #E0F2FE; color: #0369A1; }
+    .teacher .portal-icon { background: #E6F7EC; color: #2E7D32; }
+    .admin .portal-icon { background: #FFF3E0; color: #E65100; }
+    .portal-card h3 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+    .portal-arrow { font-weight: 600; color: var(--accent); margin-top: 1rem; display: inline-block; }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px,1fr));
+      gap: 1.8rem;
+      margin: 3rem 0;
+    }
+    .info-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 1.5rem;
+      border-left: 5px solid var(--accent);
+      box-shadow: var(--shadow);
+    }
+    .info-card i { font-size: 1.8rem; color: var(--accent); margin-bottom: 0.8rem; }
+    .mission {
+      background: white;
+      padding: 2rem;
+      border-radius: 2rem;
+      margin: 2rem 0;
+    }
+    footer {
+      background: var(--primary-dark);
+      color: #cfdfda;
+      padding: 2.5rem 0;
+      text-align: center;
+      margin-top: 3rem;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .footer-links a { color: #cfdfda; text-decoration: none; }
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        background: white;
+        position: absolute;
+        top: 70px;
+        left: 0;
+        width: 100%;
+        padding: 1.5rem;
+        box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+      }
+      .nav-links.active { display: flex; }
+      .menu-toggle { display: block; }
+      .hero-content h1 { font-size: 2rem; }
+    }
+  </style>
 </head>
 <body>
 
-    <!-- Modern Splash Screen -->
-    <div id="splash-screen" class="fixed inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex flex-col items-center justify-center z-50">
-        <div class="text-center animate-bounce">
-            <img src="Padgha Urdu High School Logo.png" alt="School Logo" class="w-28 h-28 object-contain mx-auto mb-6 splash-logo">
-            <h1 class="text-3xl font-bold text-white mb-2">Padgha Urdu High School</h1>
-            <p class="text-white/80 text-sm">Empowering Education, Enabling Excellence</p>
-        </div>
-        <div class="mt-8">
-            <div class="loading-spinner"></div>
-        </div>
+<nav class="navbar">
+  <div class="nav-container">
+    <div class="logo">
+      <i class="fas fa-school"></i>
+      <span>Padgha Urdu High School</span>
     </div>
-
-    <!-- Modern Login Screen -->
-    <div id="login-screen" class="hidden min-h-screen flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-md p-8">
-            <div class="text-center mb-8">
-                <img src="Padgha Urdu High School Logo.png" alt="Logo" class="w-20 h-20 mx-auto mb-4">
-                <h2 class="text-2xl font-bold gradient-text">Welcome Back!</h2>
-                <p class="text-gray-500 text-sm mt-2">Login to access your dashboard</p>
-            </div>
-            
-            <div class="space-y-4">
-                <div class="relative">
-                    <i class="fas fa-phone-alt absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="tel" id="phone" placeholder="Phone Number" 
-                        class="modern-input w-full pl-12">
-                </div>
-                
-                <div class="relative">
-                    <i class="fas fa-key absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" id="code" placeholder="8-digit Code" 
-                        class="modern-input w-full pl-12">
-                </div>
-                
-                <button onclick="handleLogin()" class="modern-btn w-full">
-                    <i class="fas fa-arrow-right-to-bracket mr-2"></i>Login
-                </button>
-                
-                <button class="w-full text-indigo-600 text-sm font-medium mt-4 hover:text-indigo-700 transition">
-                    <i class="fas fa-headset mr-1"></i>Contact School Support
-                </button>
-            </div>
-        </div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#">Home</a></li>
+      <li><a href="#">About</a></li>
+      <li><a href="#">Academics</a></li>
+      <li><a href="#">Facilities</a></li>
+      <li><a href="student.html">Student</a></li>
+      <li><a href="teacher.html">Teacher</a></li>
+      <li><a href="admin.html">Admin</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+    <div class="menu-toggle" id="mobileMenu">
+      <i class="fas fa-bars"></i>
     </div>
+  </div>
+</nav>
 
-    <!-- Main App Container -->
-    <div id="main-app" class="hidden pb-20">
-        <!-- Modern Header -->
-        <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 sticky top-0 z-30 shadow-lg">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <img src="Padgha Urdu High School Logo.png" alt="Logo" class="w-10 h-10 rounded-full bg-white/20 p-1">
-                    <div>
-                        <h1 id="user-role-title" class="text-lg font-bold">Dashboard</h1>
-                        <p class="text-xs text-white/80" id="user-name-display"></p>
-                    </div>
-                </div>
-                <div class="flex space-x-3">
-                    <button onclick="showNotifications()" class="relative">
-                        <i class="fas fa-bell text-xl"></i>
-                        <span class="notification-badge hidden" id="notification-count">3</span>
-                    </button>
-                    <button onclick="toggleTheme()">
-                        <i class="fas fa-moon text-xl"></i>
-                    </button>
-                </div>
-            </div>
-        </header>
-
-        <!-- Main Content -->
-        <main id="content" class="p-4 pb-24">
-            <!-- Dynamic content loads here -->
-        </main>
-
-        <!-- Modern Bottom Navigation -->
-        <nav class="fixed bottom-0 left-0 right-0 glass-nav flex justify-around p-3 pb-5 z-50">
-            <button onclick="setActiveNav(this, 'home')" class="nav-btn flex flex-col items-center">
-                <i class="fas fa-home text-xl"></i>
-                <span class="text-[10px] mt-1 font-medium">Home</span>
-            </button>
-            <button onclick="setActiveNav(this, 'attendance')" class="nav-btn flex flex-col items-center">
-                <i class="fas fa-calendar-check text-xl"></i>
-                <span class="text-[10px] mt-1 font-medium">Attendance</span>
-            </button>
-            <button onclick="setActiveNav(this, 'homework')" class="nav-btn flex flex-col items-center">
-                <i class="fas fa-book-open text-xl"></i>
-                <span class="text-[10px] mt-1 font-medium">Homework</span>
-            </button>
-            <button onclick="setActiveNav(this, 'notices')" class="nav-btn flex flex-col items-center">
-                <i class="fas fa-bell text-xl"></i>
-                <span class="text-[10px] mt-1 font-medium">Notices</span>
-            </button>
-            <button onclick="setActiveNav(this, 'more')" class="nav-btn flex flex-col items-center">
-                <i class="fas fa-user-circle text-xl"></i>
-                <span class="text-[10px] mt-1 font-medium">Profile</span>
-            </button>
-        </nav>
-        
-        <!-- Floating Action Button -->
-        <div class="fab" onclick="scrollToTop()">
-            <i class="fas fa-arrow-up text-xl"></i>
-        </div>
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-badge"><i class="fas fa-globe"></i> Semi-English Medium | Jr KG to Std 10</div>
+      <h1>Padgha Urdu High School</h1>
+      <p>Nurturing young minds from Junior KG through Secondary education. A blend of modern pedagogy, traditional values, and semi-English instruction for holistic development.</p>
+      <div class="hero-stats">
+        <div class="stat"><div class="stat-number">Jr KG → 10</div><div>Full Academic Range</div></div>
+        <div class="stat"><div class="stat-number">Semi-English</div><div>Bilingual Excellence</div></div>
+        <div class="stat"><div class="stat-number">12+</div><div>Qualified Staff</div></div>
+      </div>
     </div>
+  </div>
+</section>
 
-    <!-- Load Firebase FIRST (only once) -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+<section class="portal-section">
+  <div class="container">
+    <h2 style="text-align: center;">Digital Campus Access</h2>
+    <p style="text-align: center; max-width: 700px; margin: 0 auto 1rem;">Select your role to access the dedicated portal.</p>
+    <div class="portal-grid">
+      <a href="student.html" class="portal-card student">
+        <div class="portal-icon"><i class="fas fa-graduation-cap"></i></div>
+        <h3>Student Zone</h3>
+        <p>Assignments, results, study material & notices.</p>
+        <span class="portal-arrow">Go to Student →</span>
+      </a>
+      <a href="teacher.html" class="portal-card teacher">
+        <div class="portal-icon"><i class="fas fa-chalkboard-user"></i></div>
+        <h3>Teacher Portal</h3>
+        <p>Manage classes, attendance, grades & resources.</p>
+        <span class="portal-arrow">Go to Teacher →</span>
+      </a>
+      <a href="admin.html" class="portal-card admin">
+        <div class="portal-icon"><i class="fas fa-building-lock"></i></div>
+        <h3>Admin Console</h3>
+        <p>School operations, records, reports & oversight.</p>
+        <span class="portal-arrow">Go to Admin →</span>
+      </a>
+    </div>
+  </div>
+</section>
 
-    <!-- Then initialize Firebase -->
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
-            authDomain: "padgha-school-erp.firebaseapp.com",
-            databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "padgha-school-erp",
-            storageBucket: "padgha-school-erp.firebasestorage.app",
-            messagingSenderId: "481255456109",
-            appId: "1:481255456109:web:077e656f3dd03aee43ae64",
-            measurementId: "G-RXBBRWG5SE"
-        };
-        
-        firebase.initializeApp(firebaseConfig);
-        console.log("Firebase initialized");
-    </script>
+<div class="container">
+  <h2>Why Padgha Urdu High School?</h2>
+  <div class="info-grid">
+    <div class="info-card"><i class="fas fa-language"></i><h3>Semi-English Medium</h3><p>Balanced instruction in Urdu & English, preparing students for competitive exams and higher studies.</p></div>
+    <div class="info-card"><i class="fas fa-child"></i><h3>Jr KG to Class 10</h3><p>Seamless educational journey from kindergarten through secondary school under one roof.</p></div>
+    <div class="info-card"><i class="fas fa-laptop"></i><h3>Digital Literacy</h3><p>Computer lab with internet access, smart classroom initiatives.</p></div>
+    <div class="info-card"><i class="fas fa-book"></i><h3>Library & Labs</h3><p>Well-stocked library, science lab, and activity-based learning.</p></div>
+    <div class="info-card"><i class="fas fa-futbol"></i><h3>Sports & Nutrition</h3><p>Playground, mid-day meal, and co-curricular emphasis.</p></div>
+    <div class="info-card"><i class="fas fa-hands-helping"></i><h3>Inclusive Campus</h3><p>Ramps, separate washrooms, safe environment for all.</p></div>
+  </div>
+</div>
 
-    <!-- Then load app.js (without Firebase initialization inside) -->
-    <script src="app.js"></script>
+<div class="container">
+  <div class="mission">
+    <h2>Our Mission</h2>
+    <p>Padgha Urdu High School is committed to delivering quality semi-English education from Junior KG to Class 10. We aim to foster academic excellence, moral integrity, and social responsibility, ensuring every child is prepared for the future. Our dedicated faculty and modern infrastructure create a nurturing environment where students thrive.</p>
+    <p style="margin-top: 1rem;"><strong>📍 Location:</strong> Padgha, Bhiwandi Taluka, Thane District, Maharashtra | <strong>📞 Contact:</strong> +91-XXXXXXXXXX</p>
+  </div>
+</div>
 
-    <!-- Navigation functions -->
-    <script>
-        function setActiveNav(element, section) {
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            element.classList.add('active');
-            if (typeof loadSection === 'function') {
-                loadSection(section);
-            }
-        }
-        
-        function scrollToTop() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        
-        function showNotifications() {
-            if (typeof loadSection === 'function') {
-                loadSection('notices');
-            }
-        }
-        
-        function toggleTheme() {
-            document.body.classList.toggle('dark');
-        }
-        
-        function updateUserDisplay() {
-            const userName = localStorage.getItem('userName');
-            const userRole = localStorage.getItem('userRole');
-            const displayEl = document.getElementById('user-name-display');
-            if (displayEl && userName) {
-                displayEl.innerText = `${userRole} • ${userName}`;
-            }
-        }
-        
-        // Service worker registration (after page load)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log("PWA Registered", reg))
-                    .catch(err => console.log("PWA Failed", err));
-            });
-        }
-window.handleLogout = window.handleLogout || function() {
-    if (confirm("Are you sure you want to logout?")) {
-        localStorage.clear();
-        document.getElementById('main-app').classList.add('hidden');
-        document.getElementById('login-screen').classList.remove('hidden');
-        location.reload();
-    }
-};
-    </script>
+<footer>
+  <div class="container">
+    <div class="footer-links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms</a>
+      <a href="#">Contact</a>
+    </div>
+    <p>© 2025 Padgha Urdu High School | Semi-English Medium | Jr KG – Std 10</p>
+    <p><i class="fas fa-envelope"></i> contact@padghaurdu.edu | <i class="fab fa-whatsapp"></i> +91 98765 43210</p>
+  </div>
+</footer>
+
+<script>
+  const mobileBtn = document.getElementById('mobileMenu');
+  const navLinks = document.getElementById('navLinks');
+  mobileBtn.addEventListener('click', () => navLinks.classList.toggle('active'));
+  document.querySelectorAll('.nav-links a').forEach(link => link.addEventListener('click', () => navLinks.classList.remove('active')));
+</script>
 </body>
 </html>
