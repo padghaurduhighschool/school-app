@@ -548,7 +548,15 @@ body.dark ::-webkit-scrollbar-thumb {
                             <div id="home-stud-bar-absent" class="bg-red-400 h-full transition-all duration-500" style="width: 0%"></div>
                         </div>
                     </div>
-
+<div onclick="openHomeworkManager()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-indigo-500 cursor-pointer active:scale-95 transition-all">
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-gray-500 text-[10px] uppercase font-bold">Management</p>
+            <p class="text-lg font-bold text-indigo-600">Homework Manager</p>
+        </div>
+        <i class="fa-regular fa-pen-to-square text-indigo-400 text-2xl"></i>
+    </div>
+</div>
                     <div onclick="openTeacherTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-purple-500 cursor-pointer active:scale-95 transition-all">
                         <div class="flex items-center justify-between">
                             <div>
@@ -2293,7 +2301,234 @@ window.saveAllClassFees = async () => {
         showToast("❌ Failed to save: " + err.message);
     }
 };
+// ======================= HOMEWORK MANAGEMENT (ADMIN) =======================
+const schoolClassesAll = ["Jr KG","Sr KG","1","2","3","4","5","6","7","8","9","10"];
+
+window.openHomeworkManager = () => {
+    const content = document.getElementById('content');
+    content.innerHTML = `
+        <div class="space-y-4 pb-20">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h2 class="text-lg font-bold">Homework Manager</h2>
+                </div>
+                <button onclick="showPostHomeworkForm()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold">
+                    <i class="fa-solid fa-plus mr-1"></i>New Homework
+                </button>
+            </div>
+            <div id="homeworkListContainer" class="space-y-3">
+                <div class="text-center py-10"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>
+            </div>
+        </div>
+    `;
+    loadAllHomeworkList();
+};
+
+async function loadAllHomeworkList() {
+    const container = document.getElementById('homeworkListContainer');
+    try {
+        const snapshot = await firebase.database().ref('homework').once('value');
+        const homeworkData = snapshot.val();
+        if (!homeworkData) {
+            container.innerHTML = '<div class="text-center text-gray-400 py-10">No homework posted yet.</div>';
+            return;
+        }
+        const homeworkArray = Object.entries(homeworkData).map(([id, hw]) => ({ id, ...hw }));
+        homeworkArray.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
         
+        let html = '';
+        for (let hw of homeworkArray) {
+            html += `
+                <div class="bg-white rounded-xl shadow-sm border p-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">Class ${hw.class}</span>
+                                <span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full">${escapeHtml(hw.subject)}</span>
+                                <span class="text-gray-400 text-xs">${hw.date || new Date(hw.timestamp).toLocaleDateString()}</span>
+                            </div>
+                            <p class="text-gray-700 text-sm">${escapeHtml(hw.description)}</p>
+                            ${hw.attachmentData ? `<div class="mt-2"><a href="${hw.attachmentData}" target="_blank" class="text-blue-500 text-sm underline"><i class="fa-solid fa-paperclip"></i> ${hw.attachmentName || 'Attachment'}</a></div>` : ''}
+                            <p class="text-gray-400 text-[10px] mt-2">Posted by: ${escapeHtml(hw.postedBy)}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editHomework('${hw.id}')" class="text-blue-600"><i class="fa-regular fa-pen-to-square"></i></button>
+                            <button onclick="deleteHomework('${hw.id}')" class="text-red-600"><i class="fa-regular fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    } catch(e) {
+        container.innerHTML = `<div class="text-red-500 text-center">Error: ${e.message}</div>`;
+    }
+}
+
+window.showPostHomeworkForm = (editId = null) => {
+    if (editId) {
+        firebase.database().ref(`homework/${editId}`).once('value').then(snapshot => {
+            openHomeworkModal(editId, snapshot.val());
+        });
+    } else {
+        openHomeworkModal(null, null);
+    }
+};
+
+function openHomeworkModal(editId, existingData) {
+    const oldModal = document.getElementById('homeworkModal');
+    if (oldModal) oldModal.remove();
+    
+    const modalHtml = `
+        <div id="homeworkModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onclick="if(event.target===this) closeHomeworkModal()">
+            <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
+                    <h3 class="font-bold text-lg">${editId ? 'Edit Homework' : 'Post New Homework'}</h3>
+                    <button onclick="closeHomeworkModal()" class="text-gray-500"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Select Class</label>
+                        <select id="hwClass" class="w-full p-2 bg-gray-50 rounded-xl border text-sm">
+                            ${schoolClassesAll.map(c => `<option value="${c}" ${existingData?.class === c ? 'selected' : ''}>${c}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Subject</label>
+                        <input type="text" id="hwSubject" value="${escapeHtml(existingData?.subject || '')}" class="w-full p-2 bg-gray-50 rounded-xl border text-sm" placeholder="e.g., Mathematics, Science">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Homework Details</label>
+                        <textarea id="hwDesc" rows="4" class="w-full p-2 bg-gray-50 rounded-xl border text-sm" placeholder="Write the homework assignment here...">${escapeHtml(existingData?.description || '')}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Due Date (optional)</label>
+                        <input type="date" id="hwDate" value="${existingData?.date || new Date().toISOString().split('T')[0]}" class="w-full p-2 bg-gray-50 rounded-xl border text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Attachment (PDF/Image, max 2MB)</label>
+                        <input type="file" id="hwAttachment" accept=".pdf,image/*" class="w-full text-sm">
+                        ${existingData?.attachmentName ? `<p class="text-xs text-green-600 mt-1">Current: ${existingData.attachmentName} <button onclick="removeAttachment()" class="text-red-500 ml-2"><i class="fa-solid fa-trash"></i></button></p>` : ''}
+                        <p class="text-[10px] text-gray-400 mt-1">Leave empty to keep existing attachment (if any)</p>
+                    </div>
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="saveHomework('${editId || ''}')" class="flex-1 bg-indigo-600 text-white py-2 rounded-xl font-bold">${editId ? 'Update' : 'Post'}</button>
+                        <button onclick="closeHomeworkModal()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-bold">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+window.closeHomeworkModal = () => {
+    const modal = document.getElementById('homeworkModal');
+    if (modal) modal.remove();
+};
+
+window.removeAttachment = () => {
+    const hiddenRemove = document.createElement('input');
+    hiddenRemove.type = 'hidden';
+    hiddenRemove.id = 'removeAttachFlag';
+    hiddenRemove.value = 'true';
+    const modal = document.getElementById('homeworkModal');
+    if (modal) modal.appendChild(hiddenRemove);
+    const fileInput = document.getElementById('hwAttachment');
+    if (fileInput) fileInput.value = '';
+    alert('Attachment will be removed on save.');
+};
+
+function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+window.saveHomework = async (editId) => {
+    const className = document.getElementById('hwClass').value;
+    const subject = document.getElementById('hwSubject').value.trim();
+    const description = document.getElementById('hwDesc').value.trim();
+    const dueDate = document.getElementById('hwDate').value;
+    const fileInput = document.getElementById('hwAttachment');
+    const removeFlag = document.getElementById('removeAttachFlag')?.value === 'true';
+    
+    if (!className || !subject || !description) {
+        alert('Please fill Class, Subject and Details');
+        return;
+    }
+    
+    let attachmentData = null, attachmentName = null, attachmentType = null;
+    
+    if (fileInput.files && fileInput.files[0]) {
+        const file = fileInput.files[0];
+        if (file.size > 2 * 1024 * 1024) {
+            alert('File too large! Maximum 2MB.');
+            return;
+        }
+        attachmentName = file.name;
+        attachmentType = file.type;
+        attachmentData = await readFileAsDataURL(file);
+    } else if (removeFlag) {
+        attachmentData = null; attachmentName = null; attachmentType = null;
+    } else if (editId) {
+        const existingSnap = await firebase.database().ref(`homework/${editId}`).once('value');
+        const existing = existingSnap.val();
+        if (existing) {
+            attachmentData = existing.attachmentData || null;
+            attachmentName = existing.attachmentName || null;
+            attachmentType = existing.attachmentType || null;
+        }
+    }
+    
+    const hwData = {
+        class: className,
+        subject,
+        description,
+        date: dueDate,
+        attachmentData,
+        attachmentName,
+        attachmentType,
+        postedBy: localStorage.getItem('userName'),
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+    
+    try {
+        if (editId) {
+            await firebase.database().ref(`homework/${editId}`).update(hwData);
+            alert('Homework updated successfully!');
+        } else {
+            await firebase.database().ref('homework').push(hwData);
+            alert('Homework posted successfully!');
+        }
+        closeHomeworkModal();
+        openHomeworkManager(); // refresh list
+    } catch(e) {
+        alert('Error: ' + e.message);
+    }
+};
+
+window.editHomework = (id) => {
+    showPostHomeworkForm(id);
+};
+
+window.deleteHomework = async (id) => {
+    if (confirm('Are you sure you want to delete this homework?')) {
+        try {
+            await firebase.database().ref(`homework/${id}`).remove();
+            alert('Deleted successfully');
+            openHomeworkManager();
+        } catch(e) {
+            alert('Error: ' + e.message);
+        }
+    }
+};        
         
     </script>
 </body>
