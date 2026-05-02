@@ -143,7 +143,7 @@
     const OFFICE_LAT = 19.3709, OFFICE_LON = 73.1757;
     const schoolClasses = ["Jr KG", "Sr KG", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
     let deferredPrompt, allStudents = [];
-
+    let feesDataCache = { payments: [], feeStructure: {}, students: [] };
     window.onload = () => {
         const today = new Date();
         const dateKey = today.toISOString().split('T')[0];
@@ -659,10 +659,230 @@
     function loadClassAttendanceStatus(){}
     window.loadAttendanceForClass=(c)=>{ loadSection('attendance'); setTimeout(()=>{ const sel=document.getElementById('target-class'); if(sel) sel.value=c; if(window.loadAttendanceSheet) window.loadAttendanceSheet(); },100); };
     
-    let feesDataCache={payments:[],feeStructure:{},students:[]};
-    window.showFeesDashboard=async()=>{ await loadFeesData(); const role=localStorage.getItem('userRole'); if(role==='Teacher') renderTeacherFeesDashboard(); else renderAdminFeesDashboard(); };
-    async function loadFeesData(){}
-    function renderTeacherFeesDashboard(){}
+    window.showFeesDashboard = async () => {
+    const content = document.getElementById('content');
+    content.innerHTML = `
+        <div class="space-y-4 pb-20">
+            <div class="flex items-center justify-between sticky top-0 bg-white z-10 p-4 border-b">
+                <div class="flex items-center gap-2">
+                    <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h2 class="text-lg font-bold">Fees Dashboard</h2>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="refreshFeesData()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs">
+                        <i class="fa-solid fa-refresh mr-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+            <div id="feesDashboardContent" class="p-4">
+                <div class="text-center py-10">
+                    <i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i>
+                    <p class="text-gray-400 text-sm mt-2">Loading fees data...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    await loadFeesData();
+    const role = localStorage.getItem('userRole');
+    if (role === 'Teacher') {
+        renderTeacherFeesDashboard();
+    } else if (['Admin', 'Super Admin', 'Supervisor', 'Clerk'].includes(role)) {
+        renderAdminFeesDashboard();   // if needed (copy from admin.html)
+    } else {
+        renderStudentFeesDashboard();  // student view
+    }
+};
+async function loadFeesData() {
+    const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
+    
+    try {
+        // 1. Load Payments (unchanged)
+        const paymentsRes = await fetch(FEES_CSV_URL);
+        const paymentsText = await paymentsRes.text();
+        const paymentsLines = paymentsText.split('\n');
+        const paymentHeaders = paymentsLines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
+        feesDataCache.payments = [];
+        for (let i = 1; i < paymentsLines.length; i++) {
+            if (!paymentsLines[i].trim()) continue;
+            const cols = paymentsLines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            const studentNameIndex = paymentHeaders.findIndex(h => h.includes('name') || h.includes('student'));
+            const receiptIndex = paymentHeaders.findIndex(h => h.includes('receipt') || h.includes('voucher'));
+            const dateIndex = paymentHeaders.findIndex(h => h.includes('date'));
+            const amountIndex = paymentHeaders.findIndex(h => h.includes('amount') || h.includes('paid'));
+            let studentName = studentNameIndex >= 0 ? cols[studentNameIndex]?.replace(/"/g, '').trim() : '';
+            let receiptNo = receiptIndex >= 0 ? cols[receiptIndex]?.replace(/"/g, '').trim() : `RCPT-${i}`;
+            let date = dateIndex >= 0 ? cols[dateIndex]?.replace(/"/g, '').trim() : '';
+            let amount = amountIndex >= 0 ? parseFloat(cols[amountIndex]?.replace(/"/g, '').trim()) || 0 : 0;
+            if (!studentName && cols[1]) studentName = cols[1]?.replace(/"/g, '').trim();
+            if (!receiptNo && cols[0]) receiptNo = cols[0]?.replace(/"/g, '').trim();
+            if (!date && cols[2]) date = cols[2]?.replace(/"/g, '').trim();
+            if (!amount && cols[3]) amount = parseFloat(cols[3]?.replace(/"/g, '').trim()) || 0;
+            if (studentName) { feesDataCache.payments.push({ name: studentName, receiptNo, date, amount }); }
+        }
+        
+        // 2. Load Fee Structure from Firebase (admin saved values)
+        let feeStructureFromFirebase = {};
+        try {
+            const snap = await firebase.database().ref('feeStructure/classWise').once('value');
+            if (snap.exists()) {
+                feeStructureFromFirebase = snap.val();
+                console.log("Using Firebase fee structure (admin saved):", feeStructureFromFirebase);
+            }
+        } catch (err) {
+            console.warn("Could not load fee structure from Firebase", err);
+        }
+        
+        if (Object.keys(feeStructureFromFirebase).length > 0) {
+            feesDataCache.feeStructure = feeStructureFromFirebase;
+        } else {
+            // Fallback: try to load from CSV (if needed)
+            const FEES_CHART_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=936130121&single=true&output=csv";
+            const chartRes = await fetch(FEES_CHART_URL);
+            const chartText = await chartRes.text();
+            const chartLines = chartText.split('\n');
+            const chartHeaders = chartLines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
+            const classIndex = chartHeaders.findIndex(h => h.includes('class') || h.includes('standard'));
+            const totalFeesIndex = chartHeaders.findIndex(h => h.includes('total') || h.includes('fees') || h.includes('amount'));
+            feesDataCache.feeStructure = {};
+            for (let i = 1; i < chartLines.length; i++) {
+                if (!chartLines[i].trim()) continue;
+                const cols = chartLines[i].split(',');
+                let className = classIndex >= 0 ? cols[classIndex]?.replace(/"/g, '').trim() : '';
+                let totalFees = totalFeesIndex >= 0 ? parseFloat(cols[totalFeesIndex]?.replace(/"/g, '').trim()) || 0 : 0;
+                if (!className && cols[0]) className = cols[0]?.replace(/"/g, '').trim();
+                if (!totalFees && cols[1]) totalFees = parseFloat(cols[1]?.replace(/"/g, '').trim()) || 0;
+                if (className) { feesDataCache.feeStructure[className] = totalFees; }
+            }
+        }
+        
+        // 3. Load Students (unchanged)
+        const studentRes = await fetch(STUDENT_SHEET_CSV);
+        const studentText = await studentRes.text();
+        const studentRows = studentText.split('\n').slice(1);
+        feesDataCache.students = [];
+        for (const row of studentRows) {
+            if (!row.trim()) continue;
+            const cols = row.split(',');
+            const name = cols[7]?.replace(/"/g, '').trim();
+            const className = cols[1]?.replace(/"/g, '').trim();
+            const grNo = cols[2]?.replace(/"/g, '').trim();
+            const phone = cols[15]?.replace(/"/g, '').trim();
+            if (name) { feesDataCache.students.push({ name, class: className, grNo, phone }); }
+        }
+        console.log("Fees data loaded:", { payments: feesDataCache.payments.length, feeStructure: Object.keys(feesDataCache.feeStructure).length });
+    } catch (error) { console.error("Error loading fees data:", error); }
+}
+function renderTeacherFeesDashboard() {
+    const teacherClass = localStorage.getItem('mappedClass');
+    const container = document.getElementById('feesDashboardContent');
+    
+    // Filter students by teacher's mapped class
+    const classStudents = feesDataCache.students.filter(s => s.class === teacherClass);
+    
+    // Calculate totals for each student
+    const studentData = classStudents.map(student => {
+        const payments = feesDataCache.payments.filter(p => 
+            p.name.toLowerCase() === student.name.toLowerCase()
+        );
+        const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+        const totalFees = feesDataCache.feeStructure[student.class] || 0;
+        const balance = totalFees - totalPaid;
+        
+        return {
+            ...student,
+            totalPaid: totalPaid,
+            balance: balance,
+            totalFees: totalFees,
+            paymentCount: payments.length
+        };
+    });
+    
+    studentData.sort((a, b) => a.name.localeCompare(b.name));
+    
+    const totalCollected = studentData.reduce((sum, s) => sum + s.totalPaid, 0);
+    const totalExpected = studentData.reduce((sum, s) => sum + s.totalFees, 0);
+    const totalBalance = totalExpected - totalCollected;
+    
+    container.innerHTML = `
+        <div class="space-y-4">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-3 gap-3">
+                <div class="bg-green-50 rounded-xl p-3 text-center">
+                    <p class="text-2xl font-bold text-green-600">${studentData.length}</p>
+                    <p class="text-[10px] text-gray-500">Students</p>
+                </div>
+                <div class="bg-blue-50 rounded-xl p-3 text-center">
+                    <p class="text-2xl font-bold text-blue-600">₹${totalCollected.toLocaleString()}</p>
+                    <p class="text-[10px] text-gray-500">Total Collected</p>
+                </div>
+                <div class="bg-orange-50 rounded-xl p-3 text-center">
+                    <p class="text-2xl font-bold text-orange-600">₹${totalBalance.toLocaleString()}</p>
+                    <p class="text-[10px] text-gray-500">Total Balance</p>
+                </div>
+            </div>
+            
+            <!-- Search Box -->
+            <div class="bg-white rounded-xl shadow-sm border p-3">
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="teacherStudentSearch" 
+                        onkeyup="filterTeacherStudentList()"
+                        placeholder="Search student by name or GR..." 
+                        class="w-full p-2 pl-9 bg-gray-50 rounded-lg text-sm border">
+                </div>
+            </div>
+            
+            <!-- Students Table -->
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-3 text-left text-xs font-bold text-gray-600">Student Name</th>
+                                <th class="p-3 text-left text-xs font-bold text-gray-600">Phone</th>
+                                <th class="p-3 text-right text-xs font-bold text-gray-600">Total Paid (₹)</th>
+                                <th class="p-3 text-right text-xs font-bold text-gray-600">Balance (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacherStudentList">
+                            ${studentData.map(s => `
+                                <tr class="border-b hover:bg-gray-50 student-row" data-name="${s.name.toLowerCase()}" data-gr="${s.grNo?.toLowerCase() || ''}">
+                                    <td class="p-3 text-sm font-medium">${escapeHtml(s.name)}</td>
+                                    <td class="p-3 text-sm">${s.phone || '—'}</td>
+                                    <td class="p-3 text-right text-sm text-green-600">₹${s.totalPaid.toLocaleString()}</td>
+                                    <td class="p-3 text-right text-sm ${s.balance > 0 ? 'text-red-600 font-bold' : 'text-green-600'}">
+                                        ${s.balance > 0 ? `₹${s.balance.toLocaleString()}` : 'PAID'}
+                                    </td>
+                                </td>
+                            `).join('')}
+                        </tbody>
+                        <tfoot class="bg-gray-50 border-t">
+                            <tr>
+                                <td colspan="2" class="p-3 text-right font-bold">Class ${teacherClass} Total:</td>
+                                <td class="p-3 text-right font-bold text-green-600">₹${totalCollected.toLocaleString()}</td>
+                                <td class="p-3 text-right font-bold text-orange-600">₹${totalBalance.toLocaleString()}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Helper for searching inside the teacher dashboard
+window.filterTeacherStudentList = () => {
+    const searchTerm = document.getElementById('teacherStudentSearch')?.value.toLowerCase() || '';
+    const rows = document.querySelectorAll('#teacherStudentList .student-row');
+    rows.forEach(row => {
+        const name = row.getAttribute('data-name');
+        const gr = row.getAttribute('data-gr');
+        const matches = name.includes(searchTerm) || gr.includes(searchTerm);
+        row.style.display = matches ? '' : 'none';
+    });
+};
     function renderAdminFeesDashboard(){}
     window.showFeesChart=async()=>{};
     window.calculateMonthlyHours=async()=>{};
