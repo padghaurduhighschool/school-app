@@ -289,9 +289,150 @@
     window.loadClassTimetable=async (c)=>{};
     window.openExamTimeTable=()=>{};
     window.loadExamTimetable=async (c)=>{};
-    window.openTeacherTimeTable=()=>{};
-    async function loadTeacherOwnTimetableMatrix(teacher,edit){}
-    function renderTeacherTimetableMatrix(container,teacher,schedule,edit){}
+    window.openTeacherTimeTable = () => {
+    const content = document.getElementById('content');
+    const role = localStorage.getItem('userRole');
+    const teacherName = localStorage.getItem('userName');
+    const isAdmin = ['Admin', 'Super Admin', 'Supervisor', 'Clerk'].includes(role);
+    
+    if (!isAdmin && role === 'Teacher') {
+        content.innerHTML = `
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h2 class="text-lg font-bold">My Time Table</h2>
+                    <div></div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-purple-600 to-indigo-700 p-4 rounded-2xl text-white">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-chalkboard-user text-3xl"></i>
+                        <div>
+                            <p class="text-xs opacity-80">Teacher Schedule</p>
+                            <p class="font-bold text-lg">${escapeHtml(teacherName)}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="teacher-own-timetable" class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="p-8 text-center text-gray-400">
+                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                        <p>Loading your timetable...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        loadTeacherOwnTimetableMatrix(teacherName, false);
+        return;
+    }
+    
+    // Admin view (with selector)
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2 class="text-lg font-bold">Teacher Time Table Manager</h2>
+                <button onclick="saveTeacherTimetableMatrix()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold">
+                    <i class="fa-solid fa-save mr-1"></i>SAVE
+                </button>
+            </div>
+            
+            <div class="bg-white p-4 rounded-xl shadow">
+                <label class="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Select Teacher</label>
+                <select id="teacherSelect" class="w-full p-3 bg-gray-50 rounded-xl text-sm border mb-4">
+                    <option value="">-- Select Teacher --</option>
+                </select>
+                
+                <div id="teacher-tt-container" class="mt-4">
+                    <p class="text-center text-gray-400 py-8">Select a teacher to view/edit timetable</p>
+                </div>
+            </div>
+        </div>
+    `;
+    loadTeacherDropdownForMatrix();
+};
+    async function loadTeacherOwnTimetableMatrix(teacherName, isEditable = false) {
+    const container = document.getElementById('teacher-own-timetable');
+    if (!container) return;
+    try {
+        const sanitizedKey = teacherName.toLowerCase().replace(/\s+/g, '_');
+        let schedule = null;
+        const snap1 = await firebase.database().ref(`teacher_timetables/${sanitizedKey}`).once('value');
+        if (snap1.exists()) schedule = snap1.val()?.schedule;
+        if (!schedule) {
+            const snap2 = await firebase.database().ref(`timetable/teacher/${teacherName}`).once('value');
+            if (snap2.exists()) schedule = snap2.val();
+        }
+        if (!schedule) {
+            container.innerHTML = `
+                <div class="p-8 text-center">
+                    <i class="fa-solid fa-calendar-times text-5xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500 font-medium">No timetable assigned yet</p>
+                    <p class="text-xs text-gray-400 mt-2">Please contact the school administrator</p>
+                </div>`;
+            return;
+        }
+        renderTeacherTimetableMatrix(container, teacherName, schedule, false);
+    } catch (error) {
+        console.error(error);
+        container.innerHTML = `<div class="p-8 text-center text-red-500">Error loading timetable</div>`;
+    }
+}
+    function renderTeacherTimetableMatrix(container, teacherName, schedule, isEditable) {
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const totalPeriods = 8;
+    const fridayMaxPeriod = 4;
+    let html = `<div class="overflow-x-auto"><table class="w-full border-collapse text-sm">
+        <thead><tr class="bg-purple-600 text-white">
+            <th class="p-3 border border-purple-500 text-center font-bold w-16">Period</th>
+            ${days.map(day => `<th class="p-3 border border-purple-500 text-center font-bold">${day}</th>`).join('')}
+        </tr></thead><tbody>`;
+    
+    for (let period = 1; period <= totalPeriods; period++) {
+        const isFridayPeriod = period > fridayMaxPeriod;
+        html += `<tr class="${isFridayPeriod ? 'bg-gray-50' : 'hover:bg-gray-50'}">`;
+        html += `<td class="p-3 border text-center font-bold ${isFridayPeriod ? 'text-gray-400' : 'text-purple-600 bg-purple-50'}">
+            ${period}${isFridayPeriod ? '†' : ''}</td>`;
+        for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
+            const day = days[dayIdx];
+            if (day === 'Friday' && isFridayPeriod) {
+                if (period === 5) {
+                    html += `<td rowspan="${totalPeriods - fridayMaxPeriod}" class="p-3 border text-center bg-amber-50 align-middle">
+                        <div class="flex flex-col items-center">
+                            <i class="fa-solid fa-bell text-amber-500 text-lg mb-1"></i>
+                            <span class="text-amber-700 font-medium text-xs">Early Dismissal</span>
+                            <span class="text-amber-500 text-[10px] mt-1">No classes after period 4</span>
+                        </div></td>`;
+                }
+                continue;
+            }
+            const value = schedule?.[day]?.[period] || '';
+            if (isEditable) {
+                html += `<td class="p-1 border">
+                    <input type="text" id="cell-${day}-${period}" 
+                        value="${escapeHtml(value)}" 
+                        class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" 
+                        placeholder="Subject / Class">
+                </td>`;
+            } else {
+                html += `<td class="p-3 border text-gray-700 text-xs">${value || '—'}</td>`;
+            }
+        }
+        html += `</tr>`;
+    }
+    html += `<tr class="bg-gray-50 border-t-2">
+        <td colspan="7" class="p-3 text-xs text-gray-500">
+            <div class="flex items-center justify-between">
+                <div><i class="fa-regular fa-clock mr-1 text-amber-500"></i>
+                    <strong>Note:</strong> Friday has only 4 periods (Early dismissal)</div>
+                ${isEditable ? '<div class="text-[10px] text-purple-500"><i class="fa-regular fa-keyboard mr-1"></i> Click any cell to edit</div>' : ''}
+            </div></td></tr></tbody></table></div>`;
+    container.innerHTML = html;
+}
     let feesDataCache={payments:[],feeStructure:{},students:[]};
     window.showFeesDashboard=async()=>{ await loadFeesData(); const role=localStorage.getItem('userRole'); if(role==='Teacher') renderTeacherFeesDashboard(); else renderAdminFeesDashboard(); };
     async function loadFeesData(){}
