@@ -945,6 +945,13 @@
                                 <p class="text-xs text-gray-500 mt-2">Download all attendance records for this month</p>
                             </button>
                             
+<button onclick="showPastAttendanceEditor()" class="flex flex-col items-center p-4 bg-amber-50 border border-amber-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+    <div class="flex items-center justify-center w-full">
+        <i class="fas fa-calendar-edit mr-2 text-amber-600"></i>
+        <span class="text-sm font-bold text-amber-700">📝 Edit Past Attendance</span>
+    </div>
+    <p class="text-xs text-gray-500 mt-2">Mark or modify attendance for any previous date</p>
+</button>
                             <div id="install-button-container" class="${deferredPrompt ? '' : 'hidden'}">
                                 <button onclick="triggerInstall()" class="flex flex-col items-center p-4 bg-green-50 border border-green-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
                                     <div class="flex items-center justify-center w-full">
@@ -1687,6 +1694,257 @@
         function showToast(message) { const toast = document.createElement('div'); toast.className = 'fixed bottom-24 left-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm shadow-lg z-50 text-center'; toast.innerText = message; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
         if (localStorage.getItem('darkMode') === 'true') { document.body.classList.add('dark'); }
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(reg => console.log("Service Worker registered", reg)).catch(err => console.log("Service Worker failed", err)); }); }
+// ======================= PAST ATTENDANCE EDITOR =======================
+let currentPastDate = '';
+let currentPastClass = '';
+let pastStudentsList = [];
+
+window.showPastAttendanceEditor = () => {
+    const content = document.getElementById('content');
+    const today = new Date().toISOString().split('T')[0];
+    
+    content.innerHTML = `
+        <div class="space-y-4 pb-20">
+            <div class="flex items-center gap-2 mb-2">
+                <button onclick="loadAdminProfile()" class="p-2 bg-gray-100 rounded-full">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2 class="text-lg font-bold">Past Attendance Editor</h2>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-sm border p-4">
+                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Select Date</label>
+                <input type="date" id="pastDatePicker" value="${today}" max="${today}" 
+                    class="w-full p-3 bg-gray-50 rounded-xl text-sm border mb-4">
+                
+                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Select Class</label>
+                <select id="pastClassSelect" class="w-full p-3 bg-gray-50 rounded-xl text-sm border mb-4">
+                    <option value="">-- Select Class --</option>
+                    ${schoolClasses.map(c => `<option value="${c}">Class ${c}</option>`).join('')}
+                </select>
+                
+                <button onclick="loadPastAttendanceData()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">
+                    <i class="fa-solid fa-eye mr-2"></i>Load Attendance
+                </button>
+            </div>
+            
+            <div id="pastAttendanceEditorContainer" class="bg-white rounded-2xl shadow-sm border overflow-hidden hidden">
+                <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-white flex justify-between items-center">
+                    <div>
+                        <p class="text-xs opacity-90">Editing Attendance for</p>
+                        <p class="font-bold" id="editorDateDisplay"></p>
+                        <p class="text-sm font-bold" id="editorClassDisplay"></p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="markAllPresent()" class="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs">
+                            <i class="fa-solid fa-check-double mr-1"></i>All Present
+                        </button>
+                        <button onclick="markAllAbsent()" class="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs">
+                            <i class="fa-solid fa-times-circle mr-1"></i>All Absent
+                        </button>
+                    </div>
+                </div>
+                <div id="pastAttendanceStudentList" class="divide-y max-h-[60vh] overflow-y-auto">
+                    <p class="p-8 text-center text-gray-400">Loading students...</p>
+                </div>
+                <div class="p-4 border-t bg-gray-50 flex gap-3">
+                    <button onclick="savePastAttendance()" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold">
+                        <i class="fa-solid fa-save mr-2"></i>Save Attendance
+                    </button>
+                    <button onclick="cancelPastAttendance()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add event listeners for auto-load when both date and class are selected
+    const datePicker = document.getElementById('pastDatePicker');
+    const classSelect = document.getElementById('pastClassSelect');
+    
+    datePicker.addEventListener('change', () => {
+        if (classSelect.value && datePicker.value) {
+            loadPastAttendanceData();
+        }
+    });
+    
+    classSelect.addEventListener('change', () => {
+        if (classSelect.value && datePicker.value) {
+            loadPastAttendanceData();
+        }
+    });
+};
+
+window.loadPastAttendanceData = async () => {
+    const date = document.getElementById('pastDatePicker')?.value;
+    const className = document.getElementById('pastClassSelect')?.value;
+    
+    if (!date) {
+        showToast("Please select a date");
+        return;
+    }
+    if (!className) {
+        showToast("Please select a class");
+        return;
+    }
+    
+    currentPastDate = date;
+    currentPastClass = className;
+    
+    // Update display headers
+    document.getElementById('editorDateDisplay').innerText = new Date(date).toLocaleDateString('en-GB');
+    document.getElementById('editorClassDisplay').innerText = `Class ${className}`;
+    
+    const container = document.getElementById('pastAttendanceEditorContainer');
+    const studentListDiv = document.getElementById('pastAttendanceStudentList');
+    
+    container.classList.remove('hidden');
+    studentListDiv.innerHTML = `<div class="p-8 text-center"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i><p class="text-gray-400 mt-2">Loading students...</p></div>`;
+    
+    try {
+        // Fetch students from CSV
+        const response = await fetch(STUDENT_SHEET_CSV);
+        const text = await response.text();
+        const rows = text.split('\n').filter(row => row.trim() !== '').slice(1);
+        
+        const students = [];
+        for (let row of rows) {
+            const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            const studentClass = cols[1]?.replace(/"/g, '').trim();
+            if (studentClass === className) {
+                students.push({
+                    grNo: cols[2]?.replace(/"/g, '').trim(),
+                    name: cols[7]?.replace(/"/g, '').trim(),
+                    roll: cols[3]?.replace(/"/g, '').trim(),
+                    contact: cols[15]?.replace(/"/g, '').trim()
+                });
+            }
+        }
+        
+        pastStudentsList = students.filter(s => s.name && s.grNo);
+        
+        if (pastStudentsList.length === 0) {
+            studentListDiv.innerHTML = `<div class="p-8 text-center text-gray-400">No students found for Class ${className}</div>`;
+            return;
+        }
+        
+        // Fetch existing attendance for this date & class
+        const attendanceSnap = await firebase.database().ref(`student_attendance/${date}/${className}/records`).once('value');
+        const existingAttendance = attendanceSnap.val() || {};
+        
+        // Render student list with status
+        renderPastAttendanceStudentList(existingAttendance);
+        
+    } catch (error) {
+        console.error("Error loading past attendance data:", error);
+        studentListDiv.innerHTML = `<div class="p-8 text-center text-red-500">Error loading data: ${error.message}</div>`;
+    }
+};
+
+function renderPastAttendanceStudentList(existingAttendance) {
+    const studentListDiv = document.getElementById('pastAttendanceStudentList');
+    
+    if (pastStudentsList.length === 0) {
+        studentListDiv.innerHTML = `<div class="p-8 text-center text-gray-400">No students found</div>`;
+        return;
+    }
+    
+    studentListDiv.innerHTML = pastStudentsList.map(student => {
+        const existingRecord = existingAttendance[student.grNo];
+        const status = existingRecord ? existingRecord.status : 'Unmarked';
+        const isPresent = (status === 'Present');
+        const isAbsent = (status === 'Absent');
+        
+        return `
+            <div class="p-4 flex items-center justify-between hover:bg-gray-50 transition-all" data-gr="${student.grNo}">
+                <div class="flex-1">
+                    <p class="font-bold text-gray-800">${escapeHtml(student.name)}</p>
+                    <div class="flex gap-3 text-xs text-gray-500 mt-0.5">
+                        <span><i class="fa-regular fa-id-card mr-1"></i>GR: ${student.grNo || 'N/A'}</span>
+                        <span><i class="fa-regular fa-flag mr-1"></i>Roll: ${student.roll || 'N/A'}</span>
+                        ${student.contact ? `<span><i class="fa-solid fa-phone mr-1"></i>${student.contact}</span>` : ''}
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg ${isPresent ? 'bg-green-100 border-green-500' : 'bg-gray-100'}">
+                        <input type="radio" name="status_${student.grNo}" value="Present" ${isPresent ? 'checked' : ''} class="w-4 h-4 text-green-600">
+                        <span class="text-sm font-medium ${isPresent ? 'text-green-700' : 'text-gray-600'}">Present</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg ${isAbsent ? 'bg-red-100 border-red-500' : 'bg-gray-100'}">
+                        <input type="radio" name="status_${student.grNo}" value="Absent" ${isAbsent ? 'checked' : ''} class="w-4 h-4 text-red-600">
+                        <span class="text-sm font-medium ${isAbsent ? 'text-red-700' : 'text-gray-600'}">Absent</span>
+                    </label>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+window.markAllPresent = () => {
+    pastStudentsList.forEach(student => {
+        const radio = document.querySelector(`input[name="status_${student.grNo}"][value="Present"]`);
+        if (radio) radio.checked = true;
+    });
+    showToast("All students marked as Present");
+};
+
+window.markAllAbsent = () => {
+    pastStudentsList.forEach(student => {
+        const radio = document.querySelector(`input[name="status_${student.grNo}"][value="Absent"]`);
+        if (radio) radio.checked = true;
+    });
+    showToast("All students marked as Absent");
+};
+
+window.savePastAttendance = async () => {
+    if (!currentPastDate || !currentPastClass) {
+        showToast("No class/date selected");
+        return;
+    }
+    
+    const adminName = localStorage.getItem('userName') || 'Admin';
+    const updates = {};
+    let markedCount = 0;
+    
+    for (let student of pastStudentsList) {
+        const selectedRadio = document.querySelector(`input[name="status_${student.grNo}"]:checked`);
+        if (selectedRadio) {
+            const status = selectedRadio.value;
+            updates[`student_attendance/${currentPastDate}/${currentPastClass}/records/${student.grNo}`] = {
+                name: student.name,
+                status: status
+            };
+            markedCount++;
+        }
+    }
+    
+    if (markedCount === 0) {
+        showToast("No attendance marked. Please select Present/Absent for students.");
+        return;
+    }
+    
+    // Add markedBy info at class level
+    updates[`student_attendance/${currentPastDate}/${currentPastClass}/markedBy`] = adminName;
+    updates[`student_attendance/${currentPastDate}/${currentPastClass}/updatedAt`] = new Date().toISOString();
+    
+    try {
+        await firebase.database().ref().update(updates);
+        showToast(`✅ Attendance saved for Class ${currentPastClass} on ${currentPastDate}`);
+        
+        // Reload to show updated status
+        await loadPastAttendanceData();
+    } catch (error) {
+        console.error("Error saving attendance:", error);
+        showToast("❌ Error saving: " + error.message);
+    }
+};
+
+window.cancelPastAttendance = () => {
+    if (confirm("Cancel editing? Unsaved changes will be lost.")) {
+        loadAdminProfile();
+    }
+};
     </script>
 </body>
 </html>
