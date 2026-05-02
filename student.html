@@ -156,23 +156,43 @@
 
     // ======================= FEES DATA LOADING =======================
 async function loadFeesData() {
+    const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
+    
     try {
-        // 1. Load payments (unchanged)
+        // 1. Load Payments – using same robust logic as teacher portal
         const paymentsRes = await fetch(FEES_CSV_URL);
         const paymentsText = await paymentsRes.text();
-        const lines = paymentsText.split('\n');
+        const paymentsLines = paymentsText.split('\n');
+        const paymentHeaders = paymentsLines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
         feesDataCache.payments = [];
-        for (let i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
-            const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            let name = cols[1]?.replace(/"/g, '').trim();
-            let receipt = cols[0]?.replace(/"/g, '').trim() || `RCPT-${i}`;
-            let date = cols[2]?.replace(/"/g, '').trim() || '';
-            let amount = parseFloat(cols[3]?.replace(/"/g, '').trim()) || 0;
-            if (name) feesDataCache.payments.push({ name, receiptNo: receipt, date, amount });
+        
+        for (let i = 1; i < paymentsLines.length; i++) {
+            if (!paymentsLines[i].trim()) continue;
+            // Use regex to split while respecting quoted commas
+            const cols = paymentsLines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            
+            const studentNameIndex = paymentHeaders.findIndex(h => h.includes('name') || h.includes('student'));
+            const receiptIndex = paymentHeaders.findIndex(h => h.includes('receipt') || h.includes('voucher'));
+            const dateIndex = paymentHeaders.findIndex(h => h.includes('date'));
+            const amountIndex = paymentHeaders.findIndex(h => h.includes('amount') || h.includes('paid'));
+            
+            let studentName = studentNameIndex >= 0 ? cols[studentNameIndex]?.replace(/"/g, '').trim() : '';
+            let receiptNo = receiptIndex >= 0 ? cols[receiptIndex]?.replace(/"/g, '').trim() : `RCPT-${i}`;
+            let date = dateIndex >= 0 ? cols[dateIndex]?.replace(/"/g, '').trim() : '';
+            let amount = amountIndex >= 0 ? parseFloat(cols[amountIndex]?.replace(/"/g, '').trim()) || 0 : 0;
+            
+            // Fallback for common column positions if headers not found
+            if (!studentName && cols[1]) studentName = cols[1]?.replace(/"/g, '').trim();
+            if (!receiptNo && cols[0]) receiptNo = cols[0]?.replace(/"/g, '').trim();
+            if (!date && cols[2]) date = cols[2]?.replace(/"/g, '').trim();
+            if (!amount && cols[3]) amount = parseFloat(cols[3]?.replace(/"/g, '').trim()) || 0;
+            
+            if (studentName) {
+                feesDataCache.payments.push({ name: studentName, receiptNo, date, amount });
+            }
         }
         
-        // 2. Load fee structure ONLY from Firebase (no CSV fallback)
+        // 2. Load Fee Structure from Firebase (unchanged)
         feesDataCache.feeStructure = {};
         try {
             const snap = await firebase.database().ref('feeStructure/classWise').once('value');
@@ -186,7 +206,7 @@ async function loadFeesData() {
             console.warn("Could not load fee structure from Firebase", err);
         }
         
-        // 3. Load students (unchanged)
+        // 3. Load Students (unchanged, but ensure name trimming)
         const studentRes = await fetch(STUDENT_SHEET_CSV);
         const studentText = await studentRes.text();
         const rows = studentText.split('\n').slice(1);
@@ -200,6 +220,12 @@ async function loadFeesData() {
             const phone = cols[15]?.replace(/"/g, '').trim();
             if (sname) feesDataCache.students.push({ name: sname, class: sclass, grNo: gr, phone });
         }
+        
+        console.log("Student fees data loaded:", { 
+            payments: feesDataCache.payments.length, 
+            samplePayment: feesDataCache.payments[0],
+            studentName: localStorage.getItem('userName')
+        });
     } catch (e) {
         console.error("Error loading fees data:", e);
     }
