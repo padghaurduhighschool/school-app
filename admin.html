@@ -15,10 +15,44 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&family=Noto+Sans+Devanagari&display=swap" rel="stylesheet">
+    <style>
+        /* Modal for bulk paste */
+        .paste-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .paste-modal-content {
+            background: white;
+            border-radius: 1rem;
+            max-width: 90vw;
+            width: 600px;
+            max-height: 80vh;
+            overflow: auto;
+            padding: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+        .paste-modal textarea {
+            width: 100%;
+            height: 300px;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- Modern Splash Screen - Identical to original -->
+    <!-- Modern Splash Screen -->
     <div id="splash-screen" class="fixed inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex flex-col items-center justify-center z-50">
         <div class="text-center animate-bounce">
             <img src="Padgha Urdu High School Logo.png" alt="School Logo" class="w-28 h-28 object-contain mx-auto mb-6 splash-logo">
@@ -30,7 +64,7 @@
         </div>
     </div>
 
-    <!-- Modern Login Screen - Identical to original -->
+    <!-- Modern Login Screen -->
     <div id="login-screen" class="hidden min-h-screen flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-md p-8">
             <div class="text-center mb-8">
@@ -63,9 +97,8 @@
         </div>
     </div>
 
-    <!-- Main App Container - Identical structure to original -->
+    <!-- Main App Container -->
     <div id="main-app" class="hidden pb-20">
-        <!-- Modern Header - Identical to original -->
         <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 sticky top-0 z-30 shadow-lg">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
@@ -87,12 +120,10 @@
             </div>
         </header>
 
-        <!-- Main Content -->
         <main id="content" class="p-4 pb-24">
-            <!-- Dynamic content loads here -->
+            <!-- Dynamic content -->
         </main>
 
-        <!-- Modern Bottom Navigation - Identical to original -->
         <nav class="fixed bottom-0 left-0 right-0 glass-nav flex justify-around p-3 pb-5 z-50">
             <button onclick="setActiveNav(this, 'home')" class="nav-btn flex flex-col items-center">
                 <i class="fas fa-home text-xl"></i>
@@ -116,7 +147,6 @@
             </button>
         </nav>
         
-        <!-- Floating Action Button - Identical to original -->
         <div class="fab" onclick="scrollToTop()">
             <i class="fas fa-arrow-up text-xl"></i>
         </div>
@@ -142,7 +172,7 @@
         firebase.initializeApp(firebaseConfig);
         console.log("Firebase initialized");
 
-        // CSV URLs - Same as original
+        // CSV URLs
         const TEACHER_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTtCtTy2UbnOJv3osixYzktVJK9QSUtJhSeeOmtol-efSarJWEaoNA8s-tppqTkM-jP0ZeBJ0DdGlfl/pub?gid=0&single=true&output=csv";
         const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv";
         const OFFICE_LAT = 19.3709;
@@ -157,7 +187,7 @@
         let deferredPrompt;
         let allStudents = [];
 
-        // STARTUP LOGIC - Same as original
+        // STARTUP LOGIC
         window.onload = () => {
             const today = new Date();
             const dateKey = today.toISOString().split('T')[0];
@@ -178,7 +208,7 @@
             }, 2000);
         };
 
-        // PWA INSTALLATION - Same as original
+        // PWA INSTALLATION
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
@@ -186,7 +216,7 @@
             if (installBtn) installBtn.classList.remove('hidden');
         });
 
-        // LOGIN LOGIC - Same as original, only allows Admin roles
+        // LOGIN LOGIC
         window.handleLogin = async function() {
             const phone = document.getElementById('phone').value.trim();
             const code = document.getElementById('code').value.trim();
@@ -203,7 +233,6 @@
 
                 if (user) {
                     const userRole = user[3]?.trim() || 'Teacher';
-                    // Only allow Admin, Super Admin, Supervisor, Clerk to access admin portal
                     if (["Supervisor", "Super Admin", "Admin", "Clerk"].includes(userRole)) {
                         localStorage.setItem('userRole', userRole);
                         localStorage.setItem('userName', user[2]?.trim() || 'Admin');
@@ -229,7 +258,6 @@
             }
         };
 
-        // PUSH NOTIFICATION REGISTRATION - Same as original
         async function registerForPushNotifications() {
             if ('Notification' in window && 'serviceWorker' in navigator) {
                 const permission = await Notification.requestPermission();
@@ -244,7 +272,7 @@
             }
         }
 
-        // DASHBOARD NAVIGATION - Admin-focused version
+        // DASHBOARD NAVIGATION
         window.loadSection = (section) => {
             const content = document.getElementById('content');
             const role = localStorage.getItem('userRole');
@@ -256,20 +284,20 @@
                 loadAdminHome();
             } 
             else if (section === 'staff') {
-                loadStaffLogsDetail();   // Shows Staff Logs
+                loadStaffLogsDetail();
             }
             else if (section === 'attendance') {
-                loadAttendanceReports();   // Shows class-wise attendance status
+                loadAttendanceReports();
             }
             else if (section === 'students') {
-                loadStudentManagement();   // Keep original student management for bottom nav
+                loadStudentManagement();
             }
             else if (section === 'more') {
                 loadAdminProfile();
             }
         };
 
-        // ADMIN HOME DASHBOARD - Updated: Student Management -> Student Attendance (now loads attendance reports)
+        // ADMIN HOME DASHBOARD
         async function loadAdminHome() {
             const content = document.getElementById('content');
             const name = localStorage.getItem('userName');
@@ -283,7 +311,6 @@
                         <p class="text-xs opacity-70 mt-2">Role: ${role}</p>
                     </div>
 
-                    <!-- Staff Attendance Card -->
                     <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:scale-95 transition-all" onclick="loadSection('staff')">
                         <div class="flex justify-between items-center mb-2">
                             <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Staff Attendance</h3>
@@ -304,7 +331,6 @@
                         </div>
                     </div>
 
-                    <!-- CHANGED: Student Management -> Student Attendance, now loads attendance reports -->
                     <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:scale-95 transition-all" onclick="loadSection('attendance')">
                         <div class="flex justify-between items-center mb-2">
                             <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Student Attendance</h3>
@@ -329,8 +355,6 @@
                             <div id="home-stud-bar-absent" class="bg-red-400 h-full transition-all duration-500" style="width: 0%"></div>
                         </div>
                     </div>
-
-                    <!-- REMOVED: Attendance Reports card -->
 
                     <div onclick="openTeacherTimeTable()" class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-purple-500 cursor-pointer active:scale-95 transition-all">
                         <div class="flex items-center justify-between">
@@ -386,7 +410,7 @@
             updateHomeSummary();
         }
 
-        // STAFF LOGS DETAIL (shows today's staff check-in/out logs)
+        // STAFF LOGS (unchanged)
         async function loadStaffLogsDetail() {
             const content = document.getElementById('content');
             const dateKey = new Date().toISOString().split('T')[0];
@@ -420,11 +444,9 @@
                     </div>
                 </div>
             `;
-            
             await fetchStaffLogsData();
         }
         
-        // Fetch staff attendance logs from Firebase
         async function fetchStaffLogsData() {
             const dateKey = new Date().toISOString().split('T')[0];
             const container = document.getElementById('staff-logs-container');
@@ -590,12 +612,10 @@
                     alert("No logs to export");
                     return;
                 }
-                
                 let csvContent = "Name,Role,Type,Time,Distance\n";
                 Object.values(logsData).forEach(log => {
                     csvContent += `"${log.name || ''}","${log.role || 'Staff'}","${log.type || ''}","${log.time || ''}","${log.distance || ''}"\n`;
                 });
-                
                 const blob = new Blob([csvContent], { type: 'text/csv' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
@@ -608,7 +628,7 @@
             }
         };
 
-        // STUDENT MANAGEMENT - Original function kept for bottom nav
+        // STUDENT MANAGEMENT (unchanged)
         async function loadStudentManagement() {
             const content = document.getElementById('content');
             content.innerHTML = `
@@ -650,7 +670,6 @@
                 const response = await fetch(STUDENT_SHEET_CSV);
                 const text = await response.text();
                 const rows = text.split('\n').filter(row => row.trim() !== '').slice(1);
-                
                 allStudents = rows.map(row => {
                     const cols = row.split(',');
                     return {
@@ -661,7 +680,6 @@
                         contact: cols[15]?.replace(/"/g, '').trim()
                     };
                 }).filter(s => s.name);
-
                 renderStudentList(allStudents);
             } catch (error) {
                 console.error(error);
@@ -718,7 +736,7 @@
             showToast("Student data refreshed");
         };
 
-        // ATTENDANCE REPORTS - Admin view of all attendance (class-wise summary)
+        // ATTENDANCE REPORTS (unchanged)
         async function loadAttendanceReports() {
             const content = document.getElementById('content');
             const dateKey = new Date().toISOString().split('T')[0];
@@ -856,7 +874,6 @@
                 const snapshot = await firebase.database().ref(`student_attendance/${dateKey}`).once('value');
                 const data = snapshot.val();
                 let csvContent = "Class,Student Name,GR Number,Status,Marked By\n";
-                
                 for (let className in data) {
                     if (data[className].records) {
                         for (let [grNo, record] of Object.entries(data[className].records)) {
@@ -864,7 +881,6 @@
                         }
                     }
                 }
-                
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
                 const url = URL.createObjectURL(blob);
@@ -880,7 +896,7 @@
             }
         };
 
-        // ADMIN PROFILE
+        // ADMIN PROFILE (unchanged)
         async function loadAdminProfile() {
             const content = document.getElementById('content');
             const name = localStorage.getItem('userName');
@@ -908,8 +924,7 @@
                         </div>
                         
                         <div class="p-4 space-y-3">
-                            <button onclick="exportAllData()" 
-                                class="flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                            <button onclick="exportAllData()" class="flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
                                 <div class="flex items-center justify-center w-full">
                                     <i class="fas fa-database mr-2 text-blue-600"></i>
                                     <span class="text-sm font-bold text-blue-700">Export Complete Database</span>
@@ -917,8 +932,7 @@
                                 <p class="text-xs text-gray-500 mt-2">Download all attendance, homework, notices data</p>
                             </button>
                             
-                            <button onclick="downloadMonthlyReport()" 
-                                class="flex flex-col items-center p-4 bg-purple-50 border border-purple-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                            <button onclick="downloadMonthlyReport()" class="flex flex-col items-center p-4 bg-purple-50 border border-purple-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
                                 <div class="flex items-center justify-center w-full">
                                     <i class="fas fa-calendar-alt mr-2 text-purple-600"></i>
                                     <span class="text-sm font-bold text-purple-700">Monthly Attendance Report</span>
@@ -927,8 +941,7 @@
                             </button>
                             
                             <div id="install-button-container" class="${deferredPrompt ? '' : 'hidden'}">
-                                <button onclick="triggerInstall()" 
-                                    class="flex flex-col items-center p-4 bg-green-50 border border-green-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                                <button onclick="triggerInstall()" class="flex flex-col items-center p-4 bg-green-50 border border-green-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
                                     <div class="flex items-center justify-center w-full">
                                         <i class="fas fa-download mr-2 text-green-600"></i>
                                         <span class="text-sm font-bold text-green-700">Install App on Device</span>
@@ -937,8 +950,7 @@
                                 </button>
                             </div>
                             
-                            <button onclick="handleLogout()" 
-                                class="flex flex-col items-center p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
+                            <button onclick="handleLogout()" class="flex flex-col items-center p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm active:scale-95 transition-all w-full">
                                 <div class="flex items-center justify-center w-full">
                                     <i class="fas fa-sign-out-alt mr-2 text-red-600"></i>
                                     <span class="text-sm font-bold text-red-700">Logout</span>
@@ -962,7 +974,6 @@
                 const staffAtt = await firebase.database().ref('attendance').once('value');
                 const homework = await firebase.database().ref('homework').once('value');
                 const notices = await firebase.database().ref('notices').once('value');
-                
                 const exportData = {
                     export_date: new Date().toISOString(),
                     student_attendance: attendance.val(),
@@ -970,7 +981,6 @@
                     homework: homework.val(),
                     notices: notices.val()
                 };
-                
                 const jsonStr = JSON.stringify(exportData, null, 2);
                 const blob = new Blob([jsonStr], { type: 'application/json' });
                 const link = document.createElement('a');
@@ -988,12 +998,10 @@
             const now = new Date();
             const month = now.getMonth() + 1;
             const year = now.getFullYear();
-            
             try {
                 const snapshot = await firebase.database().ref('student_attendance').once('value');
                 const allData = snapshot.val();
                 let csvContent = "Date,Class,Student Name,GR Number,Status\n";
-                
                 for (let date in allData) {
                     if (date.startsWith(`${year}-${month.toString().padStart(2, '0')}`)) {
                         for (let className in allData[date]) {
@@ -1005,7 +1013,6 @@
                         }
                     }
                 }
-                
                 const blob = new Blob([csvContent], { type: 'text/csv' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
@@ -1018,7 +1025,9 @@
             }
         };
 
-        // TIME TABLE FUNCTIONS - Same as original (kept for brevity, but not modified)
+        // ---------------- ENHANCED TIME TABLE FUNCTIONS WITH BULK PASTE ----------------
+        
+        // Daily Time Table (with paste button)
         window.openDailyTimeTable = () => {
             const content = document.getElementById('content');
             const role = localStorage.getItem('userRole');
@@ -1029,7 +1038,10 @@
                     <div class="flex items-center justify-between">
                         <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button>
                         <h2 class="text-xl font-bold">Daily Time Table</h2>
-                        ${isAdmin ? `<button onclick="saveClassTimetable()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">SAVE</button>` : '<div></div>'}
+                        <div class="flex gap-2">
+                            ${isAdmin ? `<button onclick="bulkPasteDailyTimetable()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-paste mr-1"></i>Paste from Excel</button>` : ''}
+                            ${isAdmin ? `<button onclick="saveClassTimetable()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">SAVE</button>` : '<div></div>'}
+                        </div>
                     </div>
                     <div class="bg-white p-3 rounded-xl border">
                         <select id="tt-class-select" onchange="loadClassTimetable(this.value)" class="w-full p-2 bg-gray-50 rounded-lg font-bold text-sm">
@@ -1059,7 +1071,6 @@
                 const fridayMaxPeriod = 4;
 
                 let html = '<div class="overflow-x-auto"><table class="w-full border-collapse text-sm">';
-                
                 html += `<thead><tr class="bg-green-600 text-white">
                     <th class="p-3 border border-green-500 text-center font-bold w-16">Period</th>
                     ${days.map(d => `<th class="p-3 border border-green-500 text-center font-bold">${d}</th>`).join('')}
@@ -1067,13 +1078,11 @@
                 
                 for (let period = 1; period <= totalPeriods; period++) {
                     const isFridayPeriod = period > fridayMaxPeriod;
-                    
                     html += `<tr class="${isFridayPeriod ? 'bg-gray-50' : 'hover:bg-gray-50'}">`;
                     html += `<td class="p-3 border text-center font-bold ${isFridayPeriod ? 'text-gray-400' : 'text-green-600 bg-green-50'}">${period}${isFridayPeriod ? '†' : ''}</td>`;
                     
                     for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
                         const day = days[dayIdx];
-                        
                         if (day === 'Friday' && isFridayPeriod) {
                             if (period === 5) {
                                 const rowspan = totalPeriods - fridayMaxPeriod;
@@ -1087,9 +1096,7 @@
                             }
                             continue;
                         }
-                        
                         const value = (data[day] && data[day][period]) ? data[day][period] : "";
-                        
                         if (isAdmin) {
                             html += `<td class="p-1 border"><input type="text" id="cell-${day}-${period}" value="${value}" class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" placeholder="Subject"></td>`;
                         } else {
@@ -1098,11 +1105,9 @@
                     }
                     html += `</tr>`;
                 }
-                
                 html += `<tr class="bg-gray-50"><td colspan="7" class="p-3 text-xs text-gray-500">
                     <i class="fa-regular fa-clock mr-1"></i> <strong>Note:</strong> Friday has only 4 periods (Early dismissal)
                 </td></tr>`;
-                
                 html += `</tbody></table></div>`;
                 grid.innerHTML = html;
             } catch (err) {
@@ -1110,43 +1115,90 @@
             }
         };
 
-        window.saveClassTimetable = async () => {
-            const classSelect = document.getElementById('tt-class-select');
-            const className = classSelect ? classSelect.value : null;
-            if (!className) return alert("Select a class first!");
+        // Bulk paste for Daily Timetable
+        window.bulkPasteDailyTimetable = () => {
+            const className = document.getElementById('tt-class-select')?.value;
+            if (!className) { alert("Please select a class first."); return; }
             
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const totalPeriods = 8;
             const fridayMaxPeriod = 4;
+            
+            const modalHtml = `
+                <div id="pasteModal" class="paste-modal" onclick="if(event.target===this) closePasteModal()">
+                    <div class="paste-modal-content">
+                        <h3 class="font-bold text-lg mb-2">Paste Timetable from Excel/Sheets</h3>
+                        <p class="text-xs text-gray-500 mb-2">Copy your table (including headers) and paste below. Expected format: columns = Monday to Saturday, rows = periods 1 to 8 (Friday rows 5-8 will be ignored). Tab-separated works best.</p>
+                        <textarea id="pasteData" placeholder="Paste here..."></textarea>
+                        <div class="flex justify-end gap-2 mt-3">
+                            <button onclick="closePasteModal()" class="px-3 py-1 bg-gray-300 rounded">Cancel</button>
+                            <button onclick="applyPasteToDaily('${className}')" class="px-3 py-1 bg-green-600 text-white rounded">Apply</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        };
+        
+        window.applyPasteToDaily = (className) => {
+            const raw = document.getElementById('pasteData')?.value;
+            if (!raw) { closePasteModal(); return; }
+            const lines = raw.split(/\r?\n/).filter(l => l.trim().length > 0);
+            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const totalPeriods = 8;
+            const fridayMaxPeriod = 4;
+            
+            // Assume first line might be header, but we'll try to parse data rows
+            let periodRow = 1;
+            for (let line of lines) {
+                const cells = line.split(/\t|,/); // tab or comma
+                if (cells.length < 6) continue; // need at least 6 columns
+                if (periodRow > totalPeriods) break;
+                // Skip Friday periods beyond 4
+                if (periodRow <= fridayMaxPeriod || periodRow > fridayMaxPeriod) {
+                    for (let col = 0; col < days.length; col++) {
+                        const day = days[col];
+                        if (day === 'Friday' && periodRow > fridayMaxPeriod) continue;
+                        const cellValue = cells[col]?.trim() || '';
+                        const input = document.getElementById(`cell-${day}-${periodRow}`);
+                        if (input) input.value = cellValue;
+                    }
+                }
+                periodRow++;
+            }
+            closePasteModal();
+            showToast("Pasted data applied. Click SAVE to store.");
+        };
+        
+        window.closePasteModal = () => {
+            const modal = document.getElementById('pasteModal');
+            if (modal) modal.remove();
+        };
+
+        window.saveClassTimetable = async () => {
+            const classSelect = document.getElementById('tt-class-select');
+            const className = classSelect ? classSelect.value : null;
+            if (!className) return alert("Select a class first!");
+            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const totalPeriods = 8;
+            const fridayMaxPeriod = 4;
             const timetableData = {};
-            
-            days.forEach(day => {
-                timetableData[day] = {};
-            });
-            
+            days.forEach(day => { timetableData[day] = {}; });
             for (let period = 1; period <= totalPeriods; period++) {
                 for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
                     const day = days[dayIdx];
-                    
-                    if (day === 'Friday' && period > fridayMaxPeriod) {
-                        continue;
-                    }
-                    
+                    if (day === 'Friday' && period > fridayMaxPeriod) continue;
                     const cell = document.getElementById(`cell-${day}-${period}`);
-                    if (cell) {
-                        timetableData[day][period] = cell.value.trim();
-                    }
+                    if (cell) { timetableData[day][period] = cell.value.trim(); }
                 }
             }
-            
             try {
                 await firebase.database().ref("timetable/class/" + className).set(timetableData);
                 alert(`✅ Timetable for Class ${className} saved!\n📅 Friday has 4 periods only`);
-            } catch (err) {
-                alert("Error: " + err.message);
-            }
+            } catch (err) { alert("Error: " + err.message); }
         };
 
+        // Exam Time Table with paste button
         window.openExamTimeTable = () => {
             const content = document.getElementById('content');
             const role = localStorage.getItem('userRole');
@@ -1157,7 +1209,10 @@
                     <div class="flex items-center justify-between">
                         <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button>
                         <h2 class="text-xl font-bold">Exam Time Table</h2>
-                        ${isAdmin ? `<button onclick="saveExamTimetable()" class="bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-bold">SAVE</button>` : '<div></div>'}
+                        <div class="flex gap-2">
+                            ${isAdmin ? `<button onclick="bulkPasteExamTimetable()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-paste mr-1"></i>Paste from Excel</button>` : ''}
+                            ${isAdmin ? `<button onclick="saveExamTimetable()" class="bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-bold">SAVE</button>` : '<div></div>'}
+                        </div>
                     </div>
                     <div class="bg-white p-3 rounded-xl border">
                         <select id="exam-class-select" onchange="loadExamTimetable(this.value)" class="w-full p-2 bg-gray-50 rounded-lg font-bold text-sm">
@@ -1176,16 +1231,13 @@
             const grid = document.getElementById('exam-display-grid');
             const role = localStorage.getItem('userRole');
             const isAdmin = ['Admin', 'Super Admin', 'Supervisor', 'Clerk'].includes(role);
-            
             try {
                 const snap = await firebase.database().ref("exam_timetable/" + className).once('value');
                 const data = snap.val() || {};
-                
                 let html = `<div class="overflow-x-auto"><table class="w-full border-collapse"><thead class="bg-gray-50"><tr><th class="p-2 border text-xs">Date</th><th class="p-2 border text-xs">Day</th><th class="p-2 border text-xs">Time</th><th class="p-2 border text-xs">Subject</th></tr></thead><tbody>`;
-                
                 for (let i = 1; i <= 10; i++) {
                     const rowData = data[i] || { date: "", day: "", time: "", sub: "" };
-                    html += `</td>
+                    html += `<tr>
                         <td class="p-2 border">${isAdmin ? `<input type="text" id="ex-date-${i}" value="${rowData.date}" class="w-full p-1 text-xs border-none bg-gray-50 rounded">` : `<span class="text-xs">${rowData.date || '-'}</span>`}</td>
                         <td class="p-2 border">${isAdmin ? `<input type="text" id="ex-day-${i}" value="${rowData.day}" class="w-full p-1 text-xs border-none bg-gray-50 rounded">` : `<span class="text-xs">${rowData.day || '-'}</span>`}</td>
                         <td class="p-2 border">${isAdmin ? `<input type="text" id="ex-time-${i}" value="${rowData.time}" class="w-full p-1 text-xs border-none bg-gray-50 rounded">` : `<span class="text-xs">${rowData.time || '-'}</span>`}</td>
@@ -1194,15 +1246,60 @@
                 }
                 html += `</tbody></table></div>`;
                 grid.innerHTML = html;
-            } catch (err) {
-                grid.innerHTML = `<p class="p-5 text-red-500">Error: ${err.message}</p>`;
+            } catch (err) { grid.innerHTML = `<p class="p-5 text-red-500">Error: ${err.message}</p>`; }
+        };
+
+        window.bulkPasteExamTimetable = () => {
+            const className = document.getElementById('exam-class-select')?.value;
+            if (!className) { alert("Select a class first."); return; }
+            const modalHtml = `
+                <div id="pasteModalExam" class="paste-modal" onclick="if(event.target===this) closePasteModalExam()">
+                    <div class="paste-modal-content">
+                        <h3 class="font-bold text-lg mb-2">Paste Exam Timetable</h3>
+                        <p class="text-xs text-gray-500 mb-2">Paste rows with columns: Date, Day, Time, Subject (tab-separated). Up to 10 rows.</p>
+                        <textarea id="pasteExamData" placeholder="Paste here..."></textarea>
+                        <div class="flex justify-end gap-2 mt-3">
+                            <button onclick="closePasteModalExam()" class="px-3 py-1 bg-gray-300 rounded">Cancel</button>
+                            <button onclick="applyPasteToExam('${className}')" class="px-3 py-1 bg-green-600 text-white rounded">Apply</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        };
+        
+        window.applyPasteToExam = (className) => {
+            const raw = document.getElementById('pasteExamData')?.value;
+            if (!raw) { closePasteModalExam(); return; }
+            const lines = raw.split(/\r?\n/).filter(l => l.trim().length > 0);
+            let rowIdx = 1;
+            for (let line of lines) {
+                if (rowIdx > 10) break;
+                const cols = line.split(/\t|,/);
+                if (cols.length >= 4) {
+                    const dateInput = document.getElementById(`ex-date-${rowIdx}`);
+                    const dayInput = document.getElementById(`ex-day-${rowIdx}`);
+                    const timeInput = document.getElementById(`ex-time-${rowIdx}`);
+                    const subInput = document.getElementById(`ex-sub-${rowIdx}`);
+                    if (dateInput) dateInput.value = cols[0].trim();
+                    if (dayInput) dayInput.value = cols[1].trim();
+                    if (timeInput) timeInput.value = cols[2].trim();
+                    if (subInput) subInput.value = cols[3].trim();
+                }
+                rowIdx++;
             }
+            closePasteModalExam();
+            showToast("Exam timetable updated. Click SAVE to store.");
+        };
+        
+        window.closePasteModalExam = () => {
+            const modal = document.getElementById('pasteModalExam');
+            if (modal) modal.remove();
         };
 
         window.saveExamTimetable = async () => {
             const className = document.getElementById('exam-class-select').value;
             if (!className) return alert("Select a class first!");
-            
             const examData = {};
             for (let i = 1; i <= 10; i++) {
                 examData[i] = {
@@ -1212,16 +1309,13 @@
                     sub: document.getElementById(`ex-sub-${i}`)?.value.trim() || ""
                 };
             }
-            
             try {
                 await firebase.database().ref("exam_timetable/" + className).set(examData);
                 alert(`Exam Timetable saved for Class ${className}`);
-            } catch (err) {
-                alert("Error: " + err.message);
-            }
+            } catch (err) { alert("Error: " + err.message); }
         };
 
-        // TEACHER TIME TABLE - Admin management
+        // Teacher Time Table (Admin view) with paste button
         window.openTeacherTimeTable = () => {
             const content = document.getElementById('content');
             const role = localStorage.getItem('userRole');
@@ -1234,9 +1328,10 @@
                             <i class="fa-solid fa-arrow-left"></i>
                         </button>
                         <h2 class="text-lg font-bold">Teacher Time Table Manager</h2>
-                        <button onclick="saveTeacherTimetableMatrix()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold">
-                            <i class="fa-solid fa-save mr-1"></i>SAVE
-                        </button>
+                        <div class="flex gap-2">
+                            ${isAdmin ? `<button onclick="bulkPasteTeacherTimetable()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-paste mr-1"></i>Paste from Excel</button>` : ''}
+                            ${isAdmin ? `<button onclick="saveTeacherTimetableMatrix()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-save mr-1"></i>SAVE</button>` : ''}
+                        </div>
                     </div>
                     
                     <div class="bg-white p-4 rounded-xl shadow">
@@ -1244,14 +1339,12 @@
                         <select id="teacherSelect" class="w-full p-3 bg-gray-50 rounded-xl text-sm border mb-4">
                             <option value="">-- Select Teacher --</option>
                         </select>
-                        
                         <div id="teacher-tt-container" class="mt-4">
                             <p class="text-center text-gray-400 py-8">Select a teacher to view/edit timetable</p>
                         </div>
                     </div>
                 </div>
             `;
-            
             loadTeacherDropdownForMatrix();
         };
 
@@ -1261,7 +1354,6 @@
                 const text = await res.text();
                 const rows = text.split('\n').slice(1);
                 const teachers = [];
-                
                 for (let i = 0; i < rows.length; i++) {
                     if (!rows[i].trim()) continue;
                     const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
@@ -1270,11 +1362,9 @@
                         if (name) teachers.push(name);
                     }
                 }
-                
                 const select = document.getElementById('teacherSelect');
                 if (select) {
-                    select.innerHTML = '<option value="">-- Select Teacher --</option>' + 
-                        teachers.map(t => `<option value="${t}">${t}</option>`).join('');
+                    select.innerHTML = '<option value="">-- Select Teacher --</option>' + teachers.map(t => `<option value="${t}">${t}</option>`).join('');
                     select.onchange = () => loadTeacherTimetableForEditMatrix(select.value);
                 }
             } catch (e) {
@@ -1290,15 +1380,12 @@
                 container.innerHTML = '<p class="text-center text-gray-400 py-8">Select a teacher to view/edit timetable</p>';
                 return;
             }
-            
             container.innerHTML = `<div class="p-8 text-center text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...</div>`;
-            
             try {
                 const sanitizedKey = teacherName.toLowerCase().replace(/\s+/g, '_');
                 const snap = await firebase.database().ref(`teacher_timetables/${sanitizedKey}`).once('value');
                 const data = snap.val();
                 const schedule = data?.schedule || {};
-                
                 renderTeacherTimetableMatrix(container, teacherName, schedule, true);
             } catch (err) {
                 container.innerHTML = `<p class="text-red-500 p-8 text-center">Error loading timetable: ${err.message}</p>`;
@@ -1309,159 +1396,111 @@
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const totalPeriods = 8;
             const fridayMaxPeriod = 4;
-            
-            let html = `
-                <div class="overflow-x-auto">
-                    <table class="w-full border-collapse text-sm">
-                        <thead>
-                            <tr class="bg-purple-600 text-white">
-                                <th class="p-3 border border-purple-500 text-center font-bold w-16">Period</th>
-                                ${days.map(day => `<th class="p-3 border border-purple-500 text-center font-bold">${day}</th>`).join('')}
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
+            let html = `<div class="overflow-x-auto"><table class="w-full border-collapse text-sm"><thead><tr class="bg-purple-600 text-white"><th class="p-3 border border-purple-500 text-center font-bold w-16">Period</th>${days.map(day => `<th class="p-3 border border-purple-500 text-center font-bold">${day}</th>`).join('')}</tr></thead><tbody>`;
             for (let period = 1; period <= totalPeriods; period++) {
                 const isFridayPeriod = period > fridayMaxPeriod;
-                
                 html += `<tr class="${isFridayPeriod ? 'bg-gray-50' : 'hover:bg-gray-50'}">`;
-                html += `<td class="p-3 border text-center font-bold ${isFridayPeriod ? 'text-gray-400' : 'text-purple-600 bg-purple-50'}">${period}${isFridayPeriod ? '†' : ''}</td>`;
-                
+                html += `<td class="p-3 border text-center font-bold ${isFridayPeriod ? 'text-gray-400' : 'text-purple-600 bg-purple-50'}">${period}${isFridayPeriod ? '†' : ''}</table>`;
                 for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
                     const day = days[dayIdx];
-                    
                     if (day === 'Friday' && isFridayPeriod) {
                         if (period === 5) {
                             const rowspan = totalPeriods - fridayMaxPeriod;
-                            html += `<td rowspan="${rowspan}" class="p-3 border text-center bg-amber-50 align-middle">
-                                <div class="flex flex-col items-center">
-                                    <i class="fa-solid fa-bell text-amber-500 text-lg mb-1"></i>
-                                    <span class="text-amber-700 font-medium text-xs">Early Dismissal</span>
-                                    <span class="text-amber-500 text-[10px] mt-1">No classes after period 4</span>
-                                </div>
-                            </td>`;
+                            html += `<td rowspan="${rowspan}" class="p-3 border text-center bg-amber-50 align-middle"><div class="flex flex-col items-center"><i class="fa-solid fa-bell text-amber-500 text-lg mb-1"></i><span class="text-amber-700 font-medium text-xs">Early Dismissal</span><span class="text-amber-500 text-[10px] mt-1">No classes after period 4</span></div></td>`;
                         }
                         continue;
                     }
-                    
                     const value = schedule?.[day]?.[period] || '';
-                    
                     if (isEditable) {
-                        html += `<td class="p-1 border">
-                            <input type="text" id="cell-${day}-${period}" 
-                                value="${value.replace(/"/g, '&quot;')}" 
-                                class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" 
-                                placeholder="Subject / Class">
-                          </td>`;
+                        html += `<td class="p-1 border"><input type="text" id="cell-${day}-${period}" value="${value.replace(/"/g, '&quot;')}" class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" placeholder="Subject / Class"></td>`;
                     } else {
-                        const displayValue = value || '—';
-                        html += `<td class="p-3 border text-gray-700 text-xs">${displayValue}</td>`;
+                        html += `<td class="p-3 border text-gray-700 text-xs">${value || '—'}</td>`;
                     }
                 }
-                html += `</table>`;
+                html += `</tr>`;
             }
-            
-            html += `
-                <tr class="bg-gray-50 border-t-2">
-                    <td colspan="7" class="p-3 text-xs text-gray-500">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <i class="fa-regular fa-clock mr-1 text-amber-500"></i>
-                                <strong>Note:</strong> Friday has only 4 periods (Early dismissal at 10:45 AM)
-                                ${isEditable ? '<br><span class="text-[10px] text-purple-500">Click any cell to edit</span>' : ''}
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            
-            html += `</tbody></table></div>`;
+            html += `<tr class="bg-gray-50 border-t-2"><td colspan="7" class="p-3 text-xs text-gray-500"><div class="flex items-center justify-between"><div><i class="fa-regular fa-clock mr-1 text-amber-500"></i><strong>Note:</strong> Friday has only 4 periods (Early dismissal at 10:45 AM)${isEditable ? '<br><span class="text-[10px] text-purple-500">Click any cell to edit</span>' : ''}</div></div></td></tr></tbody></table></div>`;
             container.innerHTML = html;
         }
 
-        window.saveTeacherTimetableMatrix = async () => {
+        window.bulkPasteTeacherTimetable = () => {
             const teacher = document.getElementById('teacherSelect')?.value;
-            if (!teacher) {
-                alert("Please select a teacher first!");
-                return;
-            }
-            
+            if (!teacher) { alert("Please select a teacher first."); return; }
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const totalPeriods = 8;
             const fridayMaxPeriod = 4;
-            const schedule = {};
-            
-            days.forEach(day => {
-                schedule[day] = {};
-            });
-            
-            for (let period = 1; period <= totalPeriods; period++) {
-                for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
-                    const day = days[dayIdx];
-                    
-                    if (day === 'Friday' && period > fridayMaxPeriod) {
-                        continue;
-                    }
-                    
-                    const input = document.getElementById(`cell-${day}-${period}`);
-                    if (input) {
-                        schedule[day][period] = input.value.trim();
-                    }
-                }
-            }
-            
-            const sanitizedKey = teacher.toLowerCase().replace(/\s+/g, '_');
-            const saveData = {
-                displayName: teacher,
-                schedule: schedule,
-                updatedBy: localStorage.getItem('userName'),
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                format: "matrix_8x6_friday_4periods"
-            };
-            
-            try {
-                await firebase.database().ref(`teacher_timetables/${sanitizedKey}`).set(saveData);
-                alert(`✅ Timetable saved successfully for ${teacher}!`);
-            } catch (err) {
-                alert("❌ Error saving: " + err.message);
-            }
-        };
-
-        let feesDataCache = {
-            payments: [],
-            feeStructure: {},
-            students: []
-        };
-
-        window.showFeesDashboard = async () => {
-            const content = document.getElementById('content');
-            
-            content.innerHTML = `
-                <div class="space-y-4 pb-20">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
-                                <i class="fa-solid fa-arrow-left"></i>
-                            </button>
-                            <h2 class="text-lg font-bold">Fees Dashboard</h2>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="refreshFeesData()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs">
-                                <i class="fa-solid fa-refresh mr-1"></i>Refresh
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div id="feesDashboardContent" class="p-4">
-                        <div class="text-center py-10">
-                            <i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i>
-                            <p class="text-gray-400 text-sm mt-2">Loading fees data...</p>
+            const modalHtml = `
+                <div id="pasteModalTeacher" class="paste-modal" onclick="if(event.target===this) closePasteModalTeacher()">
+                    <div class="paste-modal-content">
+                        <h3 class="font-bold text-lg mb-2">Paste Teacher Timetable from Excel</h3>
+                        <p class="text-xs text-gray-500 mb-2">Copy your table (columns: Monday to Saturday, rows: periods 1-8). Friday rows 5-8 will be ignored. Tab-separated works best.</p>
+                        <textarea id="pasteTeacherData" placeholder="Paste here..."></textarea>
+                        <div class="flex justify-end gap-2 mt-3">
+                            <button onclick="closePasteModalTeacher()" class="px-3 py-1 bg-gray-300 rounded">Cancel</button>
+                            <button onclick="applyPasteToTeacher()" class="px-3 py-1 bg-green-600 text-white rounded">Apply</button>
                         </div>
                     </div>
                 </div>
             `;
-            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        };
+        
+        window.applyPasteToTeacher = () => {
+            const raw = document.getElementById('pasteTeacherData')?.value;
+            if (!raw) { closePasteModalTeacher(); return; }
+            const lines = raw.split(/\r?\n/).filter(l => l.trim().length > 0);
+            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            let periodRow = 1;
+            for (let line of lines) {
+                const cells = line.split(/\t|,/);
+                if (cells.length < 6) continue;
+                if (periodRow > 8) break;
+                for (let col = 0; col < days.length; col++) {
+                    const day = days[col];
+                    if (day === 'Friday' && periodRow > 4) continue;
+                    const input = document.getElementById(`cell-${day}-${periodRow}`);
+                    if (input) input.value = cells[col]?.trim() || '';
+                }
+                periodRow++;
+            }
+            closePasteModalTeacher();
+            showToast("Pasted data applied. Click SAVE to store.");
+        };
+        
+        window.closePasteModalTeacher = () => {
+            const modal = document.getElementById('pasteModalTeacher');
+            if (modal) modal.remove();
+        };
+
+        window.saveTeacherTimetableMatrix = async () => {
+            const teacher = document.getElementById('teacherSelect')?.value;
+            if (!teacher) { alert("Please select a teacher first!"); return; }
+            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const totalPeriods = 8;
+            const fridayMaxPeriod = 4;
+            const schedule = {};
+            days.forEach(day => { schedule[day] = {}; });
+            for (let period = 1; period <= totalPeriods; period++) {
+                for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
+                    const day = days[dayIdx];
+                    if (day === 'Friday' && period > fridayMaxPeriod) continue;
+                    const input = document.getElementById(`cell-${day}-${period}`);
+                    if (input) { schedule[day][period] = input.value.trim(); }
+                }
+            }
+            const sanitizedKey = teacher.toLowerCase().replace(/\s+/g, '_');
+            const saveData = { displayName: teacher, schedule: schedule, updatedBy: localStorage.getItem('userName'), timestamp: firebase.database.ServerValue.TIMESTAMP, format: "matrix_8x6_friday_4periods" };
+            try {
+                await firebase.database().ref(`teacher_timetables/${sanitizedKey}`).set(saveData);
+                alert(`✅ Timetable saved successfully for ${teacher}!`);
+            } catch (err) { alert("❌ Error saving: " + err.message); }
+        };
+
+        // FEES DASHBOARD (unchanged)
+        let feesDataCache = { payments: [], feeStructure: {}, students: [] };
+        window.showFeesDashboard = async () => {
+            const content = document.getElementById('content');
+            content.innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-lg font-bold">Fees Dashboard</h2></div><div class="flex gap-2"><button onclick="refreshFeesData()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-refresh mr-1"></i>Refresh</button></div></div><div id="feesDashboardContent" class="p-4"><div class="text-center py-10"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i><p class="text-gray-400 text-sm mt-2">Loading fees data...</p></div></div></div>`;
             await loadFeesData();
             renderAdminFeesDashboard();
         };
@@ -1469,70 +1508,47 @@
         async function loadFeesData() {
             const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
             const FEES_CHART_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=936130121&single=true&output=csv";
-            
             try {
                 const paymentsRes = await fetch(FEES_CSV_URL);
                 const paymentsText = await paymentsRes.text();
                 const paymentsLines = paymentsText.split('\n');
-                
                 const paymentHeaders = paymentsLines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
-                
                 feesDataCache.payments = [];
                 for (let i = 1; i < paymentsLines.length; i++) {
                     if (!paymentsLines[i].trim()) continue;
                     const cols = paymentsLines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    
                     const studentNameIndex = paymentHeaders.findIndex(h => h.includes('name') || h.includes('student'));
                     const receiptIndex = paymentHeaders.findIndex(h => h.includes('receipt') || h.includes('voucher'));
                     const dateIndex = paymentHeaders.findIndex(h => h.includes('date'));
                     const amountIndex = paymentHeaders.findIndex(h => h.includes('amount') || h.includes('paid'));
-                    
                     let studentName = studentNameIndex >= 0 ? cols[studentNameIndex]?.replace(/"/g, '').trim() : '';
                     let receiptNo = receiptIndex >= 0 ? cols[receiptIndex]?.replace(/"/g, '').trim() : `RCPT-${i}`;
                     let date = dateIndex >= 0 ? cols[dateIndex]?.replace(/"/g, '').trim() : '';
                     let amount = amountIndex >= 0 ? parseFloat(cols[amountIndex]?.replace(/"/g, '').trim()) || 0 : 0;
-                    
                     if (!studentName && cols[1]) studentName = cols[1]?.replace(/"/g, '').trim();
                     if (!receiptNo && cols[0]) receiptNo = cols[0]?.replace(/"/g, '').trim();
                     if (!date && cols[2]) date = cols[2]?.replace(/"/g, '').trim();
                     if (!amount && cols[3]) amount = parseFloat(cols[3]?.replace(/"/g, '').trim()) || 0;
-                    
-                    if (studentName) {
-                        feesDataCache.payments.push({
-                            name: studentName,
-                            receiptNo: receiptNo,
-                            date: date,
-                            amount: amount
-                        });
-                    }
+                    if (studentName) { feesDataCache.payments.push({ name: studentName, receiptNo, date, amount }); }
                 }
-                
                 const chartRes = await fetch(FEES_CHART_URL);
                 const chartText = await chartRes.text();
                 const chartLines = chartText.split('\n');
-                
                 const chartHeaders = chartLines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
                 const classIndex = chartHeaders.findIndex(h => h.includes('class') || h.includes('standard'));
                 const totalFeesIndex = chartHeaders.findIndex(h => h.includes('total') || h.includes('fees') || h.includes('amount'));
-                
                 for (let i = 1; i < chartLines.length; i++) {
                     if (!chartLines[i].trim()) continue;
                     const cols = chartLines[i].split(',');
                     let className = classIndex >= 0 ? cols[classIndex]?.replace(/"/g, '').trim() : '';
                     let totalFees = totalFeesIndex >= 0 ? parseFloat(cols[totalFeesIndex]?.replace(/"/g, '').trim()) || 0 : 0;
-                    
                     if (!className && cols[0]) className = cols[0]?.replace(/"/g, '').trim();
                     if (!totalFees && cols[1]) totalFees = parseFloat(cols[1]?.replace(/"/g, '').trim()) || 0;
-                    
-                    if (className) {
-                        feesDataCache.feeStructure[className] = totalFees;
-                    }
+                    if (className) { feesDataCache.feeStructure[className] = totalFees; }
                 }
-                
                 const studentRes = await fetch(STUDENT_SHEET_CSV);
                 const studentText = await studentRes.text();
                 const studentRows = studentText.split('\n').slice(1);
-                
                 feesDataCache.students = [];
                 for (const row of studentRows) {
                     if (!row.trim()) continue;
@@ -1541,251 +1557,73 @@
                     const className = cols[1]?.replace(/"/g, '').trim();
                     const grNo = cols[2]?.replace(/"/g, '').trim();
                     const phone = cols[15]?.replace(/"/g, '').trim();
-                    
-                    if (name) {
-                        feesDataCache.students.push({
-                            name: name,
-                            class: className,
-                            grNo: grNo,
-                            phone: phone
-                        });
-                    }
+                    if (name) { feesDataCache.students.push({ name, class: className, grNo, phone }); }
                 }
-                
-                console.log("Fees data loaded:", {
-                    payments: feesDataCache.payments.length,
-                    feeStructure: Object.keys(feesDataCache.feeStructure).length
-                });
-                
-            } catch (error) {
-                console.error("Error loading fees data:", error);
-            }
+                console.log("Fees data loaded:", { payments: feesDataCache.payments.length, feeStructure: Object.keys(feesDataCache.feeStructure).length });
+            } catch (error) { console.error("Error loading fees data:", error); }
         }
 
-        window.refreshFeesData = async () => {
-            await loadFeesData();
-            renderAdminFeesDashboard();
-            showToast("Fees data refreshed");
-        };
-
+        window.refreshFeesData = async () => { await loadFeesData(); renderAdminFeesDashboard(); showToast("Fees data refreshed"); };
         function renderAdminFeesDashboard() {
             const container = document.getElementById('feesDashboardContent');
             if (!container) return;
-            
-            container.innerHTML = `
-                <div class="space-y-4">
-                    <div class="bg-white rounded-xl shadow-sm border p-4">
-                        <h3 class="font-bold text-gray-800 mb-3"><i class="fa-solid fa-search mr-2 text-blue-600"></i>Search Student</h3>
-                        <div class="space-y-3">
-                            <input type="text" id="adminStudentSearch" 
-                                onkeyup="filterStudentsForFees()"
-                                placeholder="Search by name, GR number..." 
-                                class="w-full p-3 bg-gray-50 rounded-xl text-sm border">
-                            <div id="studentSearchResults" class="max-h-60 overflow-y-auto space-y-2">
-                                <!-- Results -->
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="selectedStudentCard" class="hidden bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-4 text-white">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 id="selectedStudentName" class="font-bold text-lg"></h3>
-                                <p id="selectedStudentClass" class="text-sm opacity-80"></p>
-                                <p id="selectedStudentGr" class="text-xs opacity-70 mt-1"></p>
-                            </div>
-                            <div class="text-right">
-                                <p id="selectedStudentPhone" class="text-sm"></p>
-                                <a id="callStudentBtn" href="#" class="text-xs text-white/80 hover:text-white inline-block mt-1">
-                                    <i class="fa-solid fa-phone"></i> Call
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="paymentHistoryCard" class="hidden bg-white rounded-xl shadow-sm border overflow-hidden">
-                        <div class="bg-gray-50 px-4 py-3 border-b">
-                            <h3 class="font-bold text-gray-800"><i class="fa-solid fa-receipt mr-2 text-green-600"></i>Payment History</h3>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead class="bg-gray-100">
-                                    <tr><th class="p-3 text-left text-xs font-bold text-gray-600">Receipt No.</th>
-                                    <th class="p-3 text-left text-xs font-bold text-gray-600">Date</th>
-                                    <th class="p-3 text-right text-xs font-bold text-gray-600">Amount (₹)</th>
-                                </tr>
-                                </thead>
-                                <tbody id="paymentHistoryBody">
-                                    <tr><td colspan="3" class="p-8 text-center text-gray-400">Select a student to view payment history</td></tr>
-                                </tbody>
-                                <tfoot class="bg-gray-50 border-t">
-                                    <tr><td colspan="2" class="p-3 text-right font-bold">Total Paid:</td><td class="p-3 text-right font-bold text-green-600" id="totalPaidAmount">₹0</td></tr>
-                                    <tr><td colspan="2" class="p-3 text-right font-bold">Balance:</td><td class="p-3 text-right font-bold text-red-600" id="balanceAmount">₹0</td></tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
+            container.innerHTML = `<div class="space-y-4"><div class="bg-white rounded-xl shadow-sm border p-4"><h3 class="font-bold text-gray-800 mb-3"><i class="fa-solid fa-search mr-2 text-blue-600"></i>Search Student</h3><div class="space-y-3"><input type="text" id="adminStudentSearch" onkeyup="filterStudentsForFees()" placeholder="Search by name, GR number..." class="w-full p-3 bg-gray-50 rounded-xl text-sm border"><div id="studentSearchResults" class="max-h-60 overflow-y-auto space-y-2"></div></div></div><div id="selectedStudentCard" class="hidden bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-4 text-white"><div class="flex justify-between items-start"><div><h3 id="selectedStudentName" class="font-bold text-lg"></h3><p id="selectedStudentClass" class="text-sm opacity-80"></p><p id="selectedStudentGr" class="text-xs opacity-70 mt-1"></p></div><div class="text-right"><p id="selectedStudentPhone" class="text-sm"></p><a id="callStudentBtn" href="#" class="text-xs text-white/80 hover:text-white inline-block mt-1"><i class="fa-solid fa-phone"></i> Call</a></div></div></div><div id="paymentHistoryCard" class="hidden bg-white rounded-xl shadow-sm border overflow-hidden"><div class="bg-gray-50 px-4 py-3 border-b"><h3 class="font-bold text-gray-800"><i class="fa-solid fa-receipt mr-2 text-green-600"></i>Payment History</h3></div><div class="overflow-x-auto"><table class="w-full"><thead class="bg-gray-100"><tr><th class="p-3 text-left text-xs font-bold text-gray-600">Receipt No.</th><th class="p-3 text-left text-xs font-bold text-gray-600">Date</th><th class="p-3 text-right text-xs font-bold text-gray-600">Amount (₹)</th></tr></thead><tbody id="paymentHistoryBody"><tr><td colspan="3" class="p-8 text-center text-gray-400">Select a student to view payment history</td></tr></tbody><tfoot class="bg-gray-50 border-t"><tr><td colspan="2" class="p-3 text-right font-bold">Total Paid:</td><td class="p-3 text-right font-bold text-green-600" id="totalPaidAmount">₹0</td></tr><tr><td colspan="2" class="p-3 text-right font-bold">Balance:</td><td class="p-3 text-right font-bold text-red-600" id="balanceAmount">₹0</td></tr></tfoot></table></div></div></div>`;
             displayStudentSearchResults('');
         }
-
         function displayStudentSearchResults(searchTerm) {
             const resultsContainer = document.getElementById('studentSearchResults');
             if (!resultsContainer) return;
-            
             const term = searchTerm.toLowerCase();
-            const filtered = feesDataCache.students.filter(s => 
-                s.name.toLowerCase().includes(term) || 
-                s.grNo?.toLowerCase().includes(term)
-            ).slice(0, 20);
-            
-            if (filtered.length === 0) {
-                resultsContainer.innerHTML = '<div class="text-center py-4 text-gray-400 text-sm">No students found</div>';
-                return;
-            }
-            
-            resultsContainer.innerHTML = filtered.map(s => `
-                <div onclick="selectStudentForFees('${s.name.replace(/'/g, "\\'")}')" 
-                    class="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 transition-all">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="font-bold text-gray-800 text-sm">${escapeHtml(s.name)}</p>
-                            <p class="text-xs text-gray-500">${s.class || 'N/A'} ${s.grNo ? `| GR: ${s.grNo}` : ''}</p>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-gray-300"></i>
-                    </div>
-                </div>
-            `).join('');
+            const filtered = feesDataCache.students.filter(s => s.name.toLowerCase().includes(term) || s.grNo?.toLowerCase().includes(term)).slice(0, 20);
+            if (filtered.length === 0) { resultsContainer.innerHTML = '<div class="text-center py-4 text-gray-400 text-sm">No students found</div>'; return; }
+            resultsContainer.innerHTML = filtered.map(s => `<div onclick="selectStudentForFees('${s.name.replace(/'/g, "\\'")}')" class="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 transition-all"><div class="flex justify-between items-center"><div><p class="font-bold text-gray-800 text-sm">${escapeHtml(s.name)}</p><p class="text-xs text-gray-500">${s.class || 'N/A'} ${s.grNo ? `| GR: ${s.grNo}` : ''}</p></div><i class="fa-solid fa-chevron-right text-gray-300"></i></div></div>`).join('');
         }
-
-        window.filterStudentsForFees = () => {
-            const searchTerm = document.getElementById('adminStudentSearch')?.value || '';
-            displayStudentSearchResults(searchTerm);
-        };
-
+        window.filterStudentsForFees = () => { const searchTerm = document.getElementById('adminStudentSearch')?.value || ''; displayStudentSearchResults(searchTerm); };
         window.selectStudentForFees = (studentName) => {
             const student = feesDataCache.students.find(s => s.name === studentName);
             if (!student) return;
-            
-            const payments = feesDataCache.payments.filter(p => 
-                p.name.toLowerCase() === studentName.toLowerCase()
-            );
+            const payments = feesDataCache.payments.filter(p => p.name.toLowerCase() === studentName.toLowerCase());
             payments.sort((a, b) => b.date.localeCompare(a.date));
-            
             const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
             const totalFees = feesDataCache.feeStructure[student.class] || 0;
             const balance = totalFees - totalPaid;
-            
             document.getElementById('selectedStudentCard').classList.remove('hidden');
             document.getElementById('selectedStudentName').innerText = student.name;
             document.getElementById('selectedStudentClass').innerHTML = student.class ? `Class ${student.class}` : 'Class not assigned';
             document.getElementById('selectedStudentGr').innerHTML = student.grNo ? `GR: ${student.grNo}` : 'GR: Pending';
             document.getElementById('selectedStudentPhone').innerHTML = student.phone ? `<i class="fa-solid fa-phone mr-1"></i>${student.phone}` : 'Phone not available';
-            
             const callBtn = document.getElementById('callStudentBtn');
-            if (student.phone) {
-                callBtn.href = `tel:${student.phone}`;
-                callBtn.style.display = 'inline-block';
-            } else {
-                callBtn.style.display = 'none';
-            }
-            
+            if (student.phone) { callBtn.href = `tel:${student.phone}`; callBtn.style.display = 'inline-block'; } else { callBtn.style.display = 'none'; }
             const tbody = document.getElementById('paymentHistoryBody');
-            if (payments.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="p-8 text-center text-gray-400">No payment records found</td></tr>';
-            } else {
-                tbody.innerHTML = payments.map(p => `
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="p-3 text-sm">${escapeHtml(p.receiptNo)}</td>
-                        <td class="p-3 text-sm">${p.date || 'N/A'}</td>
-                        <td class="p-3 text-right text-sm font-medium text-green-600">₹${p.amount.toLocaleString()}</td>
-                    </tr>
-                `).join('');
-            }
-            
+            if (payments.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="p-8 text-center text-gray-400">No payment records found</td></tr>'; }
+            else { tbody.innerHTML = payments.map(p => `<tr class="border-b hover:bg-gray-50"><td class="p-3 text-sm">${escapeHtml(p.receiptNo)}</td><td class="p-3 text-sm">${p.date || 'N/A'}</td><td class="p-3 text-right text-sm font-medium text-green-600">₹${p.amount.toLocaleString()}</td></tr>`).join(''); }
             document.getElementById('paymentHistoryCard').classList.remove('hidden');
             document.getElementById('totalPaidAmount').innerHTML = `₹${totalPaid.toLocaleString()}`;
             document.getElementById('balanceAmount').innerHTML = balance > 0 ? `₹${balance.toLocaleString()}` : 'PAID';
-            if (balance <= 0) {
-                document.getElementById('balanceAmount').className = "p-3 text-right font-bold text-green-600";
-            } else {
-                document.getElementById('balanceAmount').className = "p-3 text-right font-bold text-red-600";
-            }
+            if (balance <= 0) { document.getElementById('balanceAmount').className = "p-3 text-right font-bold text-green-600"; }
+            else { document.getElementById('balanceAmount').className = "p-3 text-right font-bold text-red-600"; }
         };
-
         window.showFeesChart = () => {
             const content = document.getElementById('content');
-            
-            content.innerHTML = `
-                <div class="space-y-4 pb-20">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full">
-                                <i class="fa-solid fa-arrow-left"></i>
-                            </button>
-                            <h2 class="text-lg font-bold">Fee Structure by Class</h2>
-                        </div>
-                        <button onclick="refreshFeesData()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs">
-                            <i class="fa-solid fa-refresh mr-1"></i>Refresh
-                        </button>
-                    </div>
-                    
-                    <div class="p-4 space-y-3">
-                        ${Object.entries(feesDataCache.feeStructure).map(([className, totalFees]) => `
-                            <div class="bg-white rounded-xl shadow-sm border p-4 flex justify-between items-center">
-                                <div>
-                                    <p class="font-bold text-gray-800">Class ${className}</p>
-                                    <p class="text-xs text-gray-500">Annual Fees</p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-xl font-bold text-blue-600">₹${totalFees.toLocaleString()}</p>
-                                    <p class="text-[10px] text-gray-400">per student</p>
-                                </div>
-                            </div>
-                        `).join('')}
-                        
-                        ${Object.keys(feesDataCache.feeStructure).length === 0 ? `
-                            <div class="text-center py-10 text-gray-400">
-                                <i class="fa-solid fa-chart-line text-4xl mb-3"></i>
-                                <p>No fee structure data available</p>
-                                <button onclick="refreshFeesData()" class="mt-3 text-blue-600 text-xs underline">Refresh</button>
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
+            content.innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-lg font-bold">Fee Structure by Class</h2></div><button onclick="refreshFeesData()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-refresh mr-1"></i>Refresh</button></div><div class="p-4 space-y-3">${Object.entries(feesDataCache.feeStructure).map(([className, totalFees]) => `<div class="bg-white rounded-xl shadow-sm border p-4 flex justify-between items-center"><div><p class="font-bold text-gray-800">Class ${className}</p><p class="text-xs text-gray-500">Annual Fees</p></div><div class="text-right"><p class="text-xl font-bold text-blue-600">₹${totalFees.toLocaleString()}</p><p class="text-[10px] text-gray-400">per student</p></div></div>`).join('')}${Object.keys(feesDataCache.feeStructure).length === 0 ? `<div class="text-center py-10 text-gray-400"><i class="fa-solid fa-chart-line text-4xl mb-3"></i><p>No fee structure data available</p><button onclick="refreshFeesData()" class="mt-3 text-blue-600 text-xs underline">Refresh</button></div>` : ''}</div></div>`;
         };
 
-        // HOME SUMMARY UPDATE
+        // HOME SUMMARY UPDATE (unchanged)
         async function updateHomeSummary() {
             const dateKey = new Date().toISOString().split('T')[0];
-            
-            const [staffRes, studRes] = await Promise.all([
-                fetch(TEACHER_SHEET_CSV),
-                fetch(STUDENT_SHEET_CSV)
-            ]);
-            
+            const [staffRes, studRes] = await Promise.all([ fetch(TEACHER_SHEET_CSV), fetch(STUDENT_SHEET_CSV) ]);
             const totalStaffCount = (await staffRes.text()).split('\n').filter(r => r.trim()).length - 1;
             const totalStudentCount = (await studRes.text()).split('\n').filter(r => r.trim()).length - 1;
-            
             document.getElementById('home-staff-total') && (document.getElementById('home-staff-total').innerText = totalStaffCount);
             document.getElementById('home-stud-total') && (document.getElementById('home-stud-total').innerText = totalStudentCount);
-            
             firebase.database().ref('attendance/' + dateKey).on('value', (snapshot) => {
                 const data = snapshot.val();
                 let pStaff = 0;
-                if (data) {
-                    const names = new Set();
-                    Object.values(data).forEach(log => { if(log.type && log.type.includes('IN')) names.add(log.name); });
-                    pStaff = names.size;
-                }
+                if (data) { const names = new Set(); Object.values(data).forEach(log => { if(log.type && log.type.includes('IN')) names.add(log.name); }); pStaff = names.size; }
                 document.getElementById('home-staff-present') && (document.getElementById('home-staff-present').innerText = pStaff);
                 document.getElementById('home-staff-absent') && (document.getElementById('home-staff-absent').innerText = Math.max(0, totalStaffCount - pStaff));
                 document.getElementById('home-staff-bar') && (document.getElementById('home-staff-bar').style.width = (pStaff / totalStaffCount * 100) + "%");
             });
-            
             firebase.database().ref('student_attendance/' + dateKey).on('value', (snapshot) => {
                 const classesData = snapshot.val();
                 let sPresent = 0, sAbsent = 0, totalMarked = 0;
@@ -1814,75 +1652,18 @@
             if (!deferredPrompt) return;
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                deferredPrompt = null;
-                document.getElementById('install-button-container')?.classList.add('hidden');
-            }
+            if (outcome === 'accepted') { deferredPrompt = null; document.getElementById('install-button-container')?.classList.add('hidden'); }
         };
-
-        window.setActiveNav = (element, section) => {
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            element.classList.add('active');
-            loadSection(section);
-        };
-
-        window.scrollToTop = () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
-
-        window.showNotifications = () => {
-            loadSection('notices');
-        };
-
-        window.toggleTheme = () => {
-            document.body.classList.toggle('dark');
-            localStorage.setItem('darkMode', document.body.classList.contains('dark'));
-        };
-
-        window.handleLogout = () => {
-            if (confirm("Are you sure you want to logout?")) {
-                localStorage.clear();
-                document.getElementById('main-app').classList.add('hidden');
-                document.getElementById('login-screen').classList.remove('hidden');
-                document.getElementById('content').innerHTML = '';
-                location.reload();
-            }
-        };
-
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast("Copied to clipboard!");
-            }).catch(() => {
-                alert("Copy failed");
-            });
-        }
-
-        function showToast(message) {
-            const toast = document.createElement('div');
-            toast.className = 'fixed bottom-24 left-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm shadow-lg z-50 text-center';
-            toast.innerText = message;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-
-        if (localStorage.getItem('darkMode') === 'true') {
-            document.body.classList.add('dark');
-        }
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log("Service Worker registered", reg))
-                    .catch(err => console.log("Service Worker failed", err));
-            });
-        }
+        window.setActiveNav = (element, section) => { document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active')); element.classList.add('active'); loadSection(section); };
+        window.scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+        window.showNotifications = () => { loadSection('notices'); };
+        window.toggleTheme = () => { document.body.classList.toggle('dark'); localStorage.setItem('darkMode', document.body.classList.contains('dark')); };
+        window.handleLogout = () => { if (confirm("Are you sure you want to logout?")) { localStorage.clear(); document.getElementById('main-app').classList.add('hidden'); document.getElementById('login-screen').classList.remove('hidden'); document.getElementById('content').innerHTML = ''; location.reload(); } };
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => { showToast("Copied to clipboard!"); }).catch(() => { alert("Copy failed"); }); }
+        function showToast(message) { const toast = document.createElement('div'); toast.className = 'fixed bottom-24 left-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm shadow-lg z-50 text-center'; toast.innerText = message; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+        if (localStorage.getItem('darkMode') === 'true') { document.body.classList.add('dark'); }
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(reg => console.log("Service Worker registered", reg)).catch(err => console.log("Service Worker failed", err)); }); }
     </script>
 </body>
 </html>
