@@ -482,9 +482,69 @@ async function loadFeesData() {
         container.innerHTML = html || '<p class="text-center text-gray-400">No homework for your class</p>'; 
     }); 
 }
-    function fetchNotices() { const container = document.getElementById('notices-list'); if(!container) return; const userClass = localStorage.getItem('mappedClass'); const userGR = localStorage.getItem('userGR'); firebase.database().ref('notices').orderByChild('timestamp').on('value', (snap) => { const data=snap.val(); if(!data){ container.innerHTML='<p class="text-center text-gray-400">No notices</p>'; return; } let html=''; Object.values(data).reverse().forEach(n=>{ let show=false; if(n.targetType==='school') show=true; if(n.targetType==='class' && n.targetValue===userClass) show=true; if(n.targetType==='student' && n.targetValue===userGR) show=true; if(show) html+=`<div class="bg-white p-5 rounded-2xl border-l-4 border-orange-500"><div class="flex justify-between"><span class="text-orange-600 text-xs font-bold">${n.targetType==='school'?'Public':n.targetValue}</span><span class="text-xs text-gray-400">${n.date}</span></div><h3 class="font-bold">${escapeHtml(n.title)}</h3><div class="mt-2"><div class="flex gap-2 text-[10px] mb-1"><button onclick="switchLang('${n.id}','en')" class="px-2 py-1 bg-gray-100 rounded">EN</button><button onclick="switchLang('${n.id}','mr')" class="px-2 py-1 bg-gray-100 rounded">MR</button><button onclick="switchLang('${n.id}','ur')" class="px-2 py-1 bg-gray-100 rounded">UR</button></div><p id="msg-${n.id}" class="text-xs text-gray-600">${escapeHtml(n.message?.en)||'No content'}</p></div><p class="text-[9px] text-gray-400 mt-2">By: ${escapeHtml(n.sender)}</p></div>`; }); container.innerHTML = html || '<p class="text-center text-gray-400">No notices</p>'; }); }
-    window.switchLang = (id,lang) => { firebase.database().ref(`notices/${id}`).once('value',snap=>{ let n=snap.val(); let el=document.getElementById(`msg-${id}`); if(el) el.innerText = n.message?.[lang] || n.message?.en || "No content"; }); };
-
+    function fetchNotices() { 
+    const container = document.getElementById('notices-list'); 
+    if(!container) return; 
+    const userClass = localStorage.getItem('mappedClass'); 
+    const userGR = localStorage.getItem('userGR'); 
+    firebase.database().ref('notices').orderByChild('timestamp').on('value', (snap) => { 
+        const data = snap.val(); 
+        if(!data) { 
+            container.innerHTML = '<p class="text-center text-gray-400">No notices</p>'; 
+            return; 
+        } 
+        let html = ''; 
+        Object.values(data).reverse().forEach(n => { 
+            let show = false; 
+            if(n.targetType === 'school') show = true; 
+            if(n.targetType === 'class' && n.targetValue === userClass) show = true; 
+            if(n.targetType === 'student' && n.targetValue === userGR) show = true; 
+            if(show) {
+                // 👇 NEW: Determine what label to show for "target"
+                let targetLabel = '';
+                if (n.targetType === 'school') targetLabel = 'Public';
+                else if (n.targetType === 'class') targetLabel = n.targetValue;        // class name e.g. "10"
+                else if (n.targetType === 'student') targetLabel = '✨ You Only ✨';   // ✅ shows "You Only" instead of GR
+                else targetLabel = n.targetValue || 'Notice';
+                
+                html += `<div class="bg-white p-5 rounded-2xl border-l-4 border-orange-500">
+                            <div class="flex justify-between">
+                                <span class="text-orange-600 text-xs font-bold">${targetLabel}</span>
+                                <span class="text-xs text-gray-400">${n.date}</span>
+                            </div>
+                            <h3 class="font-bold">${escapeHtml(n.title)}</h3>
+                            <div class="mt-2">
+                                <div class="flex gap-2 text-[10px] mb-1">
+                                    <button onclick="switchLang('${n.id}','en')" class="px-2 py-1 bg-gray-100 rounded">EN</button>
+                                    <button onclick="switchLang('${n.id}','mr')" class="px-2 py-1 bg-gray-100 rounded">MR</button>
+                                    <button onclick="switchLang('${n.id}','ur')" class="px-2 py-1 bg-gray-100 rounded">UR</button>
+                                </div>
+                                <p id="msg-${n.id}" class="text-xs text-gray-600">${escapeHtml(n.message?.en) || 'No content'}</p>
+                            </div>
+                            <p class="text-[9px] text-gray-400 mt-2">By: ${escapeHtml(n.sender)}</p>
+                          </div>`;
+            }
+        }); 
+        container.innerHTML = html || '<p class="text-center text-gray-400">No notices for you</p>'; 
+    }); 
+}
+window.switchLangNotice = (id, lang) => {
+    firebase.database().ref('notices/' + id).once('value', (snapshot) => {
+        const n = snapshot.val();
+        const msgDiv = document.getElementById(`msg-${id}`);
+        if (msgDiv) {
+            msgDiv.innerText = n.message?.[lang] || n.message?.en || "No content";
+            // Apply language-specific styling
+            if (lang === 'ur') {
+                msgDiv.className = "text-xs text-gray-600 leading-relaxed lang-ur";
+            } else if (lang === 'mr') {
+                msgDiv.className = "text-xs text-gray-600 leading-relaxed lang-mr";
+            } else {
+                msgDiv.className = "text-xs text-gray-600 leading-relaxed lang-en";
+            }
+        }
+    });
+};
     // ======================= TIME TABLE (FIXED: 8 periods, Friday early dismissal with rowspan) =======================
     window.openDailyTimeTable = () => { 
         const content = document.getElementById('content'); 
