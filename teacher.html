@@ -722,13 +722,13 @@ async function loadFeesData() {
             if (studentName) { feesDataCache.payments.push({ name: studentName, receiptNo, date, amount }); }
         }
         
-        // 2. Load Fee Structure from Firebase (admin saved values)
+        // 2. Load Fee Structure: Firebase FIRST
         let feeStructureFromFirebase = {};
         try {
             const snap = await firebase.database().ref('feeStructure/classWise').once('value');
             if (snap.exists()) {
                 feeStructureFromFirebase = snap.val();
-                console.log("Using Firebase fee structure (admin saved):", feeStructureFromFirebase);
+                console.log("✅ Using Firebase fee structure (admin saved):", feeStructureFromFirebase);
             }
         } catch (err) {
             console.warn("Could not load fee structure from Firebase", err);
@@ -737,24 +737,39 @@ async function loadFeesData() {
         if (Object.keys(feeStructureFromFirebase).length > 0) {
             feesDataCache.feeStructure = feeStructureFromFirebase;
         } else {
-            // Fallback: try to load from CSV (if needed)
+            // Fallback: parse the multi‑column chart CSV correctly
+            console.warn("⚠️ Firebase fee structure empty – falling back to CSV chart.");
             const FEES_CHART_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=936130121&single=true&output=csv";
             const chartRes = await fetch(FEES_CHART_URL);
             const chartText = await chartRes.text();
-            const chartLines = chartText.split('\n');
-            const chartHeaders = chartLines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
-            const classIndex = chartHeaders.findIndex(h => h.includes('class') || h.includes('standard'));
-            const totalFeesIndex = chartHeaders.findIndex(h => h.includes('total') || h.includes('fees') || h.includes('amount'));
-            feesDataCache.feeStructure = {};
-            for (let i = 1; i < chartLines.length; i++) {
-                if (!chartLines[i].trim()) continue;
-                const cols = chartLines[i].split(',');
-                let className = classIndex >= 0 ? cols[classIndex]?.replace(/"/g, '').trim() : '';
-                let totalFees = totalFeesIndex >= 0 ? parseFloat(cols[totalFeesIndex]?.replace(/"/g, '').trim()) || 0 : 0;
-                if (!className && cols[0]) className = cols[0]?.replace(/"/g, '').trim();
-                if (!totalFees && cols[1]) totalFees = parseFloat(cols[1]?.replace(/"/g, '').trim()) || 0;
-                if (className) { feesDataCache.feeStructure[className] = totalFees; }
+            const lines = chartText.split('\n').filter(l => l.trim());
+            const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+            
+            // Find the row that contains "I Term Fees" (or use first data row as fallback)
+            let termRowIndex = 1;
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].toLowerCase().includes('i term fees')) {
+                    termRowIndex = i;
+                    break;
+                }
             }
+            const termRow = lines[termRowIndex].split(',').map(c => c.replace(/"/g, '').trim());
+            
+            // Class names start at column 2 (index 2) because columns 0=Due Date, 1=Term
+            const feeStructure = {};
+            for (let col = 2; col < headers.length; col++) {
+                let className = headers[col];
+                // Normalize class names (e.g., "Class 4" → "4", "Jr KG" stays)
+                if (className.startsWith('Class ')) {
+                    className = className.replace('Class ', '');
+                }
+                const amount = parseFloat(termRow[col]) || 0;
+                if (className && amount > 0) {
+                    feeStructure[className] = amount;
+                }
+            }
+            feesDataCache.feeStructure = feeStructure;
+            console.log("📊 Fallback fee structure from CSV:", feeStructure);
         }
         
         // 3. Load Students (unchanged)
@@ -778,8 +793,22 @@ function renderTeacherFeesDashboard() {
     const teacherClass = localStorage.getItem('mappedClass');
     const container = document.getElementById('feesDashboardContent');
     
+    if (!teacherClass) {
+        container.innerHTML = `<div class="bg-red-100 p-4 rounded-xl text-center text-red-700">
+            <i class="fa-solid fa-exclamation-triangle mr-2"></i> Your assigned class is not set. Please contact admin.
+        </div>`;
+        return;
+    }
+    
     // Filter students by teacher's mapped class
     const classStudents = feesDataCache.students.filter(s => s.class === teacherClass);
+    
+    if (classStudents.length === 0) {
+        container.innerHTML = `<div class="bg-yellow-50 p-4 rounded-xl text-center">
+            <i class="fa-solid fa-users-slash"></i> No students found for Class ${teacherClass}.
+        </div>`;
+        return;
+    }
     
     // Calculate totals for each student
     const studentData = classStudents.map(student => {
@@ -804,9 +833,17 @@ function renderTeacherFeesDashboard() {
     const totalCollected = studentData.reduce((sum, s) => sum + s.totalPaid, 0);
     const totalExpected = studentData.reduce((sum, s) => sum + s.totalFees, 0);
     const totalBalance = totalExpected - totalCollected;
+    const missingFees = studentData.some(s => s.totalFees === 0);
     
     container.innerHTML = `
         <div class="space-y-4">
+            ${missingFees ? `
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-lg text-amber-700 text-sm">
+                    <i class="fa-solid fa-circle-info mr-2"></i> 
+                    Some classes have no annual fee set. Please ask admin to save class‑wise fees in the Admin portal.
+                </div>
+            ` : ''}
+            
             <!-- Summary Cards -->
             <div class="grid grid-cols-3 gap-3">
                 <div class="bg-green-50 rounded-xl p-3 text-center">
@@ -849,13 +886,16 @@ function renderTeacherFeesDashboard() {
                         <tbody id="teacherStudentList">
                             ${studentData.map(s => `
                                 <tr class="border-b hover:bg-gray-50 student-row" data-name="${s.name.toLowerCase()}" data-gr="${s.grNo?.toLowerCase() || ''}">
-                                    <td class="p-3 text-sm font-medium">${escapeHtml(s.name)}</td>
+                                    <td class="p-3 text-sm font-medium">
+                                        ${escapeHtml(s.name)}
+                                        ${s.totalFees === 0 ? '<span class="ml-2 text-[9px] bg-red-100 text-red-600 px-1 rounded">no fee set</span>' : ''}
+                                    </td>
                                     <td class="p-3 text-sm">${s.phone || '—'}</td>
                                     <td class="p-3 text-right text-sm text-green-600">₹${s.totalPaid.toLocaleString()}</td>
                                     <td class="p-3 text-right text-sm ${s.balance > 0 ? 'text-red-600 font-bold' : 'text-green-600'}">
-                                        ${s.balance > 0 ? `₹${s.balance.toLocaleString()}` : 'PAID'}
+                                        ${s.totalFees === 0 ? '⚠️ N/A' : (s.balance > 0 ? `₹${s.balance.toLocaleString()}` : 'PAID')}
                                     </td>
-                                </td>
+                                </tr>
                             `).join('')}
                         </tbody>
                         <tfoot class="bg-gray-50 border-t">
