@@ -1962,6 +1962,7 @@ async function loadFeesData() {
                 document.getElementById('home-staff-absent') && (document.getElementById('home-staff-absent').innerText = Math.max(0, totalStaffCount - pStaff));
                 document.getElementById('home-staff-bar') && (document.getElementById('home-staff-bar').style.width = (pStaff / totalStaffCount * 100) + "%");
             });
+            
             firebase.database().ref('student_attendance/' + dateKey).on('value', (snapshot) => {
                 const classesData = snapshot.val();
                 let sPresent = 0, sAbsent = 0, totalMarked = 0;
