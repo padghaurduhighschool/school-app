@@ -551,7 +551,48 @@ window.downloadStudentReport=()=>{
     });
 };
 function fetchPersonalStudentLogs(studentName){ const c=document.getElementById('personal-logs'); if(c) c.innerHTML='<p class="text-gray-400">Attendance history will appear here.</p>'; }
+// ======================= FIX: Missing Teacher Timetable Rendering =======================
+function renderTeacherTimetableMatrix(container, teacherName, schedule, isEditable) {
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const totalPeriods = 8, fridayMaxPeriod = 4;
+    let html = `<div class="overflow-x-auto"><table class="w-full border-collapse text-sm"><thead><tr class="bg-purple-600 text-white"><th class="p-3 border border-purple-500">Period</th>${days.map(d => `<th class="p-3 border border-purple-500">${d}</th>`).join('')}</tr></thead><tbody>`;
+    for (let p = 1; p <= totalPeriods; p++) {
+        const isFriPeriod = p > fridayMaxPeriod;
+        html += `<tr class="${isFriPeriod ? 'bg-gray-50' : ''}"><td class="p-3 border text-center font-bold ${isFriPeriod ? 'text-gray-400' : 'text-purple-600 bg-purple-50'}">${p}${isFriPeriod ? '†' : ''}</td>`;
+        for (let idx = 0; idx < days.length; idx++) {
+            const day = days[idx];
+            if (day === 'Friday' && isFriPeriod) {
+                if (p === 5) html += `<td rowspan="${totalPeriods - fridayMaxPeriod}" class="p-3 border text-center bg-amber-50 align-middle"><div class="flex flex-col items-center"><i class="fa-regular fa-clock text-amber-500 mb-1"></i><span class="text-amber-700 font-medium text-xs">Early Dismissal</span><span class="text-amber-500 text-[10px]">No classes</span></div></td>`;
+                continue;
+            }
+            const val = schedule?.[day]?.[p] || '';
+            if (isEditable) {
+                html += `<td class="p-1 border"><input type="text" id="cell-${day}-${p}" value="${escapeHtml(val)}" class="w-full p-2 text-xs border-none focus:bg-yellow-50 rounded" placeholder="Subject/Class"></td>`;
+            } else {
+                html += `<td class="p-3 border text-gray-700 text-xs">${val || '—'}</td>`;
+            }
+        }
+        html += `</tr>`;
+    }
+    html += `<tr class="bg-gray-50"><td colspan="7" class="p-3 text-xs text-gray-500"><i class="fa-regular fa-clock mr-1"></i> <strong>Note:</strong> Friday has only 4 periods (Early dismissal)</td></tr></tbody></table></div>`;
+    container.innerHTML = html;
+}
 
+// Make sure loadTeacherOwnTimetableMatrix uses the above function
+// If it's missing completely, also add this:
+window.loadTeacherOwnTimetableMatrix = async (teacherName, isEditable) => {
+    const container = document.getElementById('teacher-own-timetable');
+    if (!container) return;
+    try {
+        const key = teacherName.toLowerCase().replace(/\s+/g, '_');
+        const snap = await firebase.database().ref(`teacher_timetables/${key}`).once('value');
+        const data = snap.val();
+        const schedule = data?.schedule || {};
+        renderTeacherTimetableMatrix(container, teacherName, schedule, false);
+    } catch (e) {
+        container.innerHTML = `<p class="text-red-500 text-center">Error loading timetable</p>`;
+    }
+};
 // ======================= TIME TABLES (FULLY RESTORED) =======================
 window.openDailyTimeTable=()=>{
     document.getElementById('content').innerHTML=`<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-xl font-black">Daily Time Table</h2></div><div id="tt-grid" class="bg-white rounded-2xl shadow-md overflow-hidden p-4 text-center text-gray-400">Loading...</div></div>`;
