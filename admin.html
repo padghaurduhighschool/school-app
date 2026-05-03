@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Padgha Urdu High School - Admin Portal</title>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="admin-manifest.json">
     <meta name="theme-color" content="#6366f1">
     <link rel="apple-touch-icon" href="Padgha Urdu High School Logo.png">
     <link rel="icon" type="image/png" href="Padgha Urdu High School Logo.png">
@@ -2000,7 +2000,11 @@ async function loadFeesData() {
         function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => { showToast("Copied to clipboard!"); }).catch(() => { alert("Copy failed"); }); }
         function showToast(message) { const toast = document.createElement('div'); toast.className = 'fixed bottom-24 left-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm shadow-lg z-50 text-center'; toast.innerText = message; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
         if (localStorage.getItem('darkMode') === 'true') { document.body.classList.add('dark'); }
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(reg => console.log("Service Worker registered", reg)).catch(err => console.log("Service Worker failed", err)); }); }
+        if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('sw-admin.js')
+            .then(reg => console.log('Admin SW registered', reg))
+            .catch(err => console.log('Admin SW failed', err));
+           }
 // ======================= PAST ATTENDANCE EDITOR =======================
 let currentPastDate = '';
 let currentPastClass = '';
