@@ -365,7 +365,7 @@ body.dark ::-webkit-scrollbar-thumb {
             appId: "1:481255456109:web:077e656f3dd03aee43ae64",
             measurementId: "G-RXBBRWG5SE"
         };
-        
+let classFeeStructure = {};        
         firebase.initializeApp(firebaseConfig);
         console.log("Firebase initialized");
 
@@ -488,6 +488,9 @@ body.dark ::-webkit-scrollbar-thumb {
             }
             else if (section === 'more') {
                 loadAdminProfile();
+            }
+           else if (section === 'notices') {
+                loadNoticesAdmin();
             }
         };
 
@@ -617,6 +620,79 @@ async function loadAdminHome() {
     updateHomeSummary();
 }
 
+
+async function loadNoticesAdmin() {
+    const content = document.getElementById('content');
+    content.innerHTML = `
+        <div class="space-y-4 pb-20">
+            <div class="flex items-center justify-between">
+                <button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button>
+                <h2 class="text-xl font-bold">All Notices</h2>
+                <button onclick="openNoticeModal()" class="bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-plus mr-1"></i>New Notice</button>
+            </div>
+            <div id="noticesListContainer" class="space-y-3"></div>
+        </div>
+    `;
+    loadAllNotices();
+}
+
+function loadAllNotices() {
+    const container = document.getElementById('noticesListContainer');
+    if (!container) return;
+    firebase.database().ref('notices').orderByChild('timestamp').on('value', (snap) => {
+        const data = snap.val();
+        if (!data) {
+            container.innerHTML = '<p class="text-center text-gray-400 py-10">No notices found.</p>';
+            return;
+        }
+        const notices = Object.entries(data).map(([id, n]) => ({ id, ...n })).reverse();
+        let html = '';
+        for (let n of notices) {
+            let targetLabel = n.targetType === 'school' ? '🏫 Whole School' : (n.targetType === 'class' ? `📚 Class ${n.targetValue}` : `👤 Student: ${n.targetValue}`);
+            html += `
+                <div class="bg-white rounded-xl shadow-sm border p-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span class="text-[10px] px-2 py-1 rounded-full bg-blue-100 text-blue-700">${targetLabel}</span>
+                                <span class="text-[10px] text-gray-400">${n.date || ''}</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800">${escapeHtml(n.title)}</h3>
+                            <div class="mt-2">
+                                <div class="flex gap-2 text-[10px] mb-1">
+                                    <button onclick="switchLangNoticeAdmin('${n.id}','en')" class="px-2 py-1 bg-gray-100 rounded">EN</button>
+                                    <button onclick="switchLangNoticeAdmin('${n.id}','mr')" class="px-2 py-1 bg-gray-100 rounded">MR</button>
+                                    <button onclick="switchLangNoticeAdmin('${n.id}','ur')" class="px-2 py-1 bg-gray-100 rounded">UR</button>
+                                </div>
+                                <p id="adminMsg-${n.id}" class="text-sm text-gray-600">${escapeHtml(n.message?.en || 'No content')}</p>
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-3">Posted by: ${escapeHtml(n.sender)}</p>
+                        </div>
+                        <button onclick="deleteNotice('${n.id}')" class="text-red-500 hover:text-red-700"><i class="fa-regular fa-trash-can"></i></button>
+                    </div>
+                </div>
+            `;
+        }
+        container.innerHTML = html || '<p class="text-center text-gray-400">No notices</p>';
+    });
+}
+
+window.switchLangNoticeAdmin = (id, lang) => {
+    firebase.database().ref('notices/' + id).once('value', (snap) => {
+        const n = snap.val();
+        const msgDiv = document.getElementById(`adminMsg-${id}`);
+        if (msgDiv) {
+            msgDiv.innerText = n.message?.[lang] || n.message?.en || "No content";
+        }
+    });
+};
+
+window.deleteNotice = async (id) => {
+    if (confirm('Delete this notice?')) {
+        await firebase.database().ref(`notices/${id}`).remove();
+        loadAllNotices();
+    }
+};
         // ======================= STAFF LOGS (unchanged) =======================
         async function loadStaffLogsDetail() {
             const content = document.getElementById('content');
