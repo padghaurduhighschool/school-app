@@ -194,6 +194,7 @@ window.handleLogin = async () => {
             document.getElementById('user-name-display').innerText = `Student • ${student.name}`;
             loadSection('home');
             if('Notification' in window && 'serviceWorker' in navigator) Notification.requestPermission();
+            if ('Notification' in window && Notification.permission === 'default') { Notification.requestPermission();}
         } else {
             alert("Invalid phone or code");
         }
@@ -452,6 +453,145 @@ function renderStudentFeesDashboard() {
         </div>`;
 }
 window.showFeesChart = async () => { await loadFeesData(); document.getElementById('content').innerHTML=`<div class="space-y-4"><button onclick="loadSection('more')" class="text-blue-600">&larr; Back</button><h2 class="text-lg font-black">Fee Structure by Class</h2>${Object.entries(feesDataCache.feeStructure).map(([cls,amt])=>`<div class="bg-white rounded-xl shadow-md p-4 flex justify-between"><span>Class ${cls}</span><span class="font-bold">₹${amt.toLocaleString()}</span></div>`).join('')}</div>`; };
+// ======================= PUSH NOTIFICATION MANAGER (CLIENT-SIDE) =======================
+// Tracks last known timestamps to detect new items
+let lastHomeworkTimestamp = 0;
+let lastNoticeTimestamp = 0;
+let lastAttendanceStatus = '';
+
+// Helper: show browser notification
+function showPushNotification(title, body, tag = 'erp-notify') {
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+
+    // Avoid duplicate notifications if the user is currently on the page?
+    // We'll still show, but you can add a check if document is focused.
+    try {
+        const notification = new Notification(title, {
+            body: body,
+            icon: 'Padgha Urdu High School Logo.png',
+            tag: tag,         // prevents stacking same type
+            vibrate: [200, 100, 200]
+        });
+        // Optional: close after 5 seconds
+        setTimeout(() => notification.close(), 5000);
+    } catch (e) { console.warn('Notification failed', e); }
+}
+
+// Initialize tracking – called once after login
+function initNotificationTracking() {
+    const userClass = localStorage.getItem('mappedClass');
+    const userGR = localStorage.getItem('userGR');
+    const studentName = localStorage.getItem('userName');
+
+    if (!userClass) return;
+
+    // ---------- 1. Track HOMEWORK ----------
+    firebase.database().ref('homework').orderByChild('timestamp').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        // Convert to array and sort descending (newest first)
+        const items = Object.entries(data).map(([id, hw]) => ({ id, ...hw }));
+        items.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        if (items.length === 0) return;
+        const newestTimestamp = items[0].timestamp || 0;
+
+        if (lastHomeworkTimestamp === 0) {
+            // First load – just store the newest timestamp
+            lastHomeworkTimestamp = newestTimestamp;
+        } else if (newestTimestamp > lastHomeworkTimestamp) {
+            // There is new homework!
+            const newItem = items[0];
+            if (newItem.class === userClass) {
+                showPushNotification(
+                    '📚 New Homework',
+                    `${newItem.subject}: ${newItem.description.substring(0, 60)}${newItem.description.length > 60 ? '…' : ''}`,
+                    'homework'
+                );
+            }
+            lastHomeworkTimestamp = newestTimestamp;
+        }
+    });
+
+    // ---------- 2. Track NOTICES ----------
+    firebase.database().ref('notices').orderByChild('timestamp').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        const items = Object.entries(data).map(([id, n]) => ({ id, ...n }));
+        items.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        if (items.length === 0) return;
+        const newestTimestamp = items[0].timestamp || 0;
+
+        if (lastNoticeTimestamp === 0) {
+            lastNoticeTimestamp = newestTimestamp;
+        } else if (newestTimestamp > lastNoticeTimestamp) {
+            const newNotice = items[0];
+            // Check if this notice is relevant for this student
+            let relevant = false;
+            if (newNotice.targetType === 'school') relevant = true;
+            else if (newNotice.targetType === 'class' && newNotice.targetValue === userClass) relevant = true;
+            else if (newNotice.targetType === 'student' && newNotice.targetValue === userGR) relevant = true;
+
+            if (relevant) {
+                showPushNotification(
+                    '📢 New Notice',
+                    `${newNotice.title}`,
+                    'notice'
+                );
+            }
+            lastNoticeTimestamp = newestTimestamp;
+        }
+    });
+
+    // ---------- 3. Track ATTENDANCE marking (student's own record) ----------
+    const today = new Date().toISOString().split('T')[0];
+    firebase.database().ref(`student_attendance/${today}`).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        let currentStatus = '';
+        // find this student's attendance
+        for (let className in data) {
+            const records = data[className]?.records;
+            if (!records) continue;
+            for (let gr in records) {
+                const rec = records[gr];
+                if ((userGR && gr === userGR) || (rec.name && rec.name === studentName)) {
+                    currentStatus = rec.status;
+                    break;
+                }
+            }
+        }
+
+        if (lastAttendanceStatus === '') {
+            // first load – store initial status
+            lastAttendanceStatus = currentStatus || 'unmarked';
+        } else if (currentStatus && currentStatus !== lastAttendanceStatus) {
+            // status changed – notify
+            const statusMsg = currentStatus === 'Present' ? '✅ Present today!' : '❌ Absent today';
+            showPushNotification(
+                '📋 Attendance Updated',
+                `${statusMsg} (${new Date().toLocaleDateString()})`,
+                'attendance'
+            );
+            lastAttendanceStatus = currentStatus;
+        }
+    });
+}
+
+// Override the existing loadSection function to start tracking after home loads
+const originalLoadSection = window.loadSection;
+window.loadSection = function(section) {
+    originalLoadSection(section);
+    if (section === 'home' && !window._notificationsInitialized) {
+        window._notificationsInitialized = true;
+        setTimeout(() => initNotificationTracking(), 1000);
+    }
+};
 </script>
 </body>
 </html>
