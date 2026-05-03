@@ -1,8 +1,21 @@
 {
-  "name": "PUHS Teacher Portal", 
-  "short_name": "Teacher App",
-  "start_url": "/teacher/",
-  "theme_color": "#2563eb",
+  "name": "PUHS Teacher Portal",
+  "short_name": "Teacher",
+  "start_url": "teacher.html?mode=standalone",
+  "display": "standalone",
+  "theme_color": "#f97316",
   "background_color": "#ffffff",
-  "display": "standalone"
+  "id": "/teacher/",
+  "icons": [
+    {
+      "src": "Padgha Urdu High School Logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "Padgha Urdu High School Logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
