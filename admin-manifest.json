@@ -1,8 +1,21 @@
 {
   "name": "PUHS Admin Portal",
-  "short_name": "Admin App", 
-  "start_url": "/admin/",
-  "theme_color": "#7c3aed",
+  "short_name": "Admin",
+  "start_url": "admin.html?mode=standalone",
+  "display": "standalone",
+  "theme_color": "#6366f1",
   "background_color": "#ffffff",
-  "display": "standalone"
+  "id": "/admin/",
+  "icons": [
+    {
+      "src": "Padgha Urdu High School Logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "Padgha Urdu High School Logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
