@@ -1,5 +1,25 @@
 {
   "name": "PUHS Student Portal",
+  "short_name": "Student",
+  "start_url": "student.html?mode=standalone",
+  "display": "standalone",
+  "theme_color": "#f97316",
+  "background_color": "#ffffff",
+  "id": "/student/",
+  "icons": [
+    {
+      "src": "Padgha Urdu High School Logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "Padgha Urdu High School Logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}{
+  "name": "PUHS Student Portal",
   "short_name": "Student App",
   "start_url": "/student/",
   "theme_color": "#059669",
