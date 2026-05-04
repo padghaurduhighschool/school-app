@@ -314,6 +314,7 @@ window.loadSection = (section) => {
                 ${siblingsHtml}
                 <div class="bg-white rounded-2xl shadow-md overflow-hidden"><div class="p-4 border-b"><h3 class="font-black text-gray-800"><i class="fas fa-cog mr-2 text-orange-500"></i>Settings</h3></div><div class="p-4 space-y-3">
                     <button id="enable-notifications-btn" onclick="alert('Notifications can be enabled via browser settings.')" class="w-full p-3 bg-blue-50 rounded-xl text-blue-700 font-bold text-left"><i class="fas fa-bell mr-2"></i>Enable Notifications</button>
+                    <button onclick="testNotification()" class="w-full p-3 bg-indigo-50 rounded-xl text-indigo-700 font-bold text-left"><i class="fas fa-bell mr-2"></i>Test Notification</button>
                     <button onclick="triggerInstall()" id="install-app-btn" class="w-full p-3 bg-green-50 rounded-xl text-green-700 font-bold text-left"><i class="fas fa-download mr-2"></i>Install App</button>
                     <button onclick="showFeesChart()" class="w-full p-3 bg-purple-50 rounded-xl text-purple-700 font-bold text-left"><i class="fas fa-chart-line mr-2"></i>View Fees Chart</button>
                     <button onclick="handleLogout()" class="w-full p-3 bg-red-50 rounded-xl text-red-700 font-bold text-left"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
@@ -714,6 +715,20 @@ window.triggerInstall = async () => {
       .then(reg => console.log('Student SW registered', reg))
       .catch(err => console.error('Student SW failed', err));
   }
+window.testNotification = () => {
+    if (Notification.permission === 'granted') {
+        showPushNotification('✅ Test Success', 'Your browser can show notifications!', 'test');
+    } else {
+        Notification.requestPermission().then(perm => {
+            if (perm === 'granted') {
+                showPushNotification('✅ Permission Granted', 'Now you will receive alerts.', 'test');
+            } else {
+                alert('Please allow notifications in your browser settings.');
+            }
+        });
+    }
+};
+    
 </script>
 </body>
 </html>
