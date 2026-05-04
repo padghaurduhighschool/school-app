@@ -149,10 +149,9 @@ function updateCurrentStudentFromSibling(siblingObj) {
     localStorage.setItem('userGR', siblingObj.gr || 'Pending');
     localStorage.setItem('userPhone', siblingObj.phone);
     document.getElementById('user-name-display').innerText = `Student • ${siblingObj.name}`;
-    // Reload current section after updating storage
-    if (currentActiveSection) {
-        loadSection(currentActiveSection);
-    }
+    setTimeout(() => {
+        if (currentActiveSection) loadSection(currentActiveSection);
+    }, 50);
 }
 
 function switchToSibling(index) {
@@ -180,7 +179,9 @@ window.onload = () => {
     }, 1500);
 };
 
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; const btn = document.getElementById('install-button-container'); if(btn) btn.classList.remove('hidden'); });
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; 
+    //const btn = document.getElementById('install-button-container'); if(btn) btn.classList.remove('hidden');
+});
 
 // ======================= LOGIN =======================
 window.handleLogin = async () => {
@@ -235,6 +236,9 @@ window.handleLogin = async () => {
         }
         // Deduplicate by name+class
         const uniqueSiblings = [];
+console.log("[Sibling Debug] Headers found:", headers);
+console.log("[Sibling Debug] Phone index:", phoneIdx, "Code index:", codeIdx);
+console.log("[Sibling Debug] Unique siblings:", uniqueSiblings);
         const keySet = new Set();
         for(let sib of siblings) {
             const key = `${sib.name}|${sib.class}`;
@@ -315,8 +319,7 @@ window.loadSection = (section) => {
                     <button onclick="handleLogout()" class="w-full p-3 bg-red-50 rounded-xl text-red-700 font-bold text-left"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
                 </div></div>
             </div>`;
-        setTimeout(() => { if(deferredPrompt) document.getElementById('install-button-container')?.classList.remove('hidden'); }, 100);
-    }
+    setTimeout(() => { if(deferredPrompt) { const btn = document.getElementById('install-app-btn'); if(btn) btn.style.display = 'flex'; } }, 100);    }
 };
 
 window.setActiveNav = (el, sec) => { 
