@@ -179,8 +179,18 @@ window.onload = () => {
     }, 1500);
 };
 
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; 
-    //const btn = document.getElementById('install-button-container'); if(btn) btn.classList.remove('hidden');
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // Show an install banner
+    const installBanner = document.createElement('div');
+    installBanner.className = 'fixed bottom-28 left-4 right-4 bg-orange-500 text-white p-3 rounded-xl text-center z-50 shadow-lg';
+    installBanner.innerHTML = '<i class="fas fa-download mr-2"></i> Install app for better notifications → <button id="installNowBtn" class="underline font-bold">Install</button>';
+    document.body.appendChild(installBanner);
+    document.getElementById('installNowBtn')?.addEventListener('click', () => {
+        deferredPrompt.prompt();
+        installBanner.remove();
+    });
 });
 
 // ======================= LOGIN =======================
@@ -716,16 +726,44 @@ window.triggerInstall = async () => {
       .catch(err => console.error('Student SW failed', err));
   }
 window.testNotification = () => {
+    if (!('Notification' in window)) {
+        alert('Your browser does not support desktop notifications.');
+        return;
+    }
+
     if (Notification.permission === 'granted') {
-        showPushNotification('✅ Test Success', 'Your browser can show notifications!', 'test');
-    } else {
+        // On mobile, try without icon to avoid load issues
+        try {
+            const notif = new Notification('✅ Test Success', {
+                body: 'Notifications work on this device!',
+                // icon: 'Padgha Urdu High School Logo.png'  // remove icon for mobile
+            });
+            setTimeout(() => notif.close(), 4000);
+        } catch(e) {
+            console.warn('Notification error:', e);
+            alert('Notification failed. Check console.');
+        }
+    } 
+    else if (Notification.permission !== 'denied') {
+        // Request permission (this must be triggered by user click, which is already the case)
         Notification.requestPermission().then(perm => {
             if (perm === 'granted') {
-                showPushNotification('✅ Permission Granted', 'Now you will receive alerts.', 'test');
+                // Short delay to allow permission UI to close
+                setTimeout(() => {
+                    new Notification('✅ Permission Granted', {
+                        body: 'You will now receive alerts from the school portal.'
+                    });
+                }, 500);
             } else {
-                alert('Please allow notifications in your browser settings.');
+                alert('Please allow notifications in your browser settings.\n\nOn iPhone: Settings → Safari → Notifications → Allow.\nOn Android: Site settings → Notifications → Allow.');
             }
         });
+    } 
+    else {
+        alert('Notifications are blocked.\n\n' + 
+              (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad') 
+                  ? 'Go to iPhone Settings → Safari → Notifications → Allow.' 
+                  : 'Go to Chrome/Samsung Internet site settings and enable notifications.'));
     }
 };
     
