@@ -1,4 +1,4 @@
-const CACHE_NAME = 'padgha-student-v1';
+const CACHE_NAME = 'padgha-student-v2'; //new
 const urlsToCache = [
   'student.html',
   'style.css',
