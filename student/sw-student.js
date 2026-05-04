@@ -35,3 +35,10 @@ self.addEventListener('notificationclick', event => {
       })
   );
 });
+self.addEventListener('message', (event) => {
+    if (event.data === 'skipWaiting') {
+        self.skipWaiting();
+        // Optionally claim clients to take control immediately
+        event.waitUntil(clients.claim());
+    }
+});
