@@ -48,6 +48,9 @@
         body.dark .floating-nav { background: rgba(30, 27, 26, 0.9); border-color: rgba(249, 115, 22, 0.3); }
         body.dark .nav-btn.active { color: #f97316; }
         body.dark .glass-card { background: rgba(45, 42, 41, 0.95); }
+        .sibling-chip { transition: all 0.2s ease; cursor: pointer; background: #fff7ed; border: 1px solid #fed7aa; }
+        .sibling-chip.active-sibling { background: linear-gradient(135deg, #f97316, #ea580c); color: white; border-color: transparent; box-shadow: 0 4px 10px rgba(249,115,22,0.3); }
+        .sibling-chip:hover:not(.active-sibling) { background: #ffedd5; transform: translateY(-2px); }
     </style>
 </head>
 <body class="transition-colors duration-300">
@@ -132,13 +135,39 @@ const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7Gz
 const schoolClasses = ["Jr KG", "Sr KG", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
 let feesDataCache = { payments: [], feeStructure: {}, students: [] };
-
+let currentActiveSection = 'home';
 function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
 function formatDate(dateStr) { let p=dateStr.split('-'); if(p.length===3) return `${p[2]}/${p[1]}/${p[0]}`; return dateStr; }
 function scrollToTop() { window.scrollTo({top:0,behavior:'smooth'}); }
 function toggleTheme() { document.body.classList.toggle('dark'); localStorage.setItem('darkMode',document.body.classList.contains('dark')); }
 if(localStorage.getItem('darkMode')==='true') document.body.classList.add('dark');
 
+// ======================= SIBLING MANAGEMENT =======================
+function updateCurrentStudentFromSibling(siblingObj) {
+    localStorage.setItem('userName', siblingObj.name);
+    localStorage.setItem('mappedClass', siblingObj.class);
+    localStorage.setItem('userGR', siblingObj.gr || 'Pending');
+    localStorage.setItem('userPhone', siblingObj.phone);
+    document.getElementById('user-name-display').innerText = `Student • ${siblingObj.name}`;
+    // Reload current section after updating storage
+    if (currentActiveSection) {
+        loadSection(currentActiveSection);
+    }
+}
+
+function switchToSibling(index) {
+    const siblingsStr = localStorage.getItem('siblingsList');
+    if (!siblingsStr) return;
+    const siblings = JSON.parse(siblingsStr);
+    if (index >= 0 && index < siblings.length) {
+        const selected = siblings[index];
+        localStorage.setItem('currentSiblingIndex', index);
+        updateCurrentStudentFromSibling(selected);
+        // Re-render "more" section if currently on profile to refresh highlight
+        if (currentActiveSection === 'more') loadSection('more');
+    }
+}
+    
 window.onload = () => {
     setTimeout(() => {
         document.getElementById('splash-screen').classList.add('hidden');
@@ -169,12 +198,13 @@ window.handleLogin = async () => {
         const phoneIdx = headers.findIndex(h => h.includes('contact') || h === 'phone' || h === 'mobile');
         const codeIdx = headers.findIndex(h => h.includes('code') || h === 'password' || h === 'pin');
         
-        let student = null;
+        let matchedStudent = null;
+        // First find exact match for phone+code
         for(let i=1; i<rows.length; i++) {
             const sPhone = rows[i][phoneIdx]?.replace(/"/g, '').trim();
             const sCode = rows[i][codeIdx]?.replace(/"/g, '').trim();
             if(sPhone === phone && sCode === code) {
-                student = {
+                matchedStudent = {
                     gr: rows[i][grIdx]?.replace(/"/g, '').trim() || 'Pending',
                     name: rows[i][nameIdx]?.replace(/"/g, '').trim(),
                     class: rows[i][classIdx]?.replace(/"/g, '').trim() || 'N/A',
@@ -183,21 +213,55 @@ window.handleLogin = async () => {
                 break;
             }
         }
-        if(student) {
-            localStorage.setItem('userRole', 'Student');
-            localStorage.setItem('userName', student.name);
-            localStorage.setItem('mappedClass', student.class);
-            localStorage.setItem('userGR', student.gr);
-            localStorage.setItem('userPhone', phone);
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
-            document.getElementById('user-name-display').innerText = `Student • ${student.name}`;
-            loadSection('home');
-            if('Notification' in window && 'serviceWorker' in navigator) Notification.requestPermission();
-            if ('Notification' in window && Notification.permission === 'default') { Notification.requestPermission();}
-        } else {
-            alert("Invalid phone or code");
+        if(!matchedStudent) { alert("Invalid phone or code"); return; }
+        
+        // Collect all siblings (all rows with same phone number)
+        const siblings = [];
+        for(let i=1; i<rows.length; i++) {
+            const sPhone = rows[i][phoneIdx]?.replace(/"/g, '').trim();
+            if(sPhone === phone) {
+                const sName = rows[i][nameIdx]?.replace(/"/g, '').trim();
+                const sClass = rows[i][classIdx]?.replace(/"/g, '').trim() || 'N/A';
+                const sGr = rows[i][grIdx]?.replace(/"/g, '').trim() || 'Pending';
+                if(sName) {
+                    siblings.push({
+                        name: sName,
+                        class: sClass,
+                        gr: sGr,
+                        phone: phone
+                    });
+                }
+            }
         }
+        // Deduplicate by name+class
+        const uniqueSiblings = [];
+        const keySet = new Set();
+        for(let sib of siblings) {
+            const key = `${sib.name}|${sib.class}`;
+            if(!keySet.has(key)) {
+                keySet.add(key);
+                uniqueSiblings.push(sib);
+            }
+        }
+        // Find index of current matched student in siblings list
+        let currentIdx = uniqueSiblings.findIndex(s => s.name === matchedStudent.name && s.class === matchedStudent.class);
+        if(currentIdx === -1 && uniqueSiblings.length) currentIdx = 0;
+        
+        // Store siblings and current state
+        localStorage.setItem('siblingsList', JSON.stringify(uniqueSiblings));
+        localStorage.setItem('currentSiblingIndex', currentIdx);
+        localStorage.setItem('userRole', 'Student');
+        localStorage.setItem('userName', matchedStudent.name);
+        localStorage.setItem('mappedClass', matchedStudent.class);
+        localStorage.setItem('userGR', matchedStudent.gr);
+        localStorage.setItem('userPhone', phone);
+        
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        document.getElementById('user-name-display').innerText = `Student • ${matchedStudent.name}`;
+        loadSection('home');
+        if('Notification' in window && 'serviceWorker' in navigator) Notification.requestPermission();
+        if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
     } catch(e) { console.error(e); alert("Login failed. Check internet."); }
 };
 
@@ -223,23 +287,44 @@ window.loadSection = (section) => {
     } else if(section === 'notices') {
         content.innerHTML = `<div class="space-y-4"><h2 class="text-xl font-black"><i class="fa-solid fa-bell text-amber-500 mr-2"></i>Notices</h2><div id="notices-list" class="space-y-3"></div></div>`;
         fetchNotices();
-    } else if(section === 'more') {
+        } else if (section === 'more') {
         const phone = localStorage.getItem('userPhone');
+        const siblingsStr = localStorage.getItem('siblingsList');
+        let siblingsHtml = '';
+        if(siblingsStr) {
+            const siblings = JSON.parse(siblingsStr);
+            const currentName = localStorage.getItem('userName');
+            const currentClass = localStorage.getItem('mappedClass');
+            if(siblings.length > 1) {
+                siblingsHtml = `<div class="bg-white rounded-2xl shadow-md overflow-hidden mt-4"><div class="p-4 border-b"><h3 class="font-black text-gray-800"><i class="fas fa-users mr-2 text-orange-500"></i>Switch Sibling Account</h3><p class="text-xs text-gray-500 mt-1">Tap any sibling to switch dashboard</p></div><div class="p-3 flex flex-wrap gap-2">`;
+                siblings.forEach((sib, idx) => {
+                    const isActive = (sib.name === currentName && sib.class === currentClass);
+                    siblingsHtml += `<button onclick="switchToSibling(${idx})" class="sibling-chip px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 ${isActive ? 'active-sibling' : ''}"><i class="fas fa-user-graduate"></i> ${escapeHtml(sib.name)} (${escapeHtml(sib.class)})</button>`;
+                });
+                siblingsHtml += `</div></div>`;
+            }
+        }
         content.innerHTML = `
-            <div class="space-y-4"><div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 text-white"><div class="flex items-center gap-4"><div class="bg-white/20 p-3 rounded-full"><i class="fas fa-user-circle text-4xl"></i></div><div><h3 class="font-black text-xl">${escapeHtml(name)}</h3><p>Student</p><p class="text-xs"><i class="fas fa-phone"></i> ${escapeHtml(phone) || 'Not provided'}</p></div></div></div>
-            <div class="bg-white rounded-2xl shadow-md overflow-hidden"><div class="p-4 border-b"><h3 class="font-black text-gray-800"><i class="fas fa-cog mr-2 text-orange-500"></i>Settings</h3></div><div class="p-4 space-y-3">
-                <button id="enable-notifications-btn" onclick="alert('Notifications can be enabled via browser settings.')" class="w-full p-3 bg-blue-50 rounded-xl text-blue-700 font-bold text-left"><i class="fas fa-bell mr-2"></i>Enable Notifications</button>
-                <button onclick="triggerInstall()" id="install-app-btn" class="w-full p-3 bg-green-50 rounded-xl text-green-700 font-bold text-left">    <i class="fas fa-download mr-2"></i>Install App</button>
-                
-                <div id="install-button-container" class="${deferredPrompt?'':'hidden'}"><button onclick="triggerInstall()" class="w-full p-3 bg-green-50 rounded-xl text-green-700 font-bold text-left"><i class="fas fa-download mr-2"></i>Install App</button></div>
-                <button onclick="showFeesChart()" class="w-full p-3 bg-purple-50 rounded-xl text-purple-700 font-bold text-left"><i class="fas fa-chart-line mr-2"></i>View Fees Chart</button>
-                <button onclick="handleLogout()" class="w-full p-3 bg-red-50 rounded-xl text-red-700 font-bold text-left"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
-            </div></div></div>`;
+            <div class="space-y-4">
+                <div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 text-white"><div class="flex items-center gap-4"><div class="bg-white/20 p-3 rounded-full"><i class="fas fa-user-circle text-4xl"></i></div><div><h3 class="font-black text-xl">${escapeHtml(name)}</h3><p>Student</p><p class="text-xs"><i class="fas fa-phone"></i> ${escapeHtml(phone) || 'Not provided'}</p><p class="text-xs mt-1"><i class="fas fa-graduation-cap"></i> Class: ${escapeHtml(localStorage.getItem('mappedClass'))}</p></div></div></div>
+                ${siblingsHtml}
+                <div class="bg-white rounded-2xl shadow-md overflow-hidden"><div class="p-4 border-b"><h3 class="font-black text-gray-800"><i class="fas fa-cog mr-2 text-orange-500"></i>Settings</h3></div><div class="p-4 space-y-3">
+                    <button id="enable-notifications-btn" onclick="alert('Notifications can be enabled via browser settings.')" class="w-full p-3 bg-blue-50 rounded-xl text-blue-700 font-bold text-left"><i class="fas fa-bell mr-2"></i>Enable Notifications</button>
+                    <button onclick="triggerInstall()" id="install-app-btn" class="w-full p-3 bg-green-50 rounded-xl text-green-700 font-bold text-left"><i class="fas fa-download mr-2"></i>Install App</button>
+                    <button onclick="showFeesChart()" class="w-full p-3 bg-purple-50 rounded-xl text-purple-700 font-bold text-left"><i class="fas fa-chart-line mr-2"></i>View Fees Chart</button>
+                    <button onclick="handleLogout()" class="w-full p-3 bg-red-50 rounded-xl text-red-700 font-bold text-left"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
+                </div></div>
+            </div>`;
         setTimeout(() => { if(deferredPrompt) document.getElementById('install-button-container')?.classList.remove('hidden'); }, 100);
     }
 };
 
-window.setActiveNav = (el, sec) => { document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.remove('active')); el.classList.add('active'); loadSection(sec); };
+window.setActiveNav = (el, sec) => { 
+    document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.remove('active')); 
+    el.classList.add('active'); 
+    currentActiveSection = sec;
+    loadSection(sec); 
+};
 
 window.handleLogout = () => { if(confirm("Logout?")){ localStorage.clear(); document.getElementById('main-app').classList.add('hidden'); document.getElementById('login-screen').classList.remove('hidden'); } };
 
