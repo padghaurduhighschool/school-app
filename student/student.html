@@ -725,45 +725,48 @@ window.triggerInstall = async () => {
       .then(reg => console.log('Student SW registered', reg))
       .catch(err => console.error('Student SW failed', err));
   }
-window.testNotification = () => {
+window.testNotification = async () => {
     if (!('Notification' in window)) {
-        alert('Your browser does not support desktop notifications.');
+        alert('Your browser does not support notifications.');
         return;
     }
 
-    if (Notification.permission === 'granted') {
-        // On mobile, try without icon to avoid load issues
-        try {
-            const notif = new Notification('✅ Test Success', {
-                body: 'Notifications work on this device!',
-                // icon: 'Padgha Urdu High School Logo.png'  // remove icon for mobile
-            });
-            setTimeout(() => notif.close(), 4000);
-        } catch(e) {
-            console.warn('Notification error:', e);
-            alert('Notification failed. Check console.');
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const swReg = await navigator.serviceWorker.getRegistration();
+    
+    if (!isStandalone || !swReg) {
+        alert('For notifications on mobile:\n1. Add this app to home screen\n2. Open it from the home screen icon\n3. Then test again.\n\nIf still fails, check:\n- iPhone: Settings → Safari → Notifications → Allow\n- Android: Site settings → Notifications → Allow');
+        return;
+    }
+
+    if (Notification.permission !== 'granted') {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') {
+            alert('Notification permission denied. Enable it in browser settings.');
+            return;
         }
-    } 
-    else if (Notification.permission !== 'denied') {
-        // Request permission (this must be triggered by user click, which is already the case)
-        Notification.requestPermission().then(perm => {
-            if (perm === 'granted') {
-                // Short delay to allow permission UI to close
-                setTimeout(() => {
-                    new Notification('✅ Permission Granted', {
-                        body: 'You will now receive alerts from the school portal.'
-                    });
-                }, 500);
-            } else {
-                alert('Please allow notifications in your browser settings.\n\nOn iPhone: Settings → Safari → Notifications → Allow.\nOn Android: Site settings → Notifications → Allow.');
-            }
+    }
+
+    // Show notification via Service Worker (more reliable on mobile)
+    if (swReg) {
+        swReg.showNotification('🔔 Test Notification', {
+            body: '✅ Notifications work on this device!',
+            icon: 'Padgha Urdu High School Logo.png',
+            badge: 'Padgha Urdu High School Logo.png',
+            vibrate: [200, 100, 200],
+            silent: false
         });
-    } 
-    else {
-        alert('Notifications are blocked.\n\n' + 
-              (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad') 
-                  ? 'Go to iPhone Settings → Safari → Notifications → Allow.' 
-                  : 'Go to Chrome/Samsung Internet site settings and enable notifications.'));
+    } else {
+        // Fallback to the old method (less reliable on mobile)
+        try {
+            new Notification('🔔 Test Notification', {
+                body: '✅ Basic notification',
+                silent: true
+            });
+        } catch(e) {
+            console.error(e);
+            alert('Notification failed. Please install the app and try again.');
+        }
     }
 };
     
