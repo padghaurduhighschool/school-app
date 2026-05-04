@@ -177,6 +177,7 @@ window.onload = () => {
             document.getElementById('login-screen').classList.remove('hidden');
         }
     }, 1500);
+    navigator.serviceWorker.ready.then(() => console.log('SW ready'));
 };
 
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -731,44 +732,74 @@ window.testNotification = async () => {
         return;
     }
 
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    const swReg = await navigator.serviceWorker.getRegistration();
     
-    if (!isStandalone || !swReg) {
-        alert('For notifications on mobile:\n1. Add this app to home screen\n2. Open it from the home screen icon\n3. Then test again.\n\nIf still fails, check:\n- iPhone: Settings → Safari → Notifications → Allow\n- Android: Site settings → Notifications → Allow');
-        return;
-    }
-
+    // Ask for permission if not granted
     if (Notification.permission !== 'granted') {
         const perm = await Notification.requestPermission();
         if (perm !== 'granted') {
-            alert('Notification permission denied. Enable it in browser settings.');
+            alert('Notification permission denied. ' + 
+                  (isIOS ? 'On iPhone: Settings → Safari → Notifications → Allow for this website, then add to home screen and open from there.' :
+                           'On Android: Tap the lock icon in address bar → Notifications → Allow.'));
             return;
         }
     }
 
-    // Show notification via Service Worker (more reliable on mobile)
-    if (swReg) {
-        swReg.showNotification('🔔 Test Notification', {
-            body: '✅ Notifications work on this device!',
-            icon: 'Padgha Urdu High School Logo.png',
-            badge: 'Padgha Urdu High School Logo.png',
-            vibrate: [200, 100, 200],
-            silent: false
-        });
-    } else {
-        // Fallback to the old method (less reliable on mobile)
-        try {
-            new Notification('🔔 Test Notification', {
-                body: '✅ Basic notification',
-                silent: true
+    // Try to send a notification
+    let success = false;
+    let errorMsg = '';
+
+    try {
+        // Method 1: Via Service Worker (most reliable on mobile)
+        const swReg = await navigator.serviceWorker.getRegistration();
+        if (swReg && swReg.active && typeof swReg.showNotification === 'function') {
+            await swReg.showNotification('🔔 Test Notification', {
+                body: '✅ Notifications are working!',
+                icon: 'Padgha Urdu High School Logo.png',
+                badge: 'Padgha Urdu High School Logo.png',
+                vibrate: [200, 100, 200]
             });
-        } catch(e) {
-            console.error(e);
-            alert('Notification failed. Please install the app and try again.');
+            success = true;
+        }
+    } catch (err) {
+        errorMsg = err.message;
+    }
+
+    if (!success) {
+        try {
+            // Method 2: Fallback to standard Notification API
+            const notif = new Notification('🔔 Test Notification', {
+                body: '✅ Notification working (basic mode)',
+                icon: 'Padgha Urdu High School Logo.png'
+            });
+            setTimeout(() => notif.close(), 4000);
+            success = true;
+        } catch (err2) {
+            errorMsg = err2.message;
         }
     }
+
+    if (!success) {
+        alert('Notification failed. Error: ' + errorMsg + '\n\n' +
+              (isIOS ? 'For iPhone: Add this app to home screen, open from there, then test again.\nIf still fails, restart your phone.' :
+                       'For Android: Ensure notifications are allowed in site settings (lock icon).\nTry installing the app (Chrome menu → Install app) and test.'));
+    } else {
+        alert('✅ Notification sent! Check your notification panel.');
+    }
 };
+window.checkServiceWorker = async () => {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) {
+        alert('Service worker found.\nActive: ' + (reg.active ? 'Yes' : 'No') + 
+              '\nScope: ' + reg.scope);
+    } else {
+        alert('No service worker registered. Refresh the page or reinstall the app.');
+    }
+};
+
+
+
     
 </script>
 </body>
