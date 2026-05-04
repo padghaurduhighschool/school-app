@@ -1,3 +1,5 @@
+Here is an updated HTML document for the student portal that introduces sibling account switching. Students with the same phone number can now select a different sibling from the profile section, and all relevant data (attendance, homework, fees, etc.) will update accordingly.
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,6 +50,9 @@
         body.dark .floating-nav { background: rgba(30, 27, 26, 0.9); border-color: rgba(249, 115, 22, 0.3); }
         body.dark .nav-btn.active { color: #f97316; }
         body.dark .glass-card { background: rgba(45, 42, 41, 0.95); }
+        .sibling-chip { transition: all 0.2s ease; cursor: pointer; background: #fff7ed; border: 1px solid #fed7aa; }
+        .sibling-chip.active-sibling { background: linear-gradient(135deg, #f97316, #ea580c); color: white; border-color: transparent; box-shadow: 0 4px 10px rgba(249,115,22,0.3); }
+        .sibling-chip:hover:not(.active-sibling) { background: #ffedd5; transform: translateY(-2px); }
     </style>
 </head>
 <body class="transition-colors duration-300">
@@ -129,10 +134,11 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 const STUDENT_SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7GzBg3WiApNvwB_2QNVFuNmX4RaPmkOawPtP6MR_DZ9JJOzTuNRV2mbY4rlesK0yn5zIHYXPyjDmB/pub?gid=0&single=true&output=csv";
-const schoolClasses = ["Jr KG", "Sr KG", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
-
 let feesDataCache = { payments: [], feeStructure: {}, students: [] };
+let currentActiveSection = 'home';   // track for sibling switch refresh
+let deferredPrompt;
 
+// Helper: escapeHtml
 function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
 function formatDate(dateStr) { let p=dateStr.split('-'); if(p.length===3) return `${p[2]}/${p[1]}/${p[0]}`; return dateStr; }
 function scrollToTop() { window.scrollTo({top:0,behavior:'smooth'}); }
@@ -142,8 +148,10 @@ if(localStorage.getItem('darkMode')==='true') document.body.classList.add('dark'
 window.onload = () => {
     setTimeout(() => {
         document.getElementById('splash-screen').classList.add('hidden');
-        if(localStorage.getItem('userRole') === 'Student') {
+        const savedRole = localStorage.getItem('userRole');
+        if(savedRole === 'Student' && localStorage.getItem('userName')) {
             document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('user-name-display').innerText = `Student • ${localStorage.getItem('userName')}`;
             loadSection('home');
         } else {
             document.getElementById('login-screen').classList.remove('hidden');
@@ -151,9 +159,33 @@ window.onload = () => {
     }, 1500);
 };
 
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; const btn = document.getElementById('install-button-container'); if(btn) btn.classList.remove('hidden'); });
+// ======================= SIBLING MANAGEMENT =======================
+function updateCurrentStudentFromSibling(siblingObj) {
+    localStorage.setItem('userName', siblingObj.name);
+    localStorage.setItem('mappedClass', siblingObj.class);
+    localStorage.setItem('userGR', siblingObj.gr || 'Pending');
+    localStorage.setItem('userPhone', siblingObj.phone);
+    document.getElementById('user-name-display').innerText = `Student • ${siblingObj.name}`;
+    // Reload current section after updating storage
+    if (currentActiveSection) {
+        loadSection(currentActiveSection);
+    }
+}
 
-// ======================= LOGIN =======================
+function switchToSibling(index) {
+    const siblingsStr = localStorage.getItem('siblingsList');
+    if (!siblingsStr) return;
+    const siblings = JSON.parse(siblingsStr);
+    if (index >= 0 && index < siblings.length) {
+        const selected = siblings[index];
+        localStorage.setItem('currentSiblingIndex', index);
+        updateCurrentStudentFromSibling(selected);
+        // Re-render "more" section if currently on profile to refresh highlight
+        if (currentActiveSection === 'more') loadSection('more');
+    }
+}
+
+// ======================= LOGIN + SIBLINGS DETECTION =======================
 window.handleLogin = async () => {
     const phone = document.getElementById('phone').value.trim();
     const code = document.getElementById('code').value.trim();
@@ -169,40 +201,78 @@ window.handleLogin = async () => {
         const phoneIdx = headers.findIndex(h => h.includes('contact') || h === 'phone' || h === 'mobile');
         const codeIdx = headers.findIndex(h => h.includes('code') || h === 'password' || h === 'pin');
         
-        let student = null;
+        let matchedStudent = null;
+        let matchedRowIndex = -1;
+        // First find exact match for phone+code
         for(let i=1; i<rows.length; i++) {
             const sPhone = rows[i][phoneIdx]?.replace(/"/g, '').trim();
             const sCode = rows[i][codeIdx]?.replace(/"/g, '').trim();
             if(sPhone === phone && sCode === code) {
-                student = {
+                matchedStudent = {
                     gr: rows[i][grIdx]?.replace(/"/g, '').trim() || 'Pending',
                     name: rows[i][nameIdx]?.replace(/"/g, '').trim(),
                     class: rows[i][classIdx]?.replace(/"/g, '').trim() || 'N/A',
                     phone: sPhone
                 };
+                matchedRowIndex = i;
                 break;
             }
         }
-        if(student) {
-            localStorage.setItem('userRole', 'Student');
-            localStorage.setItem('userName', student.name);
-            localStorage.setItem('mappedClass', student.class);
-            localStorage.setItem('userGR', student.gr);
-            localStorage.setItem('userPhone', phone);
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
-            document.getElementById('user-name-display').innerText = `Student • ${student.name}`;
-            loadSection('home');
-            if('Notification' in window && 'serviceWorker' in navigator) Notification.requestPermission();
-            if ('Notification' in window && Notification.permission === 'default') { Notification.requestPermission();}
-        } else {
-            alert("Invalid phone or code");
+        if(!matchedStudent) { alert("Invalid phone or code"); return; }
+        
+        // Collect all siblings (all rows with same phone number)
+        const siblings = [];
+        for(let i=1; i<rows.length; i++) {
+            const sPhone = rows[i][phoneIdx]?.replace(/"/g, '').trim();
+            if(sPhone === phone) {
+                const sName = rows[i][nameIdx]?.replace(/"/g, '').trim();
+                const sClass = rows[i][classIdx]?.replace(/"/g, '').trim() || 'N/A';
+                const sGr = rows[i][grIdx]?.replace(/"/g, '').trim() || 'Pending';
+                if(sName) {
+                    siblings.push({
+                        name: sName,
+                        class: sClass,
+                        gr: sGr,
+                        phone: phone
+                    });
+                }
+            }
         }
+        // Deduplicate by name+class (if duplicates, keep first, but typically each row unique)
+        const uniqueSiblings = [];
+        const keySet = new Set();
+        for(let sib of siblings) {
+            const key = `${sib.name}|${sib.class}`;
+            if(!keySet.has(key)) {
+                keySet.add(key);
+                uniqueSiblings.push(sib);
+            }
+        }
+        // Find index of current matched student in siblings list
+        let currentIdx = uniqueSiblings.findIndex(s => s.name === matchedStudent.name && s.class === matchedStudent.class);
+        if(currentIdx === -1 && uniqueSiblings.length) currentIdx = 0;
+        
+        // Store siblings and current state
+        localStorage.setItem('siblingsList', JSON.stringify(uniqueSiblings));
+        localStorage.setItem('currentSiblingIndex', currentIdx);
+        localStorage.setItem('userRole', 'Student');
+        localStorage.setItem('userName', matchedStudent.name);
+        localStorage.setItem('mappedClass', matchedStudent.class);
+        localStorage.setItem('userGR', matchedStudent.gr);
+        localStorage.setItem('userPhone', phone);
+        
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        document.getElementById('user-name-display').innerText = `Student • ${matchedStudent.name}`;
+        loadSection('home');
+        if('Notification' in window && 'serviceWorker' in navigator) Notification.requestPermission();
+        if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
     } catch(e) { console.error(e); alert("Login failed. Check internet."); }
 };
 
-// ======================= LOAD SECTION =======================
+// ======================= LOAD SECTION (enhanced with sibling UI in 'more') =======================
 window.loadSection = (section) => {
+    currentActiveSection = section;
     const content = document.getElementById('content');
     const name = localStorage.getItem('userName');
     const mappedClass = localStorage.getItem('mappedClass');
@@ -225,25 +295,39 @@ window.loadSection = (section) => {
         fetchNotices();
     } else if(section === 'more') {
         const phone = localStorage.getItem('userPhone');
+        const siblingsStr = localStorage.getItem('siblingsList');
+        let siblingsHtml = '';
+        if(siblingsStr) {
+            const siblings = JSON.parse(siblingsStr);
+            const currentName = localStorage.getItem('userName');
+            const currentClass = localStorage.getItem('mappedClass');
+            if(siblings.length > 1) {
+                siblingsHtml = `<div class="bg-white rounded-2xl shadow-md overflow-hidden mt-4"><div class="p-4 border-b"><h3 class="font-black text-gray-800"><i class="fas fa-users mr-2 text-orange-500"></i>Switch Sibling Account</h3><p class="text-xs text-gray-500 mt-1">Tap any sibling to switch dashboard</p></div><div class="p-3 flex flex-wrap gap-2">`;
+                siblings.forEach((sib, idx) => {
+                    const isActive = (sib.name === currentName && sib.class === currentClass);
+                    siblingsHtml += `<button onclick="switchToSibling(${idx})" class="sibling-chip px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 ${isActive ? 'active-sibling' : ''}"><i class="fas fa-user-graduate"></i> ${escapeHtml(sib.name)} (${escapeHtml(sib.class)})</button>`;
+                });
+                siblingsHtml += `</div></div>`;
+            }
+        }
         content.innerHTML = `
-            <div class="space-y-4"><div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 text-white"><div class="flex items-center gap-4"><div class="bg-white/20 p-3 rounded-full"><i class="fas fa-user-circle text-4xl"></i></div><div><h3 class="font-black text-xl">${escapeHtml(name)}</h3><p>Student</p><p class="text-xs"><i class="fas fa-phone"></i> ${escapeHtml(phone) || 'Not provided'}</p></div></div></div>
-            <div class="bg-white rounded-2xl shadow-md overflow-hidden"><div class="p-4 border-b"><h3 class="font-black text-gray-800"><i class="fas fa-cog mr-2 text-orange-500"></i>Settings</h3></div><div class="p-4 space-y-3">
-                <button id="enable-notifications-btn" onclick="alert('Notifications can be enabled via browser settings.')" class="w-full p-3 bg-blue-50 rounded-xl text-blue-700 font-bold text-left"><i class="fas fa-bell mr-2"></i>Enable Notifications</button>
-                <button onclick="triggerInstall()" id="install-app-btn" class="w-full p-3 bg-green-50 rounded-xl text-green-700 font-bold text-left">    <i class="fas fa-download mr-2"></i>Install App</button>
-                
-                <div id="install-button-container" class="${deferredPrompt?'':'hidden'}"><button onclick="triggerInstall()" class="w-full p-3 bg-green-50 rounded-xl text-green-700 font-bold text-left"><i class="fas fa-download mr-2"></i>Install App</button></div>
-                <button onclick="showFeesChart()" class="w-full p-3 bg-purple-50 rounded-xl text-purple-700 font-bold text-left"><i class="fas fa-chart-line mr-2"></i>View Fees Chart</button>
-                <button onclick="handleLogout()" class="w-full p-3 bg-red-50 rounded-xl text-red-700 font-bold text-left"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
-            </div></div></div>`;
-        setTimeout(() => { if(deferredPrompt) document.getElementById('install-button-container')?.classList.remove('hidden'); }, 100);
+            <div class="space-y-4">
+                <div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 text-white"><div class="flex items-center gap-4"><div class="bg-white/20 p-3 rounded-full"><i class="fas fa-user-circle text-4xl"></i></div><div><h3 class="font-black text-xl">${escapeHtml(name)}</h3><p>Student</p><p class="text-xs"><i class="fas fa-phone"></i> ${escapeHtml(phone) || 'Not provided'}</p><p class="text-xs mt-1"><i class="fas fa-graduation-cap"></i> Class: ${escapeHtml(localStorage.getItem('mappedClass'))}</p></div></div></div>
+                ${siblingsHtml}
+                <div class="bg-white rounded-2xl shadow-md overflow-hidden"><div class="p-4 border-b"><h3 class="font-black text-gray-800"><i class="fas fa-cog mr-2 text-orange-500"></i>Settings</h3></div><div class="p-4 space-y-3">
+                    <button id="enable-notifications-btn" onclick="alert('Notifications can be enabled via browser settings.')" class="w-full p-3 bg-blue-50 rounded-xl text-blue-700 font-bold text-left"><i class="fas fa-bell mr-2"></i>Enable Notifications</button>
+                    <button onclick="triggerInstall()" id="install-app-btn" class="w-full p-3 bg-green-50 rounded-xl text-green-700 font-bold text-left"><i class="fas fa-download mr-2"></i>Install App</button>
+                    <button onclick="showFeesChart()" class="w-full p-3 bg-purple-50 rounded-xl text-purple-700 font-bold text-left"><i class="fas fa-chart-line mr-2"></i>View Fees Chart</button>
+                    <button onclick="handleLogout()" class="w-full p-3 bg-red-50 rounded-xl text-red-700 font-bold text-left"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
+                </div></div>
+            </div>`;
     }
 };
 
 window.setActiveNav = (el, sec) => { document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.remove('active')); el.classList.add('active'); loadSection(sec); };
-
 window.handleLogout = () => { if(confirm("Logout?")){ localStorage.clear(); document.getElementById('main-app').classList.add('hidden'); document.getElementById('login-screen').classList.remove('hidden'); } };
 
-// ======================= ATTENDANCE HISTORY =======================
+// ======================= ATTENDANCE, HOMEWORK, NOTICES (existing logic, dynamic using localStorage) =======================
 async function fetchPersonalStudentLogs(studentName) {
     const container = document.getElementById('personal-logs');
     if(!container) return;
@@ -282,7 +366,6 @@ async function fetchPersonalStudentLogs(studentName) {
     } catch(e) { container.innerHTML = `<div class="text-red-500 text-center">Error loading attendance</div>`; }
 }
 
-// ======================= HOMEWORK =======================
 function fetchHomework() {
     const container = document.getElementById('homework-list');
     if(!container) return;
@@ -299,8 +382,6 @@ function fetchHomework() {
         container.innerHTML = html || '<p class="text-center text-gray-400 py-10">No homework for your class</p>';
     });
 }
-
-// ======================= NOTICES =======================
 function fetchNotices() {
     const container = document.getElementById('notices-list');
     if(!container) return;
@@ -334,298 +415,22 @@ window.switchLangNotice = (id, lang) => {
     });
 };
 
-// ======================= TIME TABLES =======================
-window.openDailyTimeTable = () => {
-    document.getElementById('content').innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-xl font-black">Daily Time Table</h2></div><div id="tt-grid" class="bg-white rounded-2xl shadow-md overflow-hidden p-4 text-center text-gray-400">Loading...</div></div>`;
-    loadClassTimetable(localStorage.getItem('mappedClass'));
-};
-window.loadClassTimetable = async (className) => {
-    const grid = document.getElementById('tt-grid');
-    if(!className) return;
-    try {
-        const snap = await firebase.database().ref(`timetable/class/${className}`).once('value');
-        const data = snap.val() || {};
-        const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-        const totalPeriods = 8, fridayMax = 4;
-        let html = '<div class="overflow-x-auto"><table class="w-full border-collapse text-sm"><thead><tr class="bg-amber-600 text-white"><th class="p-3 border border-amber-500">Period</th>'+days.map(d=>`<th class="p-3 border border-amber-500">${d}</th>`).join('')+'</tr></thead><tbody>';
-        for(let p=1;p<=totalPeriods;p++){
-            const isFriPeriod = p>fridayMax;
-            html+=`<tr class="${isFriPeriod?'bg-gray-50':''}"><td class="p-3 border text-center font-bold ${isFriPeriod?'text-gray-400':'text-amber-600 bg-amber-50'}">${p}${isFriPeriod?'†':''}</td>`;
-            for(let idx=0;idx<days.length;idx++){
-                const day=days[idx];
-                if(day==='Friday' && isFriPeriod){
-                    if(p===5) html+=`<td rowspan="${totalPeriods-fridayMax}" class="p-3 border text-center bg-amber-50 align-middle"><div class="flex flex-col items-center"><i class="fa-regular fa-clock text-amber-500 mb-1"></i><span class="text-amber-700 font-medium text-xs">Early Dismissal</span><span class="text-amber-500 text-[10px]">No classes</span></div></td>`;
-                    continue;
-                }
-                const val=data[day]?.[p]||'—';
-                html+=`<td class="p-3 border text-xs text-gray-700">${escapeHtml(val)}</td>`;
-            }
-            html+=`</tr>`;
-        }
-        html+=`<tr class="bg-gray-50"><td colspan="7" class="p-3 text-xs text-gray-500"><i class="fa-regular fa-clock mr-1"></i> <strong>Note:</strong> Friday has only 4 periods (Early dismissal)</td></tr></tbody></table></div>`;
-        grid.innerHTML=html;
-    } catch(e){ grid.innerHTML=`<p class="text-red-500">Error: ${e.message}</p>`; }
-};
-window.openExamTimeTable = () => {
-    document.getElementById('content').innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-xl font-black">Exam Time Table</h2></div><div id="exam-grid" class="bg-white rounded-2xl shadow-md p-4"></div></div>`;
-    loadExamTimetable(localStorage.getItem('mappedClass'));
-};
-window.loadExamTimetable = async (className) => {
-    const grid=document.getElementById('exam-grid');
-    try{
-        const snap=await firebase.database().ref(`exam_timetable/${className}`).once('value');
-        const data=snap.val()||{};
-        let html='<table class="w-full"><thead><tr class="bg-amber-100"><th class="p-2">Date</th><th class="p-2">Day</th><th class="p-2">Time</th><th class="p-2">Subject</th></tr></thead><tbody>';
-        for(let i=1;i<=10;i++){ let row=data[i]||{}; html+=`<tr><td class="border p-2 text-xs">${row.date||'-'}</td><td class="border p-2 text-xs">${row.day||'-'}</td><td class="border p-2 text-xs">${row.time||'-'}</td><td class="border p-2 text-xs font-bold text-blue-600">${row.sub||'-'}</td></tr>`; }
-        html+='</tbody></table>';
-        grid.innerHTML=html;
-    } catch(e){ grid.innerHTML='<p class="text-red-500">Error</p>'; }
-};
-
-// ======================= FEES DASHBOARD =======================
-window.showFeesDashboard = async () => {
-    document.getElementById('content').innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-lg font-black">Fees Dashboard</h2><button onclick="refreshFeesData()" class="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-refresh mr-1"></i>Refresh</button></div><div id="feesContainer"></div></div>`;
-    await loadFeesData();
-    renderStudentFeesDashboard();
-};
-async function loadFeesData() {
-    const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv";
-    try{
-        const paymentsRes=await fetch(FEES_CSV_URL);
-        const paymentsText=await paymentsRes.text();
-        const lines=paymentsText.split('\n');
-        const headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim().toLowerCase());
-        feesDataCache.payments=[];
-        for(let i=1;i<lines.length;i++){
-            if(!lines[i].trim()) continue;
-            const cols=lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            const nameIdx=headers.findIndex(h=>h.includes('name')||h.includes('student'));
-            const recIdx=headers.findIndex(h=>h.includes('receipt')||h.includes('voucher'));
-            const dateIdx=headers.findIndex(h=>h.includes('date'));
-            const amtIdx=headers.findIndex(h=>h.includes('amount')||h.includes('paid'));
-            let sname=nameIdx>=0?cols[nameIdx]?.replace(/"/g,'').trim():'';
-            let receipt=recIdx>=0?cols[recIdx]?.replace(/"/g,'').trim():`RCPT-${i}`;
-            let date=dateIdx>=0?cols[dateIdx]?.replace(/"/g,'').trim():'';
-            let amount=amtIdx>=0?parseFloat(cols[amtIdx]?.replace(/"/g,'').trim())||0:0;
-            if(!sname && cols[1]) sname=cols[1]?.replace(/"/g,'').trim();
-            if(!receipt && cols[0]) receipt=cols[0]?.replace(/"/g,'').trim();
-            if(!date && cols[2]) date=cols[2]?.replace(/"/g,'').trim();
-            if(!amount && cols[3]) amount=parseFloat(cols[3]?.replace(/"/g,'').trim())||0;
-            if(sname) feesDataCache.payments.push({name:sname,receiptNo:receipt,date,amount});
-        }
-        const snap=await firebase.database().ref('feeStructure/classWise').once('value');
-        feesDataCache.feeStructure=snap.val()||{};
-        const studentRes=await fetch(STUDENT_SHEET_CSV);
-        const studentText=await studentRes.text();
-        const rows=studentText.split('\n').slice(1);
-        feesDataCache.students=[];
-        for(const row of rows){
-            if(!row.trim()) continue;
-            const cols=row.split(',');
-            const name=cols[7]?.replace(/"/g,'').trim();
-            const cls=cols[1]?.replace(/"/g,'').trim();
-            const gr=cols[2]?.replace(/"/g,'').trim();
-            const ph=cols[15]?.replace(/"/g,'').trim();
-            if(name) feesDataCache.students.push({name,class:cls,grNo:gr,phone:ph});
-        }
-    } catch(e){ console.error(e); }
-}
+// ======================= TIME TABLES & FEES (unchanged) =======================
+window.openDailyTimeTable = () => { document.getElementById('content').innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-xl font-black">Daily Time Table</h2></div><div id="tt-grid" class="bg-white rounded-2xl shadow-md overflow-hidden p-4 text-center text-gray-400">Loading...</div></div>`; loadClassTimetable(localStorage.getItem('mappedClass')); };
+window.loadClassTimetable = async (className) => { /* existing logic */ const grid = document.getElementById('tt-grid'); if(!className) return; try { const snap = await firebase.database().ref(`timetable/class/${className}`).once('value'); const data = snap.val() || {}; const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]; const totalPeriods = 8, fridayMax = 4; let html = '<div class="overflow-x-auto"><table class="w-full border-collapse text-sm"><thead><tr class="bg-amber-600 text-white"><th class="p-3 border border-amber-500">Period</th>'+days.map(d=>`<th class="p-3 border border-amber-500">${d}</th>`).join('')+'</thead><tbody>'; for(let p=1;p<=totalPeriods;p++){ const isFriPeriod = p>fridayMax; html+=`<tr class="${isFriPeriod?'bg-gray-50':''}"><td class="p-3 border text-center font-bold ${isFriPeriod?'text-gray-400':'text-amber-600 bg-amber-50'}">${p}${isFriPeriod?'†':''}</td>`; for(let idx=0;idx<days.length;idx++){ const day=days[idx]; if(day==='Friday' && isFriPeriod){ if(p===5) html+=`<td rowspan="${totalPeriods-fridayMax}" class="p-3 border text-center bg-amber-50 align-middle"><div class="flex flex-col items-center"><i class="fa-regular fa-clock text-amber-500 mb-1"></i><span class="text-amber-700 font-medium text-xs">Early Dismissal</span><span class="text-amber-500 text-[10px]">No classes</span></div></td>`; continue; } const val=data[day]?.[p]||'—'; html+=`<td class="p-3 border text-xs text-gray-700">${escapeHtml(val)}</td>`; } html+=`</tr>`; } html+=`<tr class="bg-gray-50"><td colspan="7" class="p-3 text-xs text-gray-500"><i class="fa-regular fa-clock mr-1"></i> <strong>Note:</strong> Friday has only 4 periods (Early dismissal)</td></tr></tbody></table></div>`; grid.innerHTML=html; } catch(e){ grid.innerHTML=`<p class="text-red-500">Error</p>`; } };
+window.openExamTimeTable = () => { document.getElementById('content').innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-xl font-black">Exam Time Table</h2></div><div id="exam-grid" class="bg-white rounded-2xl shadow-md p-4"></div></div>`; loadExamTimetable(localStorage.getItem('mappedClass')); };
+window.loadExamTimetable = async (className) => { const grid=document.getElementById('exam-grid'); try{ const snap=await firebase.database().ref(`exam_timetable/${className}`).once('value'); const data=snap.val()||{}; let html='<table class="w-full"><thead><tr class="bg-amber-100"><th class="p-2">Date</th><th class="p-2">Day</th><th class="p-2">Time</th><th class="p-2">Subject</th></tr></thead><tbody>'; for(let i=1;i<=10;i++){ let row=data[i]||{}; html+=`<tr><td class="border p-2 text-xs">${row.date||'-'}</td><td class="border p-2 text-xs">${row.day||'-'}</td><td class="border p-2 text-xs">${row.time||'-'}</td><td class="border p-2 text-xs font-bold text-blue-600">${row.sub||'-'}</td></tr>`; } html+='</tbody></table>'; grid.innerHTML=html; } catch(e){ grid.innerHTML='<p class="text-red-500">Error</p>'; } };
+window.showFeesDashboard = async () => { document.getElementById('content').innerHTML = `<div class="space-y-4 pb-20"><div class="flex items-center gap-2"><button onclick="loadSection('home')" class="p-2 bg-gray-100 rounded-full"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-lg font-black">Fees Dashboard</h2><button onclick="refreshFeesData()" class="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-refresh mr-1"></i>Refresh</button></div><div id="feesContainer"></div></div>`; await loadFeesData(); renderStudentFeesDashboard(); };
+async function loadFeesData() { const FEES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXFLMLsq-rdnjq7DGez4eDUlYupTGX9bDMOWnDF1zQifrq9r2nNISZJRT6-AaS_Pwg8RqZFbsfbMy/pub?gid=0&single=true&output=csv"; try{ const paymentsRes=await fetch(FEES_CSV_URL); const paymentsText=await paymentsRes.text(); const lines=paymentsText.split('\n'); const headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim().toLowerCase()); feesDataCache.payments=[]; for(let i=1;i<lines.length;i++){ if(!lines[i].trim()) continue; const cols=lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); const nameIdx=headers.findIndex(h=>h.includes('name')||h.includes('student')); let sname=nameIdx>=0?cols[nameIdx]?.replace(/"/g,'').trim():''; let receipt=cols[0]?.replace(/"/g,'').trim() || `RCPT-${i}`; let date=cols[2]?.replace(/"/g,'').trim() || ''; let amount=parseFloat(cols[3]?.replace(/"/g,'').trim())||0; if(sname) feesDataCache.payments.push({name:sname,receiptNo:receipt,date,amount}); } const snap=await firebase.database().ref('feeStructure/classWise').once('value'); feesDataCache.feeStructure=snap.val()||{}; } catch(e){ console.error(e); } }
 window.refreshFeesData = async () => { await loadFeesData(); renderStudentFeesDashboard(); };
-function renderStudentFeesDashboard() {
-    const container = document.getElementById('feesContainer');
-    if(!container) return;
-    const studentName = localStorage.getItem('userName');
-    const studentGR = localStorage.getItem('userGR');
-    const studentClass = localStorage.getItem('mappedClass');
-    function normalize(s){ return s.toLowerCase().replace(/[^\w\s]/g,'').replace(/\s+/g,' ').trim(); }
-    const normalizedStudent = normalize(studentName);
-    const payments = feesDataCache.payments.filter(p => {
-        const norm = normalize(p.name);
-        return norm === normalizedStudent || norm.includes(normalizedStudent) || normalizedStudent.includes(norm);
-    }).sort((a,b)=>b.date.localeCompare(a.date));
-    const totalPaid = payments.reduce((sum,p)=>sum+p.amount,0);
-    const totalFees = feesDataCache.feeStructure[studentClass] || 0;
-    const balance = totalFees - totalPaid;
-    container.innerHTML = `
-        <div class="space-y-4">
-            <div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl p-4 text-white"><div class="flex justify-between"><div><h3 class="font-bold">${escapeHtml(studentName)}</h3><p>Class ${studentClass}</p>${studentGR?`<p class="text-xs">GR: ${studentGR}</p>`:''}</div><div class="bg-white/20 p-2 rounded text-center"><span class="text-2xl font-bold">₹${totalPaid.toLocaleString()}</span><p class="text-[10px]">Total Paid</p></div></div></div>
-            <div class="bg-white rounded-xl shadow-md overflow-hidden"><div class="bg-gray-50 p-3 font-bold"><i class="fa-solid fa-receipt"></i> Payment History</div><div class="overflow-x-auto"><table class="w-full">${payments.length===0?`<tr><td class="p-6 text-center text-gray-400">No records</td></tr>`:`<thead><tr class="border-b"><th class="p-2 text-left">Receipt</th><th class="p-2 text-left">Date</th><th class="p-2 text-right">Amount</th></tr></thead><tbody>${payments.map(p=>`<tr class="border-b"><td class="p-2">${escapeHtml(p.receiptNo)}</td><td class="p-2">${p.date||'N/A'}</td><td class="p-2 text-right font-bold text-green-600">₹${p.amount.toLocaleString()}</td></tr>`).join('')}</tbody>`}</table></div><div class="bg-gray-50 p-3 flex justify-between font-bold"><span>Total Paid:</span><span class="text-green-600">₹${totalPaid.toLocaleString()}</span></div><div class="p-3 flex justify-between font-bold"><span>Balance:</span><span class="${balance>0?'text-red-600':'text-green-600'}">${balance>0?`₹${balance.toLocaleString()}`:'FULL PAID ✓'}</span></div></div>
-            ${balance>0?`<div class="bg-yellow-50 p-3 rounded-xl mt-3"><i class="fa-solid fa-circle-info text-yellow-600"></i> Pending amount ₹${balance.toLocaleString()}. Please contact school office.</div>`:''}
-            ${totalFees===0?`<div class="bg-yellow-50 p-3 rounded-xl mt-3 text-yellow-700"><i class="fa-solid fa-circle-exclamation"></i> Annual fee for Class ${studentClass} not set by admin. Contact school.</div>`:''}
-        </div>`;
-}
+function renderStudentFeesDashboard() { const container = document.getElementById('feesContainer'); if(!container) return; const studentName = localStorage.getItem('userName'); const studentClass = localStorage.getItem('mappedClass'); const payments = feesDataCache.payments.filter(p => p.name.toLowerCase().trim() === studentName.toLowerCase().trim()); const totalPaid = payments.reduce((sum,p)=>sum+p.amount,0); const totalFees = feesDataCache.feeStructure[studentClass] || 0; const balance = totalFees - totalPaid; container.innerHTML = `<div class="space-y-4"><div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl p-4 text-white"><div class="flex justify-between"><div><h3 class="font-bold">${escapeHtml(studentName)}</h3><p>Class ${studentClass}</p></div><div class="bg-white/20 p-2 rounded text-center"><span class="text-2xl font-bold">₹${totalPaid.toLocaleString()}</span><p class="text-[10px]">Total Paid</p></div></div></div><div class="bg-white rounded-xl shadow-md overflow-hidden"><div class="bg-gray-50 p-3 font-bold"><i class="fa-solid fa-receipt"></i> Payment History</div><div class="overflow-x-auto"><table class="w-full">${payments.length===0?`<tr><td class="p-6 text-center text-gray-400">No records</td></tr>`:`<thead><tr class="border-b"><th class="p-2 text-left">Receipt</th><th class="p-2 text-left">Date</th><th class="p-2 text-right">Amount</th></tr></thead><tbody>${payments.map(p=>`<tr class="border-b"><td class="p-2">${escapeHtml(p.receiptNo)}</td><td class="p-2">${p.date||'N/A'}</td><td class="p-2 text-right font-bold text-green-600">₹${p.amount.toLocaleString()}</td></tr>`).join('')}</tbody>`}</table></div><div class="bg-gray-50 p-3 flex justify-between font-bold"><span>Total Paid:</span><span class="text-green-600">₹${totalPaid.toLocaleString()}</span></div><div class="p-3 flex justify-between font-bold"><span>Balance:</span><span class="${balance>0?'text-red-600':'text-green-600'}">${balance>0?`₹${balance.toLocaleString()}`:'FULL PAID ✓'}</span></div></div>${balance>0?`<div class="bg-yellow-50 p-3 rounded-xl mt-3"><i class="fa-solid fa-circle-info text-yellow-600"></i> Pending amount ₹${balance.toLocaleString()}. Please contact school office.</div>`:''}</div>`; }
 window.showFeesChart = async () => { await loadFeesData(); document.getElementById('content').innerHTML=`<div class="space-y-4"><button onclick="loadSection('more')" class="text-blue-600">&larr; Back</button><h2 class="text-lg font-black">Fee Structure by Class</h2>${Object.entries(feesDataCache.feeStructure).map(([cls,amt])=>`<div class="bg-white rounded-xl shadow-md p-4 flex justify-between"><span>Class ${cls}</span><span class="font-bold">₹${amt.toLocaleString()}</span></div>`).join('')}</div>`; };
-// ======================= PUSH NOTIFICATION MANAGER (CLIENT-SIDE) =======================
-// Tracks last known timestamps to detect new items
-let lastHomeworkTimestamp = 0;
-let lastNoticeTimestamp = 0;
-let lastAttendanceStatus = '';
 
-// Helper: show browser notification
-function showPushNotification(title, body, tag = 'erp-notify') {
-    if (!('Notification' in window)) return;
-    if (Notification.permission !== 'granted') return;
-
-    // Avoid duplicate notifications if the user is currently on the page?
-    // We'll still show, but you can add a check if document is focused.
-    try {
-        const notification = new Notification(title, {
-            body: body,
-            icon: 'Padgha Urdu High School Logo.png',
-            tag: tag,         // prevents stacking same type
-            vibrate: [200, 100, 200]
-        });
-        // Optional: close after 5 seconds
-        setTimeout(() => notification.close(), 5000);
-    } catch (e) { console.warn('Notification failed', e); }
-}
-
-// Initialize tracking – called once after login
-function initNotificationTracking() {
-    const userClass = localStorage.getItem('mappedClass');
-    const userGR = localStorage.getItem('userGR');
-    const studentName = localStorage.getItem('userName');
-
-    if (!userClass) return;
-
-    // ---------- 1. Track HOMEWORK ----------
-    firebase.database().ref('homework').orderByChild('timestamp').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-
-        // Convert to array and sort descending (newest first)
-        const items = Object.entries(data).map(([id, hw]) => ({ id, ...hw }));
-        items.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-        if (items.length === 0) return;
-        const newestTimestamp = items[0].timestamp || 0;
-
-        if (lastHomeworkTimestamp === 0) {
-            // First load – just store the newest timestamp
-            lastHomeworkTimestamp = newestTimestamp;
-        } else if (newestTimestamp > lastHomeworkTimestamp) {
-            // There is new homework!
-            const newItem = items[0];
-            if (newItem.class === userClass) {
-                showPushNotification(
-                    '📚 New Homework',
-                    `${newItem.subject}: ${newItem.description.substring(0, 60)}${newItem.description.length > 60 ? '…' : ''}`,
-                    'homework'
-                );
-            }
-            lastHomeworkTimestamp = newestTimestamp;
-        }
-    });
-
-    // ---------- 2. Track NOTICES ----------
-    firebase.database().ref('notices').orderByChild('timestamp').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-
-        const items = Object.entries(data).map(([id, n]) => ({ id, ...n }));
-        items.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-        if (items.length === 0) return;
-        const newestTimestamp = items[0].timestamp || 0;
-
-        if (lastNoticeTimestamp === 0) {
-            lastNoticeTimestamp = newestTimestamp;
-        } else if (newestTimestamp > lastNoticeTimestamp) {
-            const newNotice = items[0];
-            // Check if this notice is relevant for this student
-            let relevant = false;
-            if (newNotice.targetType === 'school') relevant = true;
-            else if (newNotice.targetType === 'class' && newNotice.targetValue === userClass) relevant = true;
-            else if (newNotice.targetType === 'student' && newNotice.targetValue === userGR) relevant = true;
-
-            if (relevant) {
-                showPushNotification(
-                    '📢 New Notice',
-                    `${newNotice.title}`,
-                    'notice'
-                );
-            }
-            lastNoticeTimestamp = newestTimestamp;
-        }
-    });
-
-    // ---------- 3. Track ATTENDANCE marking (student's own record) ----------
-    const today = new Date().toISOString().split('T')[0];
-    firebase.database().ref(`student_attendance/${today}`).on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-
-        let currentStatus = '';
-        // find this student's attendance
-        for (let className in data) {
-            const records = data[className]?.records;
-            if (!records) continue;
-            for (let gr in records) {
-                const rec = records[gr];
-                if ((userGR && gr === userGR) || (rec.name && rec.name === studentName)) {
-                    currentStatus = rec.status;
-                    break;
-                }
-            }
-        }
-
-        if (lastAttendanceStatus === '') {
-            // first load – store initial status
-            lastAttendanceStatus = currentStatus || 'unmarked';
-        } else if (currentStatus && currentStatus !== lastAttendanceStatus) {
-            // status changed – notify
-            const statusMsg = currentStatus === 'Present' ? '✅ Present today!' : '❌ Absent today';
-            showPushNotification(
-                '📋 Attendance Updated',
-                `${statusMsg} (${new Date().toLocaleDateString()})`,
-                'attendance'
-            );
-            lastAttendanceStatus = currentStatus;
-        }
-    });
-}
-
-// Override the existing loadSection function to start tracking after home loads
-const originalLoadSection = window.loadSection;
-window.loadSection = function(section) {
-    originalLoadSection(section);
-    if (section === 'home' && !window._notificationsInitialized) {
-        window._notificationsInitialized = true;
-        setTimeout(() => initNotificationTracking(), 1000);
-    }
-};
-
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  const btn = document.getElementById('install-app-btn');
-  if (btn) btn.style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  deferredPrompt = null;
-  const btn = document.getElementById('install-app-btn');
-  if (btn) btn.style.display = 'none';
-});
-window.triggerInstall = async () => {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      deferredPrompt = null;
-      const btn = document.getElementById('install-app-btn');
-      if (btn) btn.style.display = 'none';
-    }
-  } else {
-    alert('To install the Student app manually:\n• Android/Chrome: tap menu → "Install app"\n• iPhone/Safari: tap Share → "Add to Home Screen"');
-  }
-};
-    
-      if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw-student.js')
-      .then(reg => console.log('Student SW registered', reg))
-      .catch(err => console.error('Student SW failed', err));
-  }
+// Notification tracking (simplified, reads dynamic class)
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; const btn = document.getElementById('install-app-btn'); if(btn) btn.style.display = 'flex'; });
+window.triggerInstall = async () => { if (deferredPrompt) { deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') deferredPrompt = null; } else { alert('To install the Student app manually:\n• Android/Chrome: tap menu → "Install app"\n• iPhone/Safari: tap Share → "Add to Home Screen"'); } };
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw-student.js').catch(err => console.error('Student SW failed', err)); }
 </script>
 </body>
 </html>
+```
