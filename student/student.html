@@ -139,36 +139,38 @@ const messaging = firebase.messaging();
 async function requestPushPermission() {
     try {
         const permission = await Notification.requestPermission();
+        
         if (permission === 'granted') {
             const token = await messaging.getToken({ 
                 vapidKey: "BDEMWUO3WUNf6Dk7mDjT-IgeCC-EfEDsLY5XYZHcS2V-Tc9rFIDhQEFU1eO6ItnbB0rKiok5vdg9BH5EbLyFTK4" 
             });
             
             if (token) {
-                // --- PASTE THIS NEW LOGIC HERE ---
                 const userName = localStorage.getItem('userName');
                 const userPhone = localStorage.getItem('userPhone');
                 
                 if (userName && userPhone) {
-                    // Clean the name of characters Firebase doesn't allow (. $ # [ ])
+                    // Clean the name for Firebase compatibility
                     const cleanName = userName.replace(/[.$#[\]]/g, '').replace(/\s+/g, '_');
                     const storageKey = `${userPhone}_${cleanName}`;
 
-                    firebase.database().ref(`fcm_tokens/${storageKey}`).set({
+                    await firebase.database().ref(`fcm_tokens/${storageKey}`).set({
                         token: token,
                         fullName: userName,
                         class: localStorage.getItem('mappedClass'),
                         phone: userPhone,
                         lastUpdated: new Date().toISOString()
-                    }).then(() => {
-                        console.log('Notification token saved for: ' + userName);
                     });
+                    
+                    alert("✅ Notifications enabled successfully!");
                 }
-                // ---------------------------------
             }
+        } else if (permission === 'denied') {
+            alert("❌ Permission denied. Please enable notifications in your browser settings to receive school updates.");
         }
     } catch (error) {
-        console.error('Error getting notification permission:', error);
+        console.error('Error:', error);
+        alert("An error occurred while enabling notifications.");
     }
 }
 
@@ -366,7 +368,7 @@ window.loadSection = (section) => {
                 <div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 text-white"><div class="flex items-center gap-4"><div class="bg-white/20 p-3 rounded-full"><i class="fas fa-user-circle text-4xl"></i></div><div><h3 class="font-black text-xl">${escapeHtml(name)}</h3><p>Student</p><p class="text-xs"><i class="fas fa-phone"></i> ${escapeHtml(phone) || 'Not provided'}</p><p class="text-xs mt-1"><i class="fas fa-graduation-cap"></i> Class: ${escapeHtml(localStorage.getItem('mappedClass'))}</p></div></div></div>
                 ${siblingsHtml}
                 <div class="bg-white rounded-2xl shadow-md overflow-hidden"><div class="p-4 border-b"><h3 class="font-black text-gray-800"><i class="fas fa-cog mr-2 text-orange-500"></i>Settings</h3></div><div class="p-4 space-y-3">
-                    <button id="enable-notifications-btn" onclick="alert('Notifications can be enabled via browser settings.')" class="w-full p-3 bg-blue-50 rounded-xl text-blue-700 font-bold text-left"><i class="fas fa-bell mr-2"></i>Enable Notifications</button>
+                    <button id="enable-notifications-btn" onclick="requestPushPermission()" class="w-full p-3 bg-blue-50 rounded-xl text-blue-700 font-bold text-left"><i class="fas fa-bell mr-2"></i>Enable Notifications</button>
                     <button onclick="testNotification()" class="w-full p-3 bg-indigo-50 rounded-xl text-indigo-700 font-bold text-left"><i class="fas fa-bell mr-2"></i>Test Notification</button>
                     <button onclick="triggerInstall()" id="install-app-btn" class="w-full p-3 bg-green-50 rounded-xl text-green-700 font-bold text-left"><i class="fas fa-download mr-2"></i>Install App</button>
                     <button onclick="showFeesChart()" class="w-full p-3 bg-purple-50 rounded-xl text-purple-700 font-bold text-left"><i class="fas fa-chart-line mr-2"></i>View Fees Chart</button>
