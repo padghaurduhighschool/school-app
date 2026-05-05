@@ -139,7 +139,12 @@ const messaging = firebase.messaging();
 async function requestPushPermission() {
     try {
         const permission = await Notification.requestPermission();
-        
+        // Add this specific line inside requestPushPermission
+        const registration = await navigator.serviceWorker.getRegistration();
+        const token = await messaging.getToken({ 
+            vapidKey: "BDEMWUO3WUNf6Dk7mDjT-IgeCC-EfEDsLY5XYZHcS2V-Tc9rFIDhQEFU1eO6ItnbB0rKiok5vdg9BH5EbLyFTK4",
+            serviceWorkerRegistration: registration // This tells Firebase to use your existing sw-student.js
+        });
         if (permission === 'granted') {
             const token = await messaging.getToken({ 
                 vapidKey: "BDEMWUO3WUNf6Dk7mDjT-IgeCC-EfEDsLY5XYZHcS2V-Tc9rFIDhQEFU1eO6ItnbB0rKiok5vdg9BH5EbLyFTK4" 
