@@ -140,20 +140,32 @@ async function requestPushPermission() {
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-            console.log('Notification permission granted.');
-            
-            // Get the FCM registration token
             const token = await messaging.getToken({ 
-                // You must generate a VAPID key in your Firebase Console -> Project Settings -> Cloud Messaging -> Web configuration
-                vapidKey: "BDEMWUO3WUNf6Dk7mDjT-IgeCC-EfEDsLY5XYZHcS2V-Tc9rFIDhQEFU1eO6ItnbB0rKiok5vdg9BH5EbLyFTK4"; 
+                vapidKey: "BDEMWUO3WUNf6Dk7mDjT-IgeCC-EfEDsLY5XYZHcS2V-Tc9rFIDhQEFU1eO6ItnbB0rKiok5vdg9BH5EbLyFTK4" 
             });
             
             if (token) {
-                console.log('FCM Token:', token);
-                // TODO: Save this token to your Firebase Realtime Database under the student's profile
+                // --- PASTE THIS NEW LOGIC HERE ---
+                const userName = localStorage.getItem('userName');
+                const userPhone = localStorage.getItem('userPhone');
+                
+                if (userName && userPhone) {
+                    // Clean the name of characters Firebase doesn't allow (. $ # [ ])
+                    const cleanName = userName.replace(/[.$#[\]]/g, '').replace(/\s+/g, '_');
+                    const storageKey = `${userPhone}_${cleanName}`;
+
+                    firebase.database().ref(`fcm_tokens/${storageKey}`).set({
+                        token: token,
+                        fullName: userName,
+                        class: localStorage.getItem('mappedClass'),
+                        phone: userPhone,
+                        lastUpdated: new Date().toISOString()
+                    }).then(() => {
+                        console.log('Notification token saved for: ' + userName);
+                    });
+                }
+                // ---------------------------------
             }
-        } else {
-            console.log('Unable to get permission to notify.');
         }
     } catch (error) {
         console.error('Error getting notification permission:', error);
