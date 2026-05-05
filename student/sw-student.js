@@ -42,3 +42,35 @@ self.addEventListener('message', (event) => {
         event.waitUntil(clients.claim());
     }
 });
+// Import Firebase scripts into the Service Worker
+importScripts('https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.6.10/firebase-messaging-compat.js');
+
+// Initialize Firebase in the Service Worker
+firebase.initializeApp({
+    apiKey: "AIzaSyAatxuUMNJ2lK-jdWLNaugF-tNXElOcrUs",
+    authDomain: "padgha-school-erp.firebaseapp.com",
+    databaseURL: "https://padgha-school-erp-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "padgha-school-erp",
+    storageBucket: "padgha-school-erp.firebasestorage.app",
+    messagingSenderId: "481255456109",
+    appId: "1:481255456109:web:077e656f3dd03aee43ae64"
+});
+
+const messaging = firebase.messaging();
+
+// Handle background messages
+messaging.onBackgroundMessage((payload) => {
+  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: 'Padgha Urdu High School Logo.png',
+    badge: 'Padgha Urdu High School Logo.png'
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// KEEP YOUR EXISTING CACHE AND FETCH LOGIC BELOW THIS...
